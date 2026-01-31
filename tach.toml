@@ -1,0 +1,20 @@
+interfaces = []
+exclude = [
+    "**/*__pycache__",
+    "**/*egg-info",
+    "**/docs",
+    "**/tests",
+    "**/venv",
+]
+source_roots = [
+    "src/pmd",
+    "app",
+]
+
+[[modules]]
+path = "pmd"
+depends_on = []
+
+[[modules]]
+path = "app"
+depends_on = ["pmd"]

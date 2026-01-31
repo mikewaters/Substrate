@@ -1,0 +1,448 @@
+# Extended information dataset for integration tests
+# This extends sample_taxonomies.yaml with TopicSuggestion and Match entities
+#
+# Format:
+# topic_suggestions:
+#   - input_text: <string>
+#     topic_identifier: <topic identifier from sample_taxonomies.yaml>
+#     taxonomy_identifier: <taxonomy identifier>  # optional
+#     confidence: <float 0.0-1.0>
+#     rank: <int>
+#     model_name: <string>
+#     model_version: <string>
+#     context: {dict}  # optional metadata
+#
+# matches:
+#   - entity_type: <topic|taxonomy>
+#     entity_identifier: <identifier from sample_taxonomies.yaml>
+#     system: <string>  # external system name (e.g., 'wikidata', 'dbpedia')
+#     external_id: <string>  # ID in external system
+#     match_type: <exactMatch|closeMatch|broadMatch|narrowMatch|relatedMatch>
+#     confidence: <float 0.0-1.0>
+#     evidence: {dict}  # optional provenance/evidence
+#
+# Notes:
+# - TopicSuggestion links free-text input to existing topics
+# - Match links topics/taxonomies to external knowledge systems
+# - This file depends on sample_taxonomies.yaml being loaded first
+# - IDs are stable strings for test determinism
+
+---
+topic_suggestions:
+  # Suggestions for "tech" taxonomy topics
+  - input_text: Building a machine learning model for text classification
+    topic_identifier: tech:ai
+    taxonomy_identifier: tx:tech
+    confidence: 0.92
+    rank: 1
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["machine learning", "classification"]
+      source: user_input
+
+  - input_text: Building a machine learning model for text classification
+    topic_identifier: tech:llm
+    taxonomy_identifier: tx:tech
+    confidence: 0.78
+    rank: 2
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["text", "model"]
+      source: user_input
+
+  - input_text: Setting up AWS Lambda functions for serverless deployment
+    topic_identifier: tech:cloud
+    taxonomy_identifier: tx:tech
+    confidence: 0.95
+    rank: 1
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["AWS", "serverless", "Lambda"]
+      source: user_input
+
+  - input_text: Setting up AWS Lambda functions for serverless deployment
+    topic_identifier: tech:devops
+    taxonomy_identifier: tx:tech
+    confidence: 0.82
+    rank: 2
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["deployment", "infrastructure"]
+      source: user_input
+
+  - input_text: Implementing end-to-end encryption for IoT devices
+    topic_identifier: tech:security
+    taxonomy_identifier: tx:tech
+    confidence: 0.89
+    rank: 1
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["encryption", "security"]
+      source: user_input
+
+  - input_text: Implementing end-to-end encryption for IoT devices
+    topic_identifier: tech:iot
+    taxonomy_identifier: tx:tech
+    confidence: 0.87
+    rank: 2
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["IoT", "devices"]
+      source: user_input
+
+  - input_text: Deploying transformer models in production
+    topic_identifier: tech:mlops
+    taxonomy_identifier: tx:tech
+    confidence: 0.91
+    rank: 1
+    model_name: claude-3-sonnet
+    model_version: 20240229
+    context:
+      keywords: ["ML", "production", "deployment"]
+      source: api_request
+
+  - input_text: Building ETL pipelines for data warehouse
+    topic_identifier: tech:data
+    taxonomy_identifier: tx:tech
+    confidence: 0.94
+    rank: 1
+    model_name: claude-3-sonnet
+    model_version: 20240229
+    context:
+      keywords: ["ETL", "data", "pipeline"]
+      source: api_request
+
+  # Suggestions for "health" taxonomy topics
+  - input_text: Creating a meal plan with balanced macronutrients
+    topic_identifier: health:nutrition
+    taxonomy_identifier: tx:health
+    confidence: 0.96
+    rank: 1
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["meal", "nutrition", "macros"]
+      source: user_input
+
+  - input_text: Training for a marathon with proper conditioning
+    topic_identifier: health:endurance
+    taxonomy_identifier: tx:health
+    confidence: 0.93
+    rank: 1
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["marathon", "training", "conditioning"]
+      source: user_input
+
+  - input_text: Managing anxiety through meditation and breathing
+    topic_identifier: health:mindfulness
+    taxonomy_identifier: tx:health
+    confidence: 0.90
+    rank: 1
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["meditation", "anxiety", "breathing"]
+      source: user_input
+
+  - input_text: Managing anxiety through meditation and breathing
+    topic_identifier: health:stress
+    taxonomy_identifier: tx:health
+    confidence: 0.85
+    rank: 2
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["anxiety", "stress"]
+      source: user_input
+
+  # Suggestions for "life" taxonomy topics
+  - input_text: Setting quarterly OKRs for personal growth
+    topic_identifier: life:goals
+    taxonomy_identifier: tx:life
+    confidence: 0.94
+    rank: 1
+    model_name: claude-3-sonnet
+    model_version: 20240229
+    context:
+      keywords: ["OKRs", "goals", "quarterly"]
+      source: user_input
+
+  - input_text: Building a morning routine for better productivity
+    topic_identifier: life:routines
+    taxonomy_identifier: tx:life
+    confidence: 0.91
+    rank: 1
+    model_name: claude-3-sonnet
+    model_version: 20240229
+    context:
+      keywords: ["morning", "routine"]
+      source: user_input
+
+  - input_text: Building a morning routine for better productivity
+    topic_identifier: life:habits
+    taxonomy_identifier: tx:life
+    confidence: 0.88
+    rank: 2
+    model_name: claude-3-sonnet
+    model_version: 20240229
+    context:
+      keywords: ["routine", "habits"]
+      source: user_input
+
+  - input_text: Blocking focused time for deep work sessions
+    topic_identifier: life:focus
+    taxonomy_identifier: tx:life
+    confidence: 0.95
+    rank: 1
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["deep work", "focus"]
+      source: user_input
+
+  - input_text: Blocking focused time for deep work sessions
+    topic_identifier: life:time-blocking
+    taxonomy_identifier: tx:life
+    confidence: 0.87
+    rank: 2
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["time blocking", "scheduling"]
+      source: user_input
+
+  # Suggestions for "knowledge" taxonomy topics
+  - input_text: Using Obsidian for personal knowledge management
+    topic_identifier: know:organize
+    taxonomy_identifier: tx:knowledge
+    confidence: 0.93
+    rank: 1
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["Obsidian", "PKM", "organize"]
+      source: user_input
+
+  - input_text: Using AI to summarize research papers
+    topic_identifier: know:ai-assist
+    taxonomy_identifier: tx:knowledge
+    confidence: 0.92
+    rank: 1
+    model_name: claude-3-sonnet
+    model_version: 20240229
+    context:
+      keywords: ["AI", "summarize"]
+      source: user_input
+
+  - input_text: Using AI to summarize research papers
+    topic_identifier: know:synthesize
+    taxonomy_identifier: tx:knowledge
+    confidence: 0.84
+    rank: 2
+    model_name: claude-3-sonnet
+    model_version: 20240229
+    context:
+      keywords: ["synthesize", "papers"]
+      source: user_input
+
+  # Suggestions for "work" taxonomy topics
+  - input_text: Facilitating a team retrospective meeting
+    topic_identifier: work:retrospective
+    taxonomy_identifier: tx:work
+    confidence: 0.96
+    rank: 1
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["retrospective", "team"]
+      source: user_input
+
+  - input_text: Resolving conflicts between team members
+    topic_identifier: work:conflict
+    taxonomy_identifier: tx:work
+    confidence: 0.94
+    rank: 1
+    model_name: claude-3-opus
+    model_version: 20240229
+    context:
+      keywords: ["conflict", "team members"]
+      source: user_input
+
+  - input_text: Delegating tasks to team members effectively
+    topic_identifier: work:delegation
+    taxonomy_identifier: tx:work
+    confidence: 0.95
+    rank: 1
+    model_name: claude-3-sonnet
+    model_version: 20240229
+    context:
+      keywords: ["delegating", "tasks"]
+      source: user_input
+
+matches:
+  # Technology taxonomy and topics matched to Wikidata
+  - entity_type: taxonomy
+    entity_identifier: tx:tech
+    system: wikidata
+    external_id: Q11016
+    match_type: exactMatch
+    confidence: 1.0
+    evidence:
+      source: manual_curation
+      verified_by: taxonomy_expert
+      verified_at: "2024-01-15"
+
+  - entity_type: topic
+    entity_identifier: tech:ai
+    system: wikidata
+    external_id: Q11660
+    match_type: exactMatch
+    confidence: 0.98
+    evidence:
+      source: automated_matching
+      algorithm: entity_linking_v2
+      matched_at: "2024-01-20"
+
+  - entity_type: topic
+    entity_identifier: tech:llm
+    system: wikidata
+    external_id: Q115372431
+    match_type: exactMatch
+    confidence: 0.95
+    evidence:
+      source: automated_matching
+      algorithm: entity_linking_v2
+      matched_at: "2024-01-20"
+
+  - entity_type: topic
+    entity_identifier: tech:cloud
+    system: wikidata
+    external_id: Q483639
+    match_type: exactMatch
+    confidence: 0.97
+    evidence:
+      source: manual_curation
+      verified_by: domain_expert
+      verified_at: "2024-01-18"
+
+  - entity_type: topic
+    entity_identifier: tech:iot
+    system: wikidata
+    external_id: Q16502177
+    match_type: exactMatch
+    confidence: 0.96
+    evidence:
+      source: automated_matching
+      algorithm: entity_linking_v2
+      matched_at: "2024-01-20"
+
+  # DBpedia matches
+  - entity_type: topic
+    entity_identifier: tech:ai
+    system: dbpedia
+    external_id: Artificial_intelligence
+    match_type: exactMatch
+    confidence: 0.99
+    evidence:
+      source: automated_matching
+      algorithm: dbpedia_spotlight
+      matched_at: "2024-01-22"
+
+  - entity_type: topic
+    entity_identifier: tech:cloud
+    system: dbpedia
+    external_id: Cloud_computing
+    match_type: exactMatch
+    confidence: 0.98
+    evidence:
+      source: automated_matching
+      algorithm: dbpedia_spotlight
+      matched_at: "2024-01-22"
+
+  # Health taxonomy and topics
+  - entity_type: taxonomy
+    entity_identifier: tx:health
+    system: wikidata
+    external_id: Q12147
+    match_type: closeMatch
+    confidence: 0.92
+    evidence:
+      source: manual_curation
+      note: "Wikidata health concept is broader"
+      verified_at: "2024-01-15"
+
+  - entity_type: topic
+    entity_identifier: health:nutrition
+    system: wikidata
+    external_id: Q3502
+    match_type: exactMatch
+    confidence: 0.97
+    evidence:
+      source: automated_matching
+      algorithm: entity_linking_v2
+      matched_at: "2024-01-20"
+
+  - entity_type: topic
+    entity_identifier: health:mindfulness
+    system: wikidata
+    external_id: Q383281
+    match_type: exactMatch
+    confidence: 0.94
+    evidence:
+      source: manual_curation
+      verified_by: health_expert
+      verified_at: "2024-01-19"
+
+  # Knowledge management topics
+  - entity_type: topic
+    entity_identifier: know:organize
+    system: wikidata
+    external_id: Q1660125
+    match_type: broadMatch
+    confidence: 0.85
+    evidence:
+      source: manual_curation
+      note: "Wikidata knowledge organization is broader than our organize topic"
+      verified_at: "2024-01-17"
+
+  - entity_type: topic
+    entity_identifier: know:ai-assist
+    system: custom_taxonomy
+    external_id: ai_augmentation_001
+    match_type: relatedMatch
+    confidence: 0.80
+    evidence:
+      source: cross_reference
+      taxonomy_source: internal_ai_taxonomy
+      mapped_at: "2024-01-25"
+
+  # Work collaboration topics
+  - entity_type: topic
+    entity_identifier: work:collaboration
+    system: wikidata
+    external_id: Q1126823
+    match_type: exactMatch
+    confidence: 0.93
+    evidence:
+      source: automated_matching
+      algorithm: entity_linking_v2
+      matched_at: "2024-01-20"
+
+  - entity_type: topic
+    entity_identifier: work:leadership
+    system: wikidata
+    external_id: Q2904073
+    match_type: closeMatch
+    confidence: 0.91
+    evidence:
+      source: manual_curation
+      verified_by: org_behavior_expert
+      verified_at: "2024-01-19"

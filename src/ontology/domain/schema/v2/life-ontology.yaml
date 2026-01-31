@@ -1,0 +1,93 @@
+# LinkML Schema for Life Ontology
+# Converted from owlready2 ontology structure
+# Preserves OWL semantics with LinkML validation features
+
+id: http://lifeos.org/ontology/lifeos-ontology
+name: lifeos-ontology
+description: >
+  A comprehensive ontology for modeling personal life management,
+  including self-identity, work activities, and world objects.
+
+license: https://creativecommons.org/publicdomain/zero/1.0/ #TODO
+
+default_prefix: lifeos
+default_range: string
+
+prefixes:
+  lifeos: http://lifeos.org/ontology/
+  linkml: https://w3id.org/linkml/
+#   schema: http://schema.org/
+#   owl: http://www.w3.org/2002/07/owl#
+#   foaf: http://xmlns.com/foaf/0.1/
+
+imports:
+  - linkml:types
+  - common
+  - self
+  - world
+  - work
+
+classes:
+  Self:
+    attributes:
+      organism:
+        description: The single organism
+        multivalued: false
+        range: Organism
+        required: true
+      identity:
+        description: List of the available Roles
+        multivalued: true
+        inlined_as_list: True
+        range: Role
+      purpose:
+        multivalued: true
+        inlined_as_list: true
+        range: Value
+      vision:
+        multivalued: true
+        inlined_as_list: true
+        range: Vision
+      goals:
+        multivalued: true
+        inlined_as_list: true
+        range: Goal
+      changes:
+        multivalued: true
+        inlined_as_list: true
+        range: Delta
+      principles:
+        multivalued: true
+        inlined_as_list: true
+        range: Principle
+      behaviors:
+        multivalued: true
+        inlined_as_list: true
+        range: Behavior
+      efforts:
+        multivalued: true
+        inlined_as_list: true
+        #range: Effort
+        any_of:
+          - range: Task
+          - range: Project
+      activities:
+        multivalued: true
+        inlined_as_list: true
+        #range: Activity
+        any_of:
+          - range: Experiment
+          - range: Research
+          - range: Study
+          - range: Thinking
+      assets:
+        multivalued: true
+        inlined_as_list: true
+        range: Asset
+
+  World:
+    attributes:
+      items:
+        multivalued: true
+        inlined_as_list: true
+        range: Object

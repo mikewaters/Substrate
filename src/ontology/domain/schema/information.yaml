@@ -1,0 +1,259 @@
+id: http://lifeos.org/ontology/information
+name: information
+description: >
+  Concept and topic modeling with SKOS alignment
+
+default_prefix: lifeos
+default_range: string
+
+prefixes:
+  lifeos: http://lifeos.org/ontology/
+  linkml: https://w3id.org/linkml/
+  schema: http://schema.org/
+  dcat: http://www.w3.org/ns/dcat#
+  skos: http://www.w3.org/2004/02/skos/core#
+
+imports:
+  - linkml:types
+  - common
+
+enums:
+  # TopicStatus:
+  #   description: Lifecycle status of a Topic
+  #   permissible_values:
+  #     draft:
+  #       description: Topic is being defined
+  #     active:
+  #       description: Topic is ready for use
+  #     deprecated:
+  #       description: Topic should not be used for new links
+  #     merged_into:
+  #       description: Topic has been merged into another
+
+  EdgeRole:
+    description: Semantic relationship type between topics
+    permissible_values:
+      broader:
+        description: Parent is broader/more general (SKOS broader)
+      narrower:
+        description: Child is narrower/more specific (SKOS narrower)
+      part_of:
+        description: Child is part of parent
+      instance_of:
+        description: Child is an instance of parent
+      related:
+        description: Topics are related but not hierarchical (SKOS related)
+
+  # MatchType:
+  #   description: Strength of external ontology match
+  #   permissible_values:
+  #     exact_match:
+  #       description: Exact semantic equivalence (SKOS exactMatch)
+  #     close_match:
+  #       description: Close but not exact match (SKOS closeMatch)
+  #     broad_match:
+  #       description: External concept is broader (SKOS broadMatch)
+  #     narrow_match:
+  #       description: External concept is narrower (SKOS narrowMatch)
+  #     related_match:
+  #       description: Related but not hierarchical (SKOS relatedMatch)
+
+classes:
+  TopicTaxonomy:
+    class_uri: skos:ConceptScheme
+    description: A taxonomy for categorizing resources (SKOS Concept Scheme)
+    slots:
+      - identifier
+      - title
+      - description
+      - created_by
+      - created_on
+      - last_updated_on
+    #   - default_language
+    #   - skos_uri
+    # slot_usage:
+    #   default_language:
+    #     description: Default language for labels (e.g., 'en')
+    #     range: string
+    #   skos_uri:
+    #     description: URI for SKOS export
+    #     range: uri
+
+  Topic:
+    class_uri: skos:Concept
+    description: A concept within a taxonomy (SKOS Concept)
+    slots:
+      - identifier
+      - taxonomy_id
+      - title
+      - slug
+      - description
+      # - status
+      - aliases
+      # - external_refs
+      - materialized_path
+      - created_by
+      - created_on
+      - last_updated_on
+    slot_usage:
+      taxonomy_id:
+        description: The taxonomy this topic belongs to (SKOS inScheme)
+        range: TopicTaxonomy
+        required: true
+      slug:
+        description: URL-safe identifier derived from title
+        pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      # status:
+      #   description: Lifecycle status
+      #   range: TopicStatus
+      #   required: true
+      aliases:
+        description: Alternative names (SKOS altLabel)
+        multivalued: true
+        range: string
+      # external_refs:
+      #   description: References to external systems (JSON object)
+      #   range: string
+      #   comments:
+      #     - "Stored as JSON: {\"wikidata\": \"Q1234\", \"mesh\": \"D001234\"}"
+      materialized_path:
+        description: Pre-computed path for display (e.g., /parent/child/grandchild)
+        range: string
+
+  TopicEdge:
+    description: Directed edge between topics in a hierarchy
+    slots:
+      - parent_id
+      - child_id
+      - role
+      # - source
+      # - confidence
+      - created_on
+    slot_usage:
+      parent_id:
+        description: Parent topic ID
+        range: Topic
+        required: true
+      child_id:
+        description: Child topic ID
+        range: Topic
+        required: true
+      role:
+        description: Semantic relationship type
+        range: EdgeRole
+        required: true
+      # source:
+      #   description: How edge was created (e.g., 'manual', 'imported', 'ai_suggested')
+      #   range: string
+      # confidence:
+      #   description: Confidence score 0.0-1.0 for AI-suggested edges
+      #   range: float
+      #   minimum_value: 0.0
+      #   maximum_value: 1.0
+
+  TopicClosure:
+    description: Transitive closure table for efficient ancestor/descendant queries
+    slots:
+      - ancestor_id
+      - descendant_id
+      - depth
+    slot_usage:
+      ancestor_id:
+        description: Ancestor topic ID
+        range: Topic
+        required: true
+      descendant_id:
+        description: Descendant topic ID
+        range: Topic
+        required: true
+      depth:
+        description: Number of edges in path (0 = self-reference)
+        range: integer
+        minimum_value: 0
+
+  # Match:
+  #   description: Mapping to external ontology concepts
+  #   slots:
+  #     - identifier
+  #     - entity_type
+  #     - entity_id
+  #     - external_system
+  #     - external_id
+  #     - match_type
+  #     - confidence
+  #     - evidence
+  #     - created_on
+  #   slot_usage:
+  #     entity_type:
+  #       description: Type of entity being matched
+  #       range: string
+  #       pattern: "^(topic|taxonomy)$"
+  #       required: true
+  #     entity_id:
+  #       description: ID of the local entity
+  #       required: true
+  #     external_system:
+  #       description: External system name (e.g., 'wikidata', 'mesh', 'lcsh')
+  #       required: true
+  #     external_id:
+  #       description: ID in external system
+  #       required: true
+  #     match_type:
+  #       description: Type/strength of match
+  #       range: MatchType
+  #       required: true
+  #     confidence:
+  #       description: Confidence score 0.0-1.0
+  #       range: float
+  #       minimum_value: 0.0
+  #       maximum_value: 1.0
+  #     evidence:
+  #       description: JSON object with match evidence
+  #       range: string
+
+slots:
+  # Additional slots beyond common.yaml
+  taxonomy_id:
+    description: Reference to parent taxonomy
+  # default_language:
+  #   description: Default language code
+  # skos_uri:
+  #   description: URI for SKOS exports
+  slug:
+    description: URL-safe identifier
+  # status:
+  #   description: Lifecycle status
+  aliases:
+    description: Alternative names
+  # external_refs:
+  #   description: External system references
+  materialized_path:
+    description: Computed hierarchy path
+  parent_id:
+    description: Parent in hierarchy
+  child_id:
+    description: Child in hierarchy
+  role:
+    description: Relationship type
+  source:
+    description: Creation source
+  # confidence:
+  #   description: Confidence score
+  ancestor_id:
+    description: Ancestor in closure
+  descendant_id:
+    description: Descendant in closure
+  depth:
+    description: Path depth
+  # entity_type:
+  #   description: Type of matched entity
+  # entity_id:
+  #   description: Local entity ID
+  # external_system:
+  #   description: External ontology name
+  # external_id:
+  #   description: External entity ID
+  # match_type:
+  #   description: Match type/strength
+  # evidence:
+  #   description: Match evidence

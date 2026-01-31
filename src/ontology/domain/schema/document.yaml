@@ -1,0 +1,141 @@
+id: http://lifeos.org/ontology/knowledge_management/document
+name: document
+description: >
+  Information Management classes for items authored by the Human
+
+default_prefix: lifeos
+default_range: string
+
+prefixes:
+  lifeos: http://lifeos.org/ontology/
+  linkml: https://w3id.org/linkml/
+  foaf: http://xmlns.com/foaf/0.1/
+  dcterms: http://purl.org/dc/terms/
+  schema: http://schema.org/
+  dcat: http://www.w3.org/ns/dcat#
+
+  prov: http://www.w3.org/ns/prov#
+  owl: http://www.w3.org/2002/07/owl#
+
+  dcmitype: http://purl.org/dc/dcmitype/
+  void: http://rdfs.org/ns/void#
+  skos: http://www.w3.org/2004/02/skos/core#
+
+imports:
+  - linkml:types
+  - common
+  - resource
+  - knowledge_management
+
+classes:
+  Note:
+    is_a: Resource
+    description: "Small data being ingested"
+    slots:
+      - identifier
+      - title
+      - content_location
+      - note_type
+      - description
+      - created_by
+      - created_on
+      - last_updated_on
+    slot_usage:
+      repository:
+        required: true
+
+  Document:
+    is_a: Resource
+    class_uri: foaf:Document
+    description: "Larger container or promoted Note; used only for documents authored by the Self"
+    slots:
+      - identifier
+      - title
+      - content_location
+      - document_type
+      - description
+      - created_by
+      - created_on
+      - last_updated_on
+    slot_usage:
+      #subject:
+      #  required: true
+      repository:
+        required: true
+
+  Bookmark:
+    is_a: Resource
+    description: "A Collected Resource, aka a URL with no content"
+    slots:
+      - identifier
+      - title
+      - repository
+      - description
+      - created_by
+      - created_on
+      - last_updated_on
+      # - highlights
+
+    # slot_usage:
+    #   repository:
+    #     required: true
+    #   location:
+    #     required: true
+
+  # Highlight:
+  #   is_a: Resource
+  #   slots:
+  #     - identifier
+  #     - title
+  #     - repository
+  #     - description
+  #     - created_by
+  #     - created_on
+  #     - last_updated_on
+  #     - bookmark
+
+slots:
+  bookmark:
+    range: Bookmark
+  # highlights:
+  #   range: Highlight
+  #   multivalued: true
+  ###
+  # Resource subtype attributes
+  document_type:
+    slot_uri: lifeos:document_type
+    domain: Document
+    range: DocumentType
+    annotations:
+      owl_type: AnnotationProperty
+
+  note_type:
+    slot_uri: lifeos:note_type
+    domain: Note
+    range: NoteType
+    annotations:
+      owl_type: AnnotationProperty
+
+enums:
+  NoteType:
+    permissible_values:
+      Note:
+      Log:
+      Thought:
+      Idea:
+      Reference:
+        annotations:
+          related_property: prov:hadPrimarySource
+      Highlight:
+        annotations:
+          related_property: prov:wasQuotedFrom
+
+  DocumentType:
+    permissible_values:
+      Document:
+      Journal:
+      List:
+      Notebook:
+      Logbook:
+      Inventory:
+      Landscape:

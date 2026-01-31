@@ -1,0 +1,10 @@
+# skos for concept
+# - dbo:TopicalConcept https://mappings.dbpedia.org/server/ontology/classes/TopicalConcept
+# Exposing a systemn for data catalog, my KM: https://developer.data.world/docs/data-world-for-developers they do this
+# The Simple Knowledge Organization System distinguishes between two basic categories of
+# semantic relation: hierarchical and associative. A hierarchical link between two concepts
+# indicates that one is in some way more general ("broader") than the other ("narrower").
+# An associative link between two concepts indicates that the two are inherently "related",
+# but that one is not in any way more general than the other.
+# - dcterms:subject
+#- skos:Concept

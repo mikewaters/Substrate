@@ -1,0 +1,313 @@
+# Comprehensive Topic Suggestion Test Dataset
+#
+# This dataset provides comprehensive test coverage for the topic_suggestion table.
+#
+# Dependencies:
+# - Requires sample_taxonomies.yaml to be loaded first (for taxonomies and topics)
+#
+# Test Coverage:
+# - Various confidence levels (high, medium, low, borderline)
+# - Multiple taxonomies and topics
+# - Different input text lengths and formats
+# - Cross-taxonomy content
+# - Edge cases and ambiguous content
+
+topic_suggestions:
+  # High confidence single-taxonomy suggestions
+  - input_text: "Best practices for implementing CI/CD pipelines with GitHub Actions and Docker containers"
+    topic_identifier: tech:devops
+    taxonomy_identifier: tx:tech
+    confidence: 0.94
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["CI/CD", "GitHub Actions", "Docker", "deployment"]
+      source: user_note
+
+  - input_text: "Best practices for implementing CI/CD pipelines with GitHub Actions and Docker containers"
+    topic_identifier: tech:cloud
+    taxonomy_identifier: tx:tech
+    confidence: 0.81
+    rank: 2
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["containers", "infrastructure"]
+      source: user_note
+
+  # Ambiguous low confidence suggestion
+  - input_text: "improving daily workflow"
+    topic_identifier: life:productivity
+    taxonomy_identifier: tx:life
+    confidence: 0.58
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["workflow", "daily"]
+      source: quick_note
+
+  - input_text: "improving daily workflow"
+    topic_identifier: work:projects
+    taxonomy_identifier: tx:work
+    confidence: 0.52
+    rank: 2
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["workflow"]
+      source: quick_note
+
+  # Health/wellness suggestions with multiple rankings
+  - input_text: "Recovery techniques after intense weight training sessions including proper sleep and nutrition"
+    topic_identifier: health:recovery
+    taxonomy_identifier: tx:health
+    confidence: 0.89
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["recovery", "weight training"]
+      source: fitness_log
+
+  - input_text: "Recovery techniques after intense weight training sessions including proper sleep and nutrition"
+    topic_identifier: health:strength
+    taxonomy_identifier: tx:health
+    confidence: 0.85
+    rank: 2
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["weight training"]
+      source: fitness_log
+
+  - input_text: "Recovery techniques after intense weight training sessions including proper sleep and nutrition"
+    topic_identifier: health:sleep
+    taxonomy_identifier: tx:health
+    confidence: 0.79
+    rank: 3
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["sleep"]
+      source: fitness_log
+
+  # Knowledge management suggestions
+  - input_text: "Organizing research papers and extracting key insights for literature review"
+    topic_identifier: know:organize
+    taxonomy_identifier: tx:know
+    confidence: 0.91
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["organizing", "research"]
+      source: research_task
+
+  - input_text: "Organizing research papers and extracting key insights for literature review"
+    topic_identifier: know:insights
+    taxonomy_identifier: tx:know
+    confidence: 0.87
+    rank: 2
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["insights", "extracting"]
+      source: research_task
+
+  # Work collaboration suggestions
+  - input_text: "Running effective retrospective meeting to improve team processes"
+    topic_identifier: work:retrospective
+    taxonomy_identifier: tx:work
+    confidence: 0.96
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["retrospective", "meeting"]
+      source: meeting_notes
+
+  - input_text: "Running effective retrospective meeting to improve team processes"
+    topic_identifier: work:collaboration
+    taxonomy_identifier: tx:work
+    confidence: 0.84
+    rank: 2
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["team", "processes"]
+      source: meeting_notes
+
+  # Very short input - edge case
+  - input_text: "ML model deployment"
+    topic_identifier: tech:mlops
+    taxonomy_identifier: tx:tech
+    confidence: 0.76
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["ML", "deployment"]
+      source: quick_capture
+
+  # Cross-taxonomy suggestion (tech + work)
+  - input_text: "Managing technical debt and prioritizing refactoring work across multiple teams"
+    topic_identifier: tech:software
+    taxonomy_identifier: tx:tech
+    confidence: 0.82
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["technical debt", "refactoring"]
+      source: planning_doc
+
+  - input_text: "Managing technical debt and prioritizing refactoring work across multiple teams"
+    topic_identifier: work:projects
+    taxonomy_identifier: tx:work
+    confidence: 0.78
+    rank: 2
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["managing", "prioritizing", "teams"]
+      source: planning_doc
+
+  # AI/ML focused suggestions
+  - input_text: "Training large language models with distributed computing across GPU clusters"
+    topic_identifier: tech:llm
+    taxonomy_identifier: tx:tech
+    confidence: 0.95
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["LLM", "training"]
+      source: research_doc
+
+  - input_text: "Training large language models with distributed computing across GPU clusters"
+    topic_identifier: tech:mlops
+    taxonomy_identifier: tx:tech
+    confidence: 0.88
+    rank: 2
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["distributed", "GPU", "clusters"]
+      source: research_doc
+
+  - input_text: "Training large language models with distributed computing across GPU clusters"
+    topic_identifier: tech:cloud
+    taxonomy_identifier: tx:tech
+    confidence: 0.75
+    rank: 3
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["distributed", "computing"]
+      source: research_doc
+
+  # Life management - planning and goals
+  - input_text: "Setting quarterly OKRs and breaking them down into actionable weekly tasks"
+    topic_identifier: life:goals
+    taxonomy_identifier: tx:life
+    confidence: 0.91
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["quarterly", "OKRs", "goals"]
+      source: planning_session
+
+  - input_text: "Setting quarterly OKRs and breaking them down into actionable weekly tasks"
+    topic_identifier: life:planning
+    taxonomy_identifier: tx:life
+    confidence: 0.87
+    rank: 2
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["planning", "weekly tasks"]
+      source: planning_session
+
+  # Security topic suggestions
+  - input_text: "Implementing zero-trust network architecture with identity-based access control"
+    topic_identifier: tech:security
+    taxonomy_identifier: tx:tech
+    confidence: 0.94
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["zero-trust", "security", "access control"]
+      source: architecture_doc
+
+  - input_text: "Implementing zero-trust network architecture with identity-based access control"
+    topic_identifier: tech:cloud
+    taxonomy_identifier: tx:tech
+    confidence: 0.71
+    rank: 2
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["network", "architecture"]
+      source: architecture_doc
+
+  # Health - mindfulness and stress management
+  - input_text: "Daily meditation practice and breathing exercises for reducing work-related stress"
+    topic_identifier: health:mindfulness
+    taxonomy_identifier: tx:health
+    confidence: 0.93
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["meditation", "breathing"]
+      source: wellness_journal
+
+  - input_text: "Daily meditation practice and breathing exercises for reducing work-related stress"
+    topic_identifier: health:stress
+    taxonomy_identifier: tx:health
+    confidence: 0.89
+    rank: 2
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["stress", "reducing"]
+      source: wellness_journal
+
+  # Knowledge - AI-assisted learning
+  - input_text: "Using AI tools like ChatGPT and Claude for enhanced learning and research"
+    topic_identifier: know:ai-assist
+    taxonomy_identifier: tx:know
+    confidence: 0.96
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["AI tools", "ChatGPT", "Claude"]
+      source: learning_notes
+
+  # Work - delegation and leadership
+  - input_text: "Effective delegation strategies for empowering team members and distributing workload"
+    topic_identifier: work:delegation
+    taxonomy_identifier: tx:work
+    confidence: 0.92
+    rank: 1
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["delegation", "team"]
+      source: leadership_workshop
+
+  - input_text: "Effective delegation strategies for empowering team members and distributing workload"
+    topic_identifier: work:leadership
+    taxonomy_identifier: tx:work
+    confidence: 0.86
+    rank: 2
+    model_name: claude-sonnet-4-20250514
+    model_version: 20250514
+    context:
+      keywords: ["empowering", "leadership"]
+      source: leadership_workshop

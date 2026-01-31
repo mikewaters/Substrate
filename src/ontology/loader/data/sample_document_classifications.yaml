@@ -1,0 +1,354 @@
+# Sample document classification dataset for integration tests
+# Format:
+# document_classifications:
+#   - document_id: <uuid string>  # deterministic test ID
+#     document_type: <string>  # e.g., "Note", "Document"
+#     content: <string>  # actual document content to be classified
+#     taxonomy_classification:
+#       taxonomy_identifier: <taxonomy from sample_taxonomies.yaml>
+#       confidence: <float 0.0-1.0>
+#       reasoning: <string>
+#       model_name: <string>
+#       model_version: <string>
+#       prompt_version: <string>
+#     topic_assignments:
+#       - topic_identifier: <topic from sample_taxonomies.yaml>
+#         confidence: <float 0.0-1.0>
+#         rank: <int>
+#         reasoning: <string>
+#
+# Notes:
+# - This file demonstrates the document classification feature (FEAT-008)
+# - DocumentClassification links documents to taxonomies with confidence
+# - DocumentTopicAssignment links documents to topics within that taxonomy
+# - All identifiers reference entities from sample_taxonomies.yaml
+# - IDs are stable strings for test determinism
+
+---
+document_classifications:
+  # Document 1: Health/Neuroscience content
+  - document_id: doc:001-dopamine-neuroplasticity
+    document_type: Note
+    content: |
+      # Dopamine and Neuroplasticity
+
+      Dopamine is a crucial neurotransmitter in the brain that plays a significant role in several
+      functions, including reward, motivation, memory, attention, and learning. It also has a
+      significant impact on neuroplasticity, which is the brain's ability to reorganize itself
+      by forming new neural connections throughout life.
+
+      ## Key Points
+
+      1. **Reward and Motivation**: Dopamine is released when we experience something rewarding,
+         which motivates us to repeat the behavior. This reward-based learning is fundamental to
+         neuroplasticity.
+
+      2. **Learning and Memory**: Dopamine modulates synaptic plasticity, particularly in areas
+         like the hippocampus and prefrontal cortex, which are crucial for learning and memory
+         formation.
+
+      3. **Attention and Focus**: Dopamine helps direct attention to salient stimuli, enabling
+         focused learning experiences that drive plastic changes in neural circuits.
+
+      ## Clinical Implications
+
+      Understanding dopamine's role in neuroplasticity has important implications for treating
+      neurological conditions like Parkinson's disease, ADHD, and addiction, where dopamine
+      systems are dysregulated.
+    taxonomy_classification:
+      taxonomy_identifier: tx:health
+      confidence: 0.95
+      reasoning: Document clearly focuses on neuroscience and brain health, discussing neurotransmitters, brain function, and neurological conditions
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: health:neuroscience
+        confidence: 0.92
+        rank: 1
+        reasoning: Core focus on neurotransmitter function and brain mechanisms
+      - topic_identifier: health:mental
+        confidence: 0.78
+        rank: 2
+        reasoning: Discusses learning, memory, and attention which relate to mental health
+
+  # Document 2: Technology/AI content
+  - document_id: doc:002-transformer-architecture
+    document_type: Document
+    content: |
+      # Understanding Transformer Architecture in Large Language Models
+
+      The transformer architecture has revolutionized natural language processing since its
+      introduction in the "Attention is All You Need" paper. Modern large language models like
+      GPT, BERT, and Claude are built on transformer foundations.
+
+      ## Architecture Overview
+
+      Transformers use self-attention mechanisms to process sequences in parallel, unlike
+      recurrent neural networks which process sequentially. Key components include:
+
+      - **Multi-head attention**: Allows the model to focus on different parts of the input
+        simultaneously
+      - **Positional encodings**: Provide information about token positions in the sequence
+      - **Feed-forward layers**: Transform representations between attention layers
+      - **Layer normalization**: Stabilizes training of deep networks
+
+      ## Training Large Language Models
+
+      Training foundation models requires substantial computational resources:
+      - Distributed training across hundreds of GPUs/TPUs
+      - Careful hyperparameter tuning and learning rate schedules
+      - Managing billions of parameters efficiently
+      - Handling massive datasets (hundreds of gigabytes to terabytes)
+
+      ## Applications
+
+      LLMs built on transformer architecture excel at:
+      - Text generation and completion
+      - Question answering and reasoning
+      - Code generation and analysis
+      - Translation and summarization
+    taxonomy_classification:
+      taxonomy_identifier: tx:tech
+      confidence: 0.98
+      reasoning: Highly technical content focused on machine learning architecture, model training, and AI applications
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: tech:llm
+        confidence: 0.96
+        rank: 1
+        reasoning: Primary focus on large language models and transformer architecture
+      - topic_identifier: tech:ai
+        confidence: 0.89
+        rank: 2
+        reasoning: Discusses machine learning concepts and neural network training
+      - topic_identifier: tech:mlops
+        confidence: 0.72
+        rank: 3
+        reasoning: Mentions distributed training infrastructure and operational concerns
+
+  # Document 3: Technology/Cloud Computing content
+  - document_id: doc:003-serverless-architecture
+    document_type: Note
+    content: |
+      # Designing Serverless Applications on AWS
+
+      Serverless computing allows developers to build and run applications without managing
+      infrastructure. AWS Lambda is the core compute service in AWS's serverless ecosystem.
+
+      ## Key AWS Services
+
+      - **Lambda**: Event-driven compute for functions
+      - **API Gateway**: Create and manage REST/WebSocket APIs
+      - **DynamoDB**: NoSQL database for serverless apps
+      - **S3**: Object storage for static assets
+      - **EventBridge**: Event bus for service integration
+      - **Step Functions**: Orchestrate complex workflows
+
+      ## Benefits
+
+      1. No server management - AWS handles infrastructure
+      2. Automatic scaling based on demand
+      3. Pay only for compute time used
+      4. Built-in high availability
+
+      ## Best Practices
+
+      - Keep functions small and focused (single responsibility)
+      - Use environment variables for configuration
+      - Implement proper error handling and retries
+      - Monitor with CloudWatch metrics and logs
+      - Use Infrastructure as Code (CloudFormation/Terraform)
+    taxonomy_classification:
+      taxonomy_identifier: tx:tech
+      confidence: 0.94
+      reasoning: Technical content about cloud infrastructure and software deployment practices
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: tech:cloud
+        confidence: 0.93
+        rank: 1
+        reasoning: Primary focus on cloud services and serverless architecture
+      - topic_identifier: tech:devops
+        confidence: 0.84
+        rank: 2
+        reasoning: Discusses deployment practices, monitoring, and infrastructure as code
+      - topic_identifier: tech:software
+        confidence: 0.76
+        rank: 3
+        reasoning: Covers software development best practices and application architecture
+
+  # Document 4: Health/Fitness content
+  - document_id: doc:004-hiit-training
+    document_type: Note
+    content: |
+      # High-Intensity Interval Training (HIIT) for Cardiovascular Health
+
+      HIIT involves short bursts of intense exercise alternated with low-intensity recovery
+      periods. Research shows HIIT provides cardiovascular benefits in less time compared to
+      traditional steady-state cardio.
+
+      ## Benefits
+
+      - Improved VO2 max (aerobic capacity)
+      - Increased fat burning and metabolic rate
+      - Better insulin sensitivity
+      - Time-efficient workouts (20-30 minutes)
+      - Preserves muscle mass while burning fat
+
+      ## Sample HIIT Protocol
+
+      Beginner 20-minute session:
+      1. Warm-up: 5 minutes easy cardio
+      2. Work interval: 30 seconds high intensity (80-90% max HR)
+      3. Recovery: 90 seconds low intensity
+      4. Repeat 8 times
+      5. Cool-down: 3 minutes easy pace
+
+      ## Safety Considerations
+
+      - Get medical clearance before starting
+      - Build up intensity gradually
+      - Allow adequate recovery between sessions
+      - Listen to your body and avoid overtraining
+      - Stay hydrated and fuel properly
+    taxonomy_classification:
+      taxonomy_identifier: tx:health
+      confidence: 0.91
+      reasoning: Focuses on physical fitness, cardiovascular health, and exercise science
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: health:fitness
+        confidence: 0.94
+        rank: 1
+        reasoning: Core content about exercise training and workout protocols
+      - topic_identifier: health:nutrition
+        confidence: 0.58
+        rank: 2
+        reasoning: Briefly mentions proper fueling and hydration
+
+  # Document 5: Technology/Security content
+  - document_id: doc:005-zero-trust-security
+    document_type: Document
+    content: |
+      # Implementing Zero Trust Security Architecture
+
+      Zero Trust is a security framework that assumes breach and verifies each request as though
+      it originates from an untrusted network. "Never trust, always verify" is the core principle.
+
+      ## Core Principles
+
+      1. **Verify Explicitly**: Always authenticate and authorize based on all available data points
+      2. **Least Privilege Access**: Limit user access with Just-In-Time and Just-Enough-Access
+      3. **Assume Breach**: Minimize blast radius and segment access; verify end-to-end encryption
+
+      ## Implementation Components
+
+      - **Identity and Access Management (IAM)**: Strong authentication (MFA, passwordless)
+      - **Device Security**: Endpoint detection and response, device compliance checks
+      - **Network Segmentation**: Micro-segmentation to contain breaches
+      - **Data Protection**: Encryption at rest and in transit, DLP policies
+      - **Continuous Monitoring**: Real-time threat detection and response
+
+      ## Technology Stack Example
+
+      - Identity: Okta, Azure AD
+      - Network: Cloudflare Zero Trust, Zscaler
+      - Endpoints: CrowdStrike, Microsoft Defender
+      - SIEM: Splunk, Datadog Security
+
+      ## Challenges
+
+      - Legacy applications may not support modern auth
+      - Requires cultural shift and user training
+      - Initial implementation complexity and cost
+      - Ongoing maintenance of policies and rules
+    taxonomy_classification:
+      taxonomy_identifier: tx:tech
+      confidence: 0.97
+      reasoning: Technical content focused on cybersecurity architecture and implementation
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: tech:security
+        confidence: 0.96
+        rank: 1
+        reasoning: Primary focus on security architecture and threat protection
+      - topic_identifier: tech:cloud
+        confidence: 0.71
+        rank: 2
+        reasoning: Discusses cloud-based security tools and services
+      - topic_identifier: tech:devops
+        confidence: 0.64
+        rank: 3
+        reasoning: Mentions monitoring and operational practices
+
+  # Document 6: Mixed content (Health & Technology)
+  - document_id: doc:006-health-wearables
+    document_type: Note
+    content: |
+      # IoT Health Wearables and Continuous Monitoring
+
+      Modern health wearables combine sensors, connectivity, and data analytics to provide
+      continuous health monitoring. Devices like Apple Watch, Fitbit, and Oura Ring track
+      various biometrics throughout the day.
+
+      ## Tracked Metrics
+
+      - Heart rate and heart rate variability (HRV)
+      - Sleep stages and quality
+      - Blood oxygen saturation (SpO2)
+      - Activity levels and step count
+      - Body temperature trends
+      - Some devices: ECG, blood pressure, glucose
+
+      ## Technology Components
+
+      - **Sensors**: Optical (PPG), accelerometers, gyroscopes, temperature sensors
+      - **Connectivity**: Bluetooth LE for phone sync, some with cellular
+      - **Edge Computing**: On-device processing for battery efficiency
+      - **Cloud Backend**: Data storage, analysis, and insights
+      - **Mobile Apps**: User interface and data visualization
+
+      ## Health Applications
+
+      - Early detection of atrial fibrillation
+      - Sleep disorder identification
+      - Fitness optimization and recovery tracking
+      - Chronic condition management
+      - Stress and mental health monitoring
+
+      ## Privacy Concerns
+
+      Health data is sensitive. Important considerations:
+      - Data encryption in transit and at rest
+      - User control over data sharing
+      - HIPAA compliance for medical applications
+      - Clear privacy policies and consent
+    taxonomy_classification:
+      taxonomy_identifier: tx:health
+      confidence: 0.72
+      reasoning: While discussing technology, the primary focus is on health monitoring and wellness applications; this is borderline and could reasonably be either taxonomy
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: health:fitness
+        confidence: 0.81
+        rank: 1
+        reasoning: Discusses fitness tracking, activity monitoring, and health optimization
+      - topic_identifier: health:neuroscience
+        confidence: 0.68
+        rank: 2
+        reasoning: Mentions sleep stages, stress monitoring, and mental health
+      - topic_identifier: health:nutrition
+        confidence: 0.42
+        rank: 3
+        reasoning: Brief mention of glucose monitoring

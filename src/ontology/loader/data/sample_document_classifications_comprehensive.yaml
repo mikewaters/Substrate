@@ -1,0 +1,348 @@
+# Comprehensive Document Classification Test Dataset
+#
+# This dataset provides comprehensive test coverage for:
+# - document_classification table
+# - document_topic_assignment table
+#
+# Dependencies:
+# - Requires sample_taxonomies.yaml to be loaded first (for taxonomies and topics)
+#
+# Test Coverage:
+# - Various confidence levels (high, medium, low, borderline)
+# - Multiple taxonomies and topics per document
+# - Different document types and content lengths
+# - Cross-taxonomy content
+# - Edge cases and ambiguous content
+
+document_classifications:
+  # Classification 1: High confidence tech/software
+  - document_id: doc:test-api-design
+    document_type: Document
+    content: |
+      # API Design Best Practices
+
+      When designing RESTful APIs, follow these principles:
+      1. Use clear, descriptive resource names
+      2. Leverage HTTP methods correctly (GET, POST, PUT, DELETE)
+      3. Version your API from the start
+      4. Implement proper authentication and authorization
+      5. Return meaningful error messages with appropriate status codes
+      6. Document everything with OpenAPI/Swagger
+    taxonomy_classification:
+      taxonomy_identifier: tx:tech
+      confidence: 0.96
+      reasoning: Technical content focused on software API design principles and implementation
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: tech:software
+        confidence: 0.94
+        rank: 1
+        reasoning: Core focus on software engineering practices
+      - topic_identifier: tech:devops
+        confidence: 0.67
+        rank: 2
+        reasoning: Mentions versioning and deployment considerations
+
+  # Classification 2: Medium-low confidence cross-taxonomy content
+  - document_id: doc:test-remote-work
+    document_type: Note
+    content: |
+      Tips for effective remote work:
+      - Set up a dedicated workspace
+      - Maintain regular working hours
+      - Use video calls to stay connected with team
+      - Take regular breaks and exercise
+      - Separate work and personal time clearly
+    taxonomy_classification:
+      taxonomy_identifier: tx:work
+      confidence: 0.71
+      reasoning: Primarily about work practices though includes personal health elements
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: work:collaboration
+        confidence: 0.79
+        rank: 1
+        reasoning: Discusses team communication and collaboration
+      - topic_identifier: work:projects
+        confidence: 0.64
+        rank: 2
+        reasoning: Mentions work organization and time management
+
+  # Classification 3: Health/fitness with multiple topics
+  - document_id: doc:test-hydration
+    document_type: Note
+    content: |
+      Hydration Strategy for Endurance Training
+
+      Proper hydration is critical for performance and recovery:
+      - Drink 500ml water 2 hours before training
+      - Consume 150-250ml every 15-20 minutes during exercise
+      - Replace electrolytes during sessions over 60 minutes
+      - Monitor urine color as hydration indicator
+      - Post-workout: drink 150% of fluid lost through sweat
+    taxonomy_classification:
+      taxonomy_identifier: tx:health
+      confidence: 0.93
+      reasoning: Focused on health and fitness with specific training protocols
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: health:hydration
+        confidence: 0.97
+        rank: 1
+        reasoning: Primary and explicit focus on hydration strategies
+      - topic_identifier: health:endurance
+        confidence: 0.88
+        rank: 2
+        reasoning: Specific to endurance training context
+      - topic_identifier: health:recovery
+        confidence: 0.72
+        rank: 3
+        reasoning: Mentions post-workout recovery protocols
+
+  # Classification 4: Knowledge management with many topics
+  - document_id: doc:test-note-system
+    document_type: Document
+    content: |
+      Building a Personal Knowledge Management System
+
+      A good PKM system should:
+      1. Capture ideas quickly without friction
+      2. Organize information in retrievable ways
+      3. Connect related concepts through linking
+      4. Surface relevant notes when needed
+      5. Generate insights through synthesis
+      6. Share knowledge with others when appropriate
+
+      Tools to consider: Obsidian, Notion, Roam Research
+    taxonomy_classification:
+      taxonomy_identifier: tx:know
+      confidence: 0.91
+      reasoning: Explicitly about knowledge management systems and practices
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: know:capture
+        confidence: 0.89
+        rank: 1
+        reasoning: Discusses capturing ideas quickly
+      - topic_identifier: know:organize
+        confidence: 0.92
+        rank: 2
+        reasoning: Focuses on organizing information
+      - topic_identifier: know:retrieve
+        confidence: 0.85
+        rank: 3
+        reasoning: Mentions retrieving information when needed
+      - topic_identifier: know:insights
+        confidence: 0.81
+        rank: 4
+        reasoning: Discusses generating insights through synthesis
+      - topic_identifier: know:sharing
+        confidence: 0.74
+        rank: 5
+        reasoning: Mentions sharing knowledge with others
+
+  # Classification 5: Life management with habits focus
+  - document_id: doc:test-morning-routine
+    document_type: Note
+    content: |
+      My morning routine for productive days:
+      5:30am - Wake up, no snooze
+      5:35am - Drink water, light stretching
+      5:45am - 20 min meditation
+      6:05am - Review daily goals and priorities
+      6:15am - Exercise (run or gym)
+      7:00am - Shower and breakfast
+      7:30am - Deep work block starts
+    taxonomy_classification:
+      taxonomy_identifier: tx:life
+      confidence: 0.86
+      reasoning: Personal routine focused on habits and productivity practices
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: life:routines
+        confidence: 0.95
+        rank: 1
+        reasoning: Explicitly describes a morning routine
+      - topic_identifier: life:habits
+        confidence: 0.88
+        rank: 2
+        reasoning: Routine is composed of habitual behaviors
+      - topic_identifier: life:productivity
+        confidence: 0.82
+        rank: 3
+        reasoning: Designed for productive days
+      - topic_identifier: life:focus
+        confidence: 0.75
+        rank: 4
+        reasoning: Mentions deep work block
+
+  # Classification 6: Borderline case - could be multiple taxonomies
+  - document_id: doc:test-ai-wellness
+    document_type: Note
+    content: |
+      AI-powered health monitoring apps are becoming sophisticated.
+      They can track sleep patterns, stress levels, and activity.
+      Machine learning models predict potential health issues.
+      Privacy concerns about sensitive health data.
+    taxonomy_classification:
+      taxonomy_identifier: tx:health
+      confidence: 0.68
+      reasoning: Primary focus on health monitoring though technology enables it; borderline classification
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: health:fitness
+        confidence: 0.71
+        rank: 1
+        reasoning: Mentions activity tracking
+      - topic_identifier: health:sleep
+        confidence: 0.69
+        rank: 2
+        reasoning: References sleep pattern tracking
+      - topic_identifier: health:stress
+        confidence: 0.66
+        rank: 3
+        reasoning: Mentions stress level monitoring
+
+  # Classification 7: Work/leadership content
+  - document_id: doc:test-feedback
+    document_type: Document
+    content: |
+      Giving Effective Feedback
+
+      Framework for constructive feedback:
+      1. Be specific and timely
+      2. Focus on behavior, not personality
+      3. Describe the impact objectively
+      4. Suggest improvements collaboratively
+      5. Follow up to support growth
+
+      Balance positive reinforcement with developmental feedback.
+      Create psychological safety for honest conversations.
+    taxonomy_classification:
+      taxonomy_identifier: tx:work
+      confidence: 0.94
+      reasoning: Clear focus on workplace feedback and leadership practices
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: work:feedback
+        confidence: 0.97
+        rank: 1
+        reasoning: Explicitly about giving feedback
+      - topic_identifier: work:leadership
+        confidence: 0.86
+        rank: 2
+        reasoning: Discusses leadership skills and team development
+      - topic_identifier: work:communication
+        confidence: 0.81
+        rank: 3
+        reasoning: Focuses on effective communication practices
+
+  # Classification 8: Technical content - cloud/data
+  - document_id: doc:test-data-pipeline
+    document_type: Document
+    content: |
+      Data Pipeline Architecture on AWS
+
+      Components:
+      - S3 for raw data storage
+      - Lambda for event-driven processing
+      - Glue for ETL jobs
+      - Redshift for analytics warehouse
+      - QuickSight for visualization
+
+      Use Infrastructure as Code (Terraform) for deployment.
+      Implement monitoring and alerting with CloudWatch.
+    taxonomy_classification:
+      taxonomy_identifier: tx:tech
+      confidence: 0.95
+      reasoning: Technical infrastructure and data engineering content
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: tech:data
+        confidence: 0.96
+        rank: 1
+        reasoning: Primary focus on data pipeline and ETL
+      - topic_identifier: tech:cloud
+        confidence: 0.92
+        rank: 2
+        reasoning: Uses AWS cloud services extensively
+      - topic_identifier: tech:devops
+        confidence: 0.78
+        rank: 3
+        reasoning: Mentions IaC and monitoring practices
+
+  # Classification 9: Short content - edge case
+  - document_id: doc:test-quick-meditation
+    document_type: Note
+    content: "Quick 5-minute breathing meditation before important meetings helps center and focus."
+    taxonomy_classification:
+      taxonomy_identifier: tx:health
+      confidence: 0.79
+      reasoning: Short but clearly about mindfulness practice
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: health:mindfulness
+        confidence: 0.91
+        rank: 1
+        reasoning: Explicitly mentions meditation practice
+      - topic_identifier: health:stress
+        confidence: 0.74
+        rank: 2
+        reasoning: Implied stress management before meetings
+
+  # Classification 10: Very technical AI content
+  - document_id: doc:test-rag-systems
+    document_type: Document
+    content: |
+      Building Production RAG Systems
+
+      Retrieval-Augmented Generation combines:
+      - Vector embeddings for semantic search
+      - Efficient indexing with FAISS or Pinecone
+      - Context-aware prompt construction
+      - LLM inference for generation
+      - Post-processing and citation
+
+      Challenges:
+      - Managing embedding costs at scale
+      - Ensuring retrieval relevance
+      - Handling context window limits
+      - Measuring answer quality
+    taxonomy_classification:
+      taxonomy_identifier: tx:tech
+      confidence: 0.98
+      reasoning: Highly technical AI/ML systems engineering content
+      model_name: claude-sonnet-4-20250514
+      model_version: 20250514
+      prompt_version: 1.0.0
+    topic_assignments:
+      - topic_identifier: tech:llm
+        confidence: 0.97
+        rank: 1
+        reasoning: Core focus on LLM and RAG systems
+      - topic_identifier: tech:ai
+        confidence: 0.94
+        rank: 2
+        reasoning: AI/ML architecture and implementation
+      - topic_identifier: tech:mlops
+        confidence: 0.83
+        rank: 3
+        reasoning: Discusses production deployment and scaling challenges

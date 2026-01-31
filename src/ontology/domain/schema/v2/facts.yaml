@@ -1,0 +1,7 @@
+# <owl:Class rdf:ID="Characteristic"> for capability
+#from http://www.ontologydesignpatterns.org/ont/dul/d0.owl
+#<owl:Class rdf:ID="Characteristic">
+#<rdfs:isDefinedBy rdf:resource=""/>
+#<rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string">
+#An aspect or quality of a thing. E.g. radial symmetry, poker face, alkalinity, attractiveness, darkness, etc.
+#

@@ -1,0 +1,22 @@
+[project]
+name = "Shared python libs"
+version = "0.1.0"
+description = "blah"
+authors = [{ name = "Mike Waters", email = "mike@mikewaters.net" }]
+readme = "README.md"
+requires-python = "==3.11.*"
+dependencies = [
+    "marimo==0.15.5",
+    "pydantic-settings>=2.11.0",
+    "loguru>=0.7.0",
+]
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  "mw",
+]
+

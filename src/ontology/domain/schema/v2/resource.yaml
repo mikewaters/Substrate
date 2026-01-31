@@ -1,0 +1,8 @@
+# - foaf:Document
+\
+# has_parts:
+#   slot_uri: dcterms:hasPart
+#   multivalued: true
+#   description: "Resource has child resources, in a hierarchy"
+#   comments:
+#     - "A related resource that is included either physically or logically in the described resource."

@@ -1,0 +1,184 @@
+# Sample Data for Testing Resource-Topic Relationships
+#
+# This dataset specifically tests the resource_related_topics association table
+# with resources that have BOTH related_resources AND related_topics.
+#
+# Dependencies:
+# - Requires sample_taxonomies.yaml to be loaded first (for topics)
+
+# Create a new catalog and repository to avoid conflicts
+catalogs:
+  - id: cat:topic-test
+    title: Topic Relationships Test Catalog
+    description: Catalog for testing resource-to-topic relationships
+    themes: [tx:tech, tx:health, tx:work]
+
+repositories:
+  - id: repo:topic-test
+    title: Topic Test Repository
+    service_name: local_filesystem
+    description: Repository for testing topic relationships
+
+# Resources with comprehensive topic and resource relationships
+resources:
+  # Resource 1: Python development guide
+  - id: res:test:python-guide
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Python Development Guide
+    description: Comprehensive guide to Python development
+    resource_type: Document
+    document_type: Guide
+    related_topics: [tech:software, tech:data, tech:ai]
+
+  # Resource 2: Machine learning tutorial
+  - id: res:test:ml-tutorial
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Machine Learning Tutorial
+    description: Introduction to machine learning concepts
+    resource_type: Document
+    document_type: Tutorial
+    related_topics: [tech:ai, tech:llm, tech:mlops]
+    related_resources: [res:test:python-guide]
+
+  # Resource 3: Data engineering handbook
+  - id: res:test:data-engineering
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Data Engineering Handbook
+    description: Best practices for data engineering
+    resource_type: Document
+    document_type: Reference
+    related_topics: [tech:data, tech:cloud, tech:software]
+    related_resources: [res:test:python-guide, res:test:ml-tutorial]
+
+  # Resource 4: Cloud architecture patterns
+  - id: res:test:cloud-patterns
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Cloud Architecture Patterns
+    description: Patterns for building cloud-native applications
+    resource_type: Document
+    document_type: Guide
+    related_topics: [tech:cloud, tech:devops, tech:security]
+    related_resources: [res:test:data-engineering]
+
+  # Resource 5: DevOps practices
+  - id: res:test:devops-practices
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: DevOps Best Practices
+    description: Guide to modern DevOps practices
+    resource_type: Document
+    document_type: Guide
+    related_topics: [tech:devops, tech:cloud, tech:software]
+    related_resources: [res:test:cloud-patterns, res:test:data-engineering]
+
+  # Resource 6: Fitness training plan (health topics)
+  - id: res:test:fitness-plan
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Comprehensive Fitness Training Plan
+    description: Science-based fitness training program
+    resource_type: Document
+    document_type: Guide
+    related_topics: [health:fitness, health:strength, health:endurance]
+
+  # Resource 7: Nutrition guide
+  - id: res:test:nutrition-guide
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Nutrition and Performance Guide
+    description: Guide to nutrition for athletic performance
+    resource_type: Document
+    document_type: Reference
+    related_topics: [health:nutrition, health:fitness, health:recovery]
+    related_resources: [res:test:fitness-plan]
+
+  # Resource 8: Recovery techniques
+  - id: res:test:recovery-guide
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Recovery and Rest Techniques
+    description: Guide to recovery methods for athletes
+    resource_type: Document
+    document_type: Guide
+    related_topics: [health:recovery, health:sleep, health:stress]
+    related_resources: [res:test:fitness-plan, res:test:nutrition-guide]
+
+  # Resource 9: Work collaboration tips (work topics)
+  - id: res:test:collab-guide
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Effective Team Collaboration
+    description: Strategies for better team collaboration
+    resource_type: Document
+    document_type: Guide
+    related_topics: [work:collaboration, work:communication, work:feedback]
+
+  # Resource 10: Project management handbook
+  - id: res:test:pm-handbook
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Project Management Handbook
+    description: Guide to managing technical projects
+    resource_type: Document
+    document_type: Reference
+    related_topics: [work:projects, work:planning, work:collaboration]
+    related_resources: [res:test:collab-guide]
+
+  # Resource 11: Cross-taxonomy resource (tech + health + work)
+  - id: res:test:health-tech-app
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Building a Health Tech Application
+    description: Guide to building health and wellness technology
+    resource_type: Document
+    document_type: Tutorial
+    related_topics: [tech:software, tech:data, health:fitness, health:nutrition, work:projects]
+    related_resources: [res:test:python-guide, res:test:data-engineering, res:test:fitness-plan, res:test:nutrition-guide, res:test:pm-handbook]
+
+  # Resource 12: LLM application development
+  - id: res:test:llm-app-dev
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: LLM Application Development
+    description: Building production LLM applications
+    resource_type: Document
+    document_type: Tutorial
+    related_topics: [tech:llm, tech:ai, tech:mlops, tech:software]
+    related_resources: [res:test:ml-tutorial, res:test:python-guide, res:test:cloud-patterns]
+
+  # Resource 13: Security best practices
+  - id: res:test:security-guide
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Application Security Best Practices
+    description: Guide to securing applications
+    resource_type: Document
+    document_type: Guide
+    related_topics: [tech:security, tech:devops, tech:cloud]
+    related_resources: [res:test:cloud-patterns, res:test:devops-practices]
+
+  # Resource 14: Leadership handbook
+  - id: res:test:leadership-guide
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Technical Leadership Handbook
+    description: Guide to leading technical teams
+    resource_type: Document
+    document_type: Reference
+    related_topics: [work:leadership, work:feedback, work:communication, work:collaboration]
+    related_resources: [res:test:collab-guide, res:test:pm-handbook]
+
+  # Resource 15: Mindfulness and stress management
+  - id: res:test:mindfulness-guide
+    catalog: cat:topic-test
+    repository: repo:topic-test
+    title: Mindfulness for Professionals
+    description: Mindfulness practices for stress management
+    resource_type: Document
+    document_type: Guide
+    related_topics: [health:mindfulness, health:stress, health:mental]
+    related_resources: [res:test:recovery-guide]

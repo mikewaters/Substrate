@@ -1,0 +1,78 @@
+id: http://lifeos.org/ontology/work
+name: work
+description: >
+  Work domain
+
+default_prefix: lifeos
+default_range: string
+
+prefixes:
+  lifeos: http://lifeos.org/ontology/
+  linkml: https://w3id.org/linkml/
+  dbo: http://dbpedia.org/ontology/
+
+imports:
+  - linkml:types
+  - common
+
+classes:
+  Activity:
+    abstract: true
+    description: Represents work that requires focus, time, and energy, and may have associated resources
+    class_uri: dbo:Work
+    #slots:
+    #  - identifier
+    #  - type
+    slots:
+      - identifier
+      - title
+      - description
+      - created_by
+      - created_on
+      - last_updated_on
+
+      - url
+
+      - activity_type
+
+    comments:
+      - Item on which time has been spent for its realisation. Actor can be a human on not (machine, insects, nature...)
+
+  Experiment:
+    is_a: Activity
+    description: Just fooling around, a type of Activity
+    class_uri: lifeos:Experiment
+
+  Research:
+    is_a: Activity
+    description: >
+      In preparation for work, you need to spend time figuring out how to approach a problem
+    class_uri: lifeos:Research
+
+  Study:
+    is_a: Activity
+    description: You spend specific directed effort learning some new thing
+    class_uri: lifeos:Study
+
+  Thinking:
+    is_a: Activity
+    description: >
+      You spend time creating mental models of life and the world
+      in order to understand it better
+    class_uri: lifeos:Thinking
+
+  Task:
+    is_a: Activity
+    description: An individual item of work
+    class_uri: lifeos:Task
+
+  Effort:
+    is_a: Activity
+    description: Some set of tasks and outcomes that you are spending time on
+    class_uri: lifeos:Project
+
+slots:
+  activity_type:
+    slot_uri: lifeos:activity_type
+    designates_type: true
+    range: string

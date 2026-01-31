@@ -1,0 +1,81 @@
+id: http://lifeos.org/ontology/common
+name: common
+description: >
+  Shared slots and enums
+
+default_prefix: lifeos
+default_range: string
+
+prefixes:
+  lifeos: http://lifeos.org/ontology/
+  linkml: https://w3id.org/linkml/
+  schema: http://schema.org/
+
+imports:
+  - linkml:types
+
+slots:
+  # ---- Identity/Metadata slots, schema.org entities ----
+  id:
+    identifier: true
+    description: Unique identifier for any entity
+    range: uriorcurie # aka Compact URI: https://linkml.io/linkml/schemas/uris-and-mappings.html
+    required: true
+    slot_uri: schema:identifier
+  title:
+    description: Human-readable title or name
+    slot_uri: schema:name
+    comments:
+      - Overriding the property name (`name`) here, bc its used elsewhere
+  description:
+    description: Textual description of the entity
+    slot_uri: schema:description
+  url:
+    slot_uri: schema:url
+    range: uri
+    description: An optional URL associated with this instance.
+  dateCreated:
+    slot_uri: schema:dateCreated
+    range: date
+    required: false
+    description: The date on which the entity was created.
+  dateModified:
+    slot_uri: schema:dateModified
+    range: date
+    required: false
+    description: The date on which the entity was most recently modified.
+  version:
+    slot_uri: schema:version
+    description: The version of the entity embodied by a specified resource.
+
+  # ---- Life Ontology slots ----
+  # --- Annotations
+  life_bus_domain:
+    description: Path within the Life Business ontology structure
+    slot_uri: lifeos:life_bus_domain
+    range: LifeDomainEnum #TODO: renameme
+    annotations:
+      owl_type: AnnotationProperty
+
+enums:
+  LifeDomainEnum:
+    description: Valid life business domains
+    permissible_values:
+      ORGANISM_IDENTITY:
+        description: Self-identity and roles
+        meaning: lifeos:Organism.Identity
+      ORGANISM_PURPOSE:
+        description: Values and purpose
+        meaning: lifeos:Organism.Purpose
+      ORGANISM_OPERATIONS:
+        description: Principles and behaviors
+        meaning: lifeos:Organism.Operations
+      ORGANISM_EVOLUTION:
+        description: Goals and vision
+        meaning: lifeos:Organism.Evolution
+      WORK:
+        description: Work and activities
+        meaning: lifeos:Work
+      WORLD:
+        description: Objects and assets
+        meaning: lifeos:World

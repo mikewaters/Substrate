@@ -1,0 +1,134 @@
+id: http://lifeos.org/ontology/knowledge_management
+name: knowledge_management
+description: >
+  Information Management classes
+
+default_prefix: lifeos
+default_range: string
+
+prefixes:
+  lifeos: http://lifeos.org/ontology/
+  linkml: https://w3id.org/linkml/
+  foaf: http://xmlns.com/foaf/0.1/
+  dcterms: http://purl.org/dc/terms/
+  schema: http://schema.org/
+  dcat: http://www.w3.org/ns/dcat#
+
+  prov: http://www.w3.org/ns/prov#
+  owl: http://www.w3.org/2002/07/owl#
+
+  dcmitype: http://purl.org/dc/dcmitype/
+  void: http://rdfs.org/ns/void#
+  skos: http://www.w3.org/2004/02/skos/core#
+
+imports:
+  - linkml:types
+  - common
+  - resource
+  - document
+  - information
+
+classes:
+  Repository:
+    # In the future, this will be linked to an Asset or Service
+    class_uri: lifeos:Repository
+    description: The system that houses a given resource
+    slots:
+      - identifier
+      - title
+      - description
+      - created_by
+      - created_on
+      - last_updated_on
+
+      - service_name
+    slot_usage:
+      service_name:
+        required: true
+
+  Collection:
+    is_a: Resource
+    description: A group of Resources centered around some need or theme
+    slots:
+      - identifier
+      - title
+      - description
+      - created_by
+      - created_on
+      - last_updated_on
+
+      - has_resources
+      - catalog
+    slot_usage:
+      has_use:
+        required: true
+
+  Catalog:
+    class_uri: dcat:Catalog
+    description: A group of similar Resource instances around a theme or topic
+    slots:
+      - identifier
+      - title
+      - description
+      - created_by
+      - created_on
+      - last_updated_on
+      #- resource_items
+      - themes
+      #- topics  #FIXMEEE
+    #slot_usage:
+    #  topics:
+    #    required: true
+    comments:
+      - "Modeled after dcat:Catalog"
+
+slots:
+  # Data Properties
+  service_name:
+    slot_uri: lifeos:service_name
+    description: "The name of an app being used for KM, future state this will be a first-class entity"
+
+  # Object Properties
+  themes:
+    slot_uri: dcat:themeTaxonomy
+    description: ""
+    domain: Catalog
+    range: TopicTaxonomy
+    multivalued: true
+    comments:
+      - "A knowledge organization system (KOS) used to classify the resources documented in the catalog (e.g., datasets and services)."
+      - "It is recommended that the taxonomy is organized in a skos:ConceptScheme, skos:Collection, owl:Ontology or similar, which allows each member to be denoted by an IRI and published as Linked Data."
+
+  # catalog:
+  #   description: The catalog a resource belongs to
+  #   domain: Resource
+  #   range: Catalog
+
+  repository:
+    description: The repository a resource is stored in
+    domain: Resource
+    range: Repository
+
+  has_resources:
+    slot_uri: dcterms:HasPart
+    description: "A collection of related resources"
+    multivalued: true
+    domain: Collection
+    range: Resource
+
+  belongs_to:
+    slot_uri: dcterms:isPartOf # inverse dcterms:HasPart
+    #multivalued: true  # maybe someday
+    inverse: has_resources
+    domain: Resource
+    range: Collection
+    description: "Resource is part of an ongoing effort or activity on the life business"
+    comments:
+      - "A related resource in which the described resource is physically or logically included."
+
+  # resource_items:
+  #   slot_uri: dcterms:HasPart
+  #   description: "Members of a Catalog"
+  #   multivalued: true
+  #   domain: Catalog
+  #   range: Resource

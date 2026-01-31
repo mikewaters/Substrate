@@ -1,0 +1,148 @@
+# Sample activity dataset for integration tests
+# Format:
+# activities:
+#   - id: <string>  # optional, auto-generated from title if not provided
+#     title: <string>
+#     description: <string>
+#     activity_type: <Effort|Experiment|Research|Study|Task|Thinking>
+#     url: <string>  # optional
+#     created_by: <string>  # optional
+#
+# Notes:
+# - Activity types: Effort, Experiment, Research, Study, Task, Thinking
+# - created_at and updated_at are auto-managed by the ORM
+# - IDs are stable strings for test determinism
+
+---
+activities:
+  # Tasks
+  - id: act:implement-auth
+    title: Implement user authentication
+    description: Build OAuth2 authentication flow for the application
+    activity_type: Task
+    url: https://github.com/example/project/issues/42
+    created_by: alice
+
+  - id: act:fix-bug-123
+    title: Fix memory leak in data processor
+    description: Investigate and resolve memory leak identified in production monitoring
+    activity_type: Task
+    created_by: bob
+
+  - id: act:refactor-api
+    title: Refactor API endpoints
+    description: Restructure API to follow RESTful best practices
+    activity_type: Task
+    url: https://github.com/example/project/issues/87
+    created_by: alice
+
+  # Research activities
+  - id: act:research-llm-frameworks
+    title: Research LLM orchestration frameworks
+    description: Evaluate LangChain, LlamaIndex, and PydanticAI for our use case
+    activity_type: Research
+    created_by: charlie
+
+  - id: act:research-graph-db
+    title: Research graph database options
+    description: Compare Neo4j, TerminusDB, and ArangoDB for knowledge graph storage
+    activity_type: Research
+    url: https://docs.google.com/document/d/abc123
+    created_by: alice
+
+  - id: act:research-vector-stores
+    title: Research vector database solutions
+    description: Evaluate Pinecone, Weaviate, and Qdrant for semantic search
+    activity_type: Research
+    created_by: charlie
+
+  # Study activities
+  - id: act:study-rust
+    title: Study Rust programming language
+    description: Deep dive into Rust ownership model and async programming
+    activity_type: Study
+    created_by: bob
+
+  - id: act:study-llm-prompting
+    title: Study advanced prompting techniques
+    description: Learn chain-of-thought, tree-of-thought, and ReAct prompting
+    activity_type: Study
+    url: https://www.promptingguide.ai
+    created_by: charlie
+
+  - id: act:study-distributed-systems
+    title: Study distributed systems patterns
+    description: Learn about consensus algorithms, event sourcing, and CQRS
+    activity_type: Study
+    created_by: bob
+
+  # Experiments
+  - id: act:experiment-rag-chunking
+    title: Experiment with RAG chunking strategies
+    description: Test different document chunking approaches for retrieval quality
+    activity_type: Experiment
+    created_by: charlie
+
+  - id: act:experiment-cache-strategy
+    title: Experiment with caching strategies
+    description: Compare Redis vs in-memory caching for API responses
+    activity_type: Experiment
+    url: https://github.com/example/experiments/tree/cache-test
+    created_by: alice
+
+  - id: act:experiment-model-quantization
+    title: Experiment with model quantization
+    description: Test 4-bit vs 8-bit quantization impact on inference speed and quality
+    activity_type: Experiment
+    created_by: charlie
+
+  # Efforts (larger initiatives)
+  - id: act:effort-knowledge-graph
+    title: Build knowledge graph infrastructure
+    description: Multi-week effort to implement graph database and query layer
+    activity_type: Effort
+    created_by: alice
+
+  - id: act:effort-migration
+    title: Migrate to microservices architecture
+    description: Decompose monolith into domain-driven microservices
+    activity_type: Effort
+    url: https://github.com/example/project/projects/5
+    created_by: bob
+
+  - id: act:effort-observability
+    title: Implement observability stack
+    description: Deploy distributed tracing, metrics, and logging infrastructure
+    activity_type: Effort
+    created_by: alice
+
+  # Thinking activities (reflection and planning)
+  - id: act:think-architecture
+    title: Architectural design for multi-tenant system
+    description: Think through scalability and isolation requirements for multi-tenancy
+    activity_type: Thinking
+    created_by: alice
+
+  - id: act:think-api-design
+    title: API design principles review
+    description: Reflect on consistency, versioning, and backwards compatibility
+    activity_type: Thinking
+    created_by: bob
+
+  - id: act:think-testing-strategy
+    title: Testing strategy for AI components
+    description: Consider approaches for testing non-deterministic LLM behaviors
+    activity_type: Thinking
+    created_by: charlie
+
+  - id: act:think-team-process
+    title: Team process improvement ideas
+    description: Brainstorm ways to improve code review and deployment processes
+    activity_type: Thinking
+    created_by: alice
+
+  - id: act:think-data-model
+    title: Domain model refinement
+    description: Think through entity relationships and bounded contexts
+    activity_type: Thinking
+    created_by: bob

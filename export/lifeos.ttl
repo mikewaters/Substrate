@@ -1,0 +1,1547 @@
+@prefix dcat: <http://www.w3.org/ns/dcat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix lifeos: <http://lifeos.org/ontology/> .
+@prefix linkml: <https://w3id.org/linkml/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+lifeos:Self a owl:Class ;
+    rdfs:label "Self" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:documents ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:highlights ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Document ;
+            owl:onProperty lifeos:documents ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:TopicTaxonomy ;
+            owl:onProperty lifeos:themes ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:bookmarks ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:catalog ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:notes ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Purpose ;
+            owl:onProperty lifeos:purposes ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Bookmark ;
+            owl:onProperty lifeos:bookmarks ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:resources ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:purposes ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Activity ;
+            owl:onProperty lifeos:activities ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:activities ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Topic ;
+            owl:onProperty lifeos:topics ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Collection ;
+            owl:onProperty lifeos:collections ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:repositories ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Note ;
+            owl:onProperty lifeos:notes ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Repository ;
+            owl:onProperty lifeos:repositories ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:topics ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Catalog ;
+            owl:onProperty lifeos:catalog ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Resource ;
+            owl:onProperty lifeos:resources ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Highlight ;
+            owl:onProperty lifeos:highlights ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:collections ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:themes ] ;
+    skos:inScheme lifeos:lifeos-ontology .
+
+lifeos:belongs_to a owl:ObjectProperty ;
+    rdfs:label "belongs_to" ;
+    rdfs:domain lifeos:Resource ;
+    rdfs:range lifeos:Collection ;
+    owl:inverseOf lifeos:has_resources ;
+    skos:definition "Resource is part of an ongoing effort or activity on the life business" ;
+    skos:inScheme lifeos:knowledge_management ;
+    skos:note "A related resource in which the described resource is physically or logically included." .
+
+lifeos:lifeos-ontology.owl.ttl a owl:Ontology ;
+    rdfs:label "ontology" ;
+    dcterms:license "https://creativecommons.org/publicdomain/zero/1.0/" ;
+    skos:definition """A comprehensive ontology for modeling personal life management, including self-identity, work activities, and world objects.
+""" .
+
+lifeos:relation a owl:DatatypeProperty ;
+    rdfs:label "relation" ;
+    rdfs:range xsd:string ;
+    skos:definition "unspecified relationship" ;
+    skos:inScheme lifeos:common ;
+    skos:note "Should ne an URI, in the LifeOS domain or otherwaisxe" .
+
+lifeos:version a owl:DatatypeProperty ;
+    rdfs:label "version" ;
+    skos:definition "The version of the entity embodied by a specified resource." ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+<http://lifeos.org/ontology/DocumentType#Document> a owl:Class ;
+    rdfs:label "Document" ;
+    rdfs:subClassOf lifeos:DocumentType .
+
+<http://lifeos.org/ontology/DocumentType#Inventory> a owl:Class ;
+    rdfs:label "Inventory" ;
+    rdfs:subClassOf lifeos:DocumentType .
+
+<http://lifeos.org/ontology/DocumentType#Journal> a owl:Class ;
+    rdfs:label "Journal" ;
+    rdfs:subClassOf lifeos:DocumentType .
+
+<http://lifeos.org/ontology/DocumentType#Landscape> a owl:Class ;
+    rdfs:label "Landscape" ;
+    rdfs:subClassOf lifeos:DocumentType .
+
+<http://lifeos.org/ontology/DocumentType#List> a owl:Class ;
+    rdfs:label "List" ;
+    rdfs:subClassOf lifeos:DocumentType .
+
+<http://lifeos.org/ontology/DocumentType#Logbook> a owl:Class ;
+    rdfs:label "Logbook" ;
+    rdfs:subClassOf lifeos:DocumentType .
+
+<http://lifeos.org/ontology/DocumentType#Notebook> a owl:Class ;
+    rdfs:label "Notebook" ;
+    rdfs:subClassOf lifeos:DocumentType .
+
+<http://lifeos.org/ontology/NoteType#Highlight> a owl:Class ;
+    rdfs:label "Highlight" ;
+    rdfs:subClassOf lifeos:NoteType .
+
+<http://lifeos.org/ontology/NoteType#Idea> a owl:Class ;
+    rdfs:label "Idea" ;
+    rdfs:subClassOf lifeos:NoteType .
+
+<http://lifeos.org/ontology/NoteType#Log> a owl:Class ;
+    rdfs:label "Log" ;
+    rdfs:subClassOf lifeos:NoteType .
+
+<http://lifeos.org/ontology/NoteType#Note> a owl:Class ;
+    rdfs:label "Note" ;
+    rdfs:subClassOf lifeos:NoteType .
+
+<http://lifeos.org/ontology/NoteType#Reference> a owl:Class ;
+    rdfs:label "Reference" ;
+    rdfs:subClassOf lifeos:NoteType .
+
+<http://lifeos.org/ontology/NoteType#Thought> a owl:Class ;
+    rdfs:label "Thought" ;
+    rdfs:subClassOf lifeos:NoteType .
+
+lifeos:activities a owl:ObjectProperty ;
+    rdfs:label "activities" ;
+    skos:inScheme lifeos:lifeos-ontology .
+
+lifeos:bookmarks a owl:ObjectProperty ;
+    rdfs:label "bookmarks" ;
+    skos:inScheme lifeos:lifeos-ontology .
+
+lifeos:collections a owl:ObjectProperty ;
+    rdfs:label "collections" ;
+    skos:inScheme lifeos:lifeos-ontology .
+
+lifeos:documents a owl:ObjectProperty ;
+    rdfs:label "documents" ;
+    skos:inScheme lifeos:lifeos-ontology .
+
+lifeos:notes a owl:ObjectProperty ;
+    rdfs:label "notes" ;
+    skos:inScheme lifeos:lifeos-ontology .
+
+lifeos:purposes a owl:ObjectProperty ;
+    rdfs:label "purposes" ;
+    skos:inScheme lifeos:lifeos-ontology .
+
+lifeos:related_resources a owl:ObjectProperty ;
+    rdfs:label "related_resources" ;
+    rdfs:domain lifeos:Resource ;
+    rdfs:range lifeos:Resource ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:related_topics a owl:ObjectProperty ;
+    rdfs:label "related_topics" ;
+    rdfs:domain lifeos:Resource ;
+    rdfs:range lifeos:Topic ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:repositories a owl:ObjectProperty ;
+    rdfs:label "repositories" ;
+    skos:inScheme lifeos:lifeos-ontology .
+
+lifeos:resources a owl:ObjectProperty ;
+    rdfs:label "resources" ;
+    skos:inScheme lifeos:lifeos-ontology .
+
+lifeos:topics a owl:ObjectProperty ;
+    rdfs:label "topics" ;
+    skos:inScheme lifeos:lifeos-ontology .
+
+lifeos:Experiment a owl:Class ;
+    rdfs:label "Experiment" ;
+    rdfs:subClassOf lifeos:Activity ;
+    skos:definition "Just fooling around, a type of Activity" ;
+    skos:exactMatch lifeos:Experiment ;
+    skos:inScheme lifeos:work .
+
+lifeos:Project a owl:Class ;
+    rdfs:label "Project" ;
+    rdfs:subClassOf lifeos:Activity ;
+    skos:definition "Some set of tasks and outcomes that you are spending time on" ;
+    skos:exactMatch lifeos:Project ;
+    skos:inScheme lifeos:work .
+
+lifeos:Purpose a owl:Class ;
+    rdfs:label "Purpose" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:role ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:role ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:role ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:meaning ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:meaning ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Activity ;
+            owl:onProperty lifeos:meaning ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ] ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:Research a owl:Class ;
+    rdfs:label "Research" ;
+    rdfs:subClassOf lifeos:Activity ;
+    skos:definition """In preparation for work, you need to spend time figuring out how to approach a problem
+""" ;
+    skos:exactMatch lifeos:Research ;
+    skos:inScheme lifeos:work .
+
+lifeos:Study a owl:Class ;
+    rdfs:label "Study" ;
+    rdfs:subClassOf lifeos:Activity ;
+    skos:definition "You spend specific directed effort learning some new thing" ;
+    skos:exactMatch lifeos:Study ;
+    skos:inScheme lifeos:work .
+
+lifeos:Task a owl:Class ;
+    rdfs:label "Task" ;
+    rdfs:subClassOf lifeos:Activity ;
+    skos:definition "An individual item of work" ;
+    skos:exactMatch lifeos:Task ;
+    skos:inScheme lifeos:work .
+
+lifeos:Thinking a owl:Class ;
+    rdfs:label "Thinking" ;
+    rdfs:subClassOf lifeos:Activity ;
+    skos:definition """You spend time creating mental models of life and the world in order to understand it better
+""" ;
+    skos:exactMatch lifeos:Thinking ;
+    skos:inScheme lifeos:work .
+
+lifeos:bookmark a owl:ObjectProperty ;
+    rdfs:label "bookmark" ;
+    rdfs:range lifeos:Bookmark ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/document> .
+
+lifeos:created a owl:DatatypeProperty ;
+    rdfs:label "created" ;
+    rdfs:range xsd:dateTime ;
+    skos:definition "The date on which the entity was created." ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:creator a owl:DatatypeProperty ;
+    rdfs:label "creator" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> ;
+    skos:note "foaf:Agent subclass" .
+
+lifeos:document_type a owl:ObjectProperty ;
+    rdfs:label "document_type" ;
+    lifeos:owl_type "AnnotationProperty" ;
+    rdfs:domain lifeos:Document ;
+    rdfs:range lifeos:DocumentType ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/document> .
+
+lifeos:format a owl:DatatypeProperty ;
+    rdfs:label "format" ;
+    rdfs:range xsd:string ;
+    skos:definition "The file format of the resource object" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> ;
+    skos:note "Github, Markdown, GithubMarkdown, HeptabaseMarkdown, HN thread comment, PDF etc" .
+
+lifeos:has_purpose a owl:ObjectProperty ;
+    rdfs:label "has_purpose" ;
+    rdfs:domain lifeos:Resource ;
+    rdfs:range lifeos:Purpose ;
+    skos:definition "Resource is the designated $X of $Y" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:has_resources a owl:ObjectProperty ;
+    rdfs:label "has_resources" ;
+    rdfs:domain lifeos:Collection ;
+    rdfs:range lifeos:Resource ;
+    skos:definition "A collection of related resources" ;
+    skos:inScheme lifeos:knowledge_management .
+
+lifeos:location a owl:DatatypeProperty ;
+    rdfs:label "location" ;
+    skos:definition "The canonical URL of the resource in its external repository." ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:meaning a owl:ObjectProperty ;
+    rdfs:label "meaning" ;
+    rdfs:range lifeos:Activity ;
+    skos:definition "what meaning is applied to the purpose" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:media_type a owl:DatatypeProperty ;
+    rdfs:label "media_type" ;
+    skos:definition "MIME type (e.g., text/markdown, video/mp4) of the resource's content" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:modified a owl:DatatypeProperty ;
+    rdfs:label "modified" ;
+    rdfs:range xsd:dateTime ;
+    skos:definition "The date on which the entity was updated." ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:note_type a owl:ObjectProperty ;
+    rdfs:label "note_type" ;
+    lifeos:owl_type "AnnotationProperty" ;
+    rdfs:domain lifeos:Note ;
+    rdfs:range lifeos:NoteType ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/document> .
+
+lifeos:role a owl:DatatypeProperty ;
+    rdfs:label "role" ;
+    rdfs:range xsd:string ;
+    skos:definition "how does this provide meaning" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:service_name a owl:DatatypeProperty ;
+    rdfs:label "service_name" ;
+    skos:definition "The name of an app being used for KM, future state this will be a first-class entity" ;
+    skos:inScheme lifeos:knowledge_management .
+
+lifeos:subject a owl:ObjectProperty ;
+    rdfs:label "subject" ;
+    rdfs:domain lifeos:Resource ;
+    rdfs:range lifeos:Topic ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:url a owl:DatatypeProperty ;
+    rdfs:label "url" ;
+    rdfs:range xsd:anyURI ;
+    skos:definition "An optional URL associated with this instance." ;
+    skos:inScheme lifeos:common .
+
+lifeos:Document a owl:Class ;
+    rdfs:label "Document" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:DocumentType ;
+            owl:onProperty lifeos:document_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:content_location ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:content_location ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom owl:Thing ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:content_location ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:document_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:document_type ],
+        lifeos:Resource ;
+    skos:definition "Larger container or promoted Note; used only for documents authored by the Self" ;
+    skos:exactMatch foaf:Document ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/document> .
+
+lifeos:Note a owl:Class ;
+    rdfs:label "Note" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom owl:Thing ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:content_location ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:NoteType ;
+            owl:onProperty lifeos:note_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:content_location ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:content_location ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:note_type ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:note_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        lifeos:Resource ;
+    skos:definition "Small data being ingested" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/document> .
+
+lifeos:TopicTaxonomy a owl:Class ;
+    rdfs:label "TopicTaxonomy" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ] ;
+    skos:definition "A taxonomy for categorizing resources in a PKM" ;
+    skos:exactMatch dcat:TopicTaxonomy ;
+    skos:inScheme lifeos:information .
+
+lifeos:has_use a owl:ObjectProperty ;
+    rdfs:label "has_use" ;
+    rdfs:domain lifeos:Resource ;
+    rdfs:range lifeos:Activity ;
+    skos:definition "Resource is part of an ongoing effort or activity on the life business" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> ;
+    skos:note "A related resource in which the described resource is physically or logically included." .
+
+lifeos:highlights a owl:ObjectProperty ;
+    rdfs:label "highlights" ;
+    rdfs:range lifeos:Highlight ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/document>,
+        lifeos:lifeos-ontology .
+
+lifeos:themes a owl:ObjectProperty ;
+    rdfs:label "themes" ;
+    rdfs:domain lifeos:Catalog ;
+    rdfs:range lifeos:Topic ;
+    skos:inScheme lifeos:knowledge_management,
+        lifeos:lifeos-ontology ;
+    skos:note "A knowledge organization system (KOS) used to classify the resources documented in the catalog (e.g., datasets and services).",
+        "It is recommended that the taxonomy is organized in a skos:ConceptScheme, skos:Collection, owl:Ontology or similar, which allows each member to be denoted by an IRI and published as Linked Data." .
+
+lifeos:Bookmark a owl:Class ;
+    rdfs:label "Bookmark" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:highlights ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Repository ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Highlight ;
+            owl:onProperty lifeos:highlights ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ],
+        lifeos:Resource ;
+    skos:definition "A Collected Resource, aka a URL with no content" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/document> .
+
+lifeos:Catalog a owl:Class ;
+    rdfs:label "Catalog" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:themes ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Topic ;
+            owl:onProperty lifeos:themes ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ] ;
+    skos:definition "A group of similar Resource instances around a theme or topic" ;
+    skos:exactMatch dcat:Catalog ;
+    skos:inScheme lifeos:knowledge_management ;
+    skos:note "Modeled after dcat:Catalog" .
+
+lifeos:Collection a owl:Class ;
+    rdfs:label "Collection" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:catalog ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom owl:Thing ;
+            owl:onProperty lifeos:has_use ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:catalog ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:has_resources ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Resource ;
+            owl:onProperty lifeos:has_resources ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:has_use ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Catalog ;
+            owl:onProperty lifeos:catalog ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        lifeos:Resource ;
+    skos:definition "A group of Resources centered around some need or theme" ;
+    skos:inScheme lifeos:knowledge_management .
+
+lifeos:Highlight a owl:Class ;
+    rdfs:label "Highlight" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Repository ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Bookmark ;
+            owl:onProperty lifeos:bookmark ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:bookmark ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:bookmark ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        lifeos:Resource ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/document> .
+
+lifeos:Repository a owl:Class ;
+    rdfs:label "Repository" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:service_name ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:service_name ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:service_name ] ;
+    skos:definition "The system that houses a given resource" ;
+    skos:exactMatch lifeos:Repository ;
+    skos:inScheme lifeos:knowledge_management .
+
+lifeos:theme a owl:ObjectProperty ;
+    rdfs:label "theme" ;
+    rdfs:domain lifeos:Resource ;
+    rdfs:range lifeos:TopicTaxonomy ;
+    skos:definition "Resource is releated to some topic, subject, concept defined in the life business knowledge taxonomy" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:Topic a owl:Class ;
+    rdfs:label "Topic" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:TopicTaxonomy ;
+            owl:onProperty lifeos:theme ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:theme ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:theme ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ] ;
+    skos:exactMatch skos:Concept ;
+    skos:inScheme lifeos:information .
+
+lifeos:NoteType a owl:Class ;
+    owl:unionOf ( <http://lifeos.org/ontology/NoteType#Note> <http://lifeos.org/ontology/NoteType#Log> <http://lifeos.org/ontology/NoteType#Thought> <http://lifeos.org/ontology/NoteType#Idea> <http://lifeos.org/ontology/NoteType#Reference> <http://lifeos.org/ontology/NoteType#Highlight> ) ;
+    linkml:permissible_values <http://lifeos.org/ontology/NoteType#Highlight>,
+        <http://lifeos.org/ontology/NoteType#Idea>,
+        <http://lifeos.org/ontology/NoteType#Log>,
+        <http://lifeos.org/ontology/NoteType#Note>,
+        <http://lifeos.org/ontology/NoteType#Reference>,
+        <http://lifeos.org/ontology/NoteType#Thought> .
+
+lifeos:catalog a owl:ObjectProperty ;
+    rdfs:label "catalog" ;
+    rdfs:domain lifeos:Resource ;
+    rdfs:range lifeos:Catalog ;
+    skos:definition "The Catalog the resource belongs to" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource>,
+        lifeos:lifeos-ontology .
+
+lifeos:DocumentType a owl:Class ;
+    owl:unionOf ( <http://lifeos.org/ontology/DocumentType#Document> <http://lifeos.org/ontology/DocumentType#Journal> <http://lifeos.org/ontology/DocumentType#List> <http://lifeos.org/ontology/DocumentType#Notebook> <http://lifeos.org/ontology/DocumentType#Logbook> <http://lifeos.org/ontology/DocumentType#Inventory> <http://lifeos.org/ontology/DocumentType#Landscape> ) ;
+    linkml:permissible_values <http://lifeos.org/ontology/DocumentType#Document>,
+        <http://lifeos.org/ontology/DocumentType#Inventory>,
+        <http://lifeos.org/ontology/DocumentType#Journal>,
+        <http://lifeos.org/ontology/DocumentType#Landscape>,
+        <http://lifeos.org/ontology/DocumentType#List>,
+        <http://lifeos.org/ontology/DocumentType#Logbook>,
+        <http://lifeos.org/ontology/DocumentType#Notebook> .
+
+lifeos:content_location a owl:DatatypeProperty ;
+    rdfs:label "content_location" ;
+    skos:definition "URL of the content for this resource, expectation is these are served from an object store" ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:resource_type a owl:DatatypeProperty ;
+    rdfs:label "resource_type" ;
+    rdfs:range xsd:string ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> .
+
+lifeos:activity_type a owl:DatatypeProperty ;
+    rdfs:label "activity_type" ;
+    rdfs:range xsd:string ;
+    skos:inScheme lifeos:work .
+
+lifeos:Activity a owl:Class ;
+    rdfs:label "Activity" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:activity_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:anyURI ;
+            owl:onProperty lifeos:url ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:activity_type ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:activity_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:url ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:url ] ;
+    skos:definition "Represents work that requires focus, time, and energy, and may have associated resources" ;
+    skos:exactMatch <http://dbpedia.org/ontology/Work> ;
+    skos:inScheme lifeos:work ;
+    skos:note "Item on which time has been spent for its realisation. Actor can be a human on not (machine, insects, nature...)" .
+
+lifeos:repository a owl:ObjectProperty ;
+    rdfs:label "repository" ;
+    rdfs:domain lifeos:Resource ;
+    rdfs:range lifeos:Repository ;
+    skos:definition "The repository a resource is stored in" ;
+    skos:inScheme lifeos:knowledge_management .
+
+lifeos:Resource a owl:Class ;
+    rdfs:label "Resource" ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:creator ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:theme ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:format ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:has_use ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:media_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Resource ;
+            owl:onProperty lifeos:related_resources ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Topic ;
+            owl:onProperty lifeos:subject ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:subject ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:modified ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:creator ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:format ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:id ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:theme ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:modified ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:catalog ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:location ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:created_on ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:resource_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:format ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:related_resources ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:dateTime ;
+            owl:onProperty lifeos:modified ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Repository ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:location ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:has_purpose ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:content_location ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:content_location ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:subject ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Catalog ;
+            owl:onProperty lifeos:catalog ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:catalog ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:dateTime ;
+            owl:onProperty lifeos:created ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:description ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:content_location ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:creator ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Purpose ;
+            owl:onProperty lifeos:has_purpose ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:repository ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Topic ;
+            owl:onProperty lifeos:related_topics ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:Activity ;
+            owl:onProperty lifeos:has_use ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:media_type ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:related_topics ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:has_purpose ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:resource_type ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:created_by ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:location ],
+        [ a owl:Restriction ;
+            owl:minCardinality 1 ;
+            owl:onProperty lifeos:title ],
+        [ a owl:Restriction ;
+            owl:minCardinality 0 ;
+            owl:onProperty lifeos:last_updated_on ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom xsd:string ;
+            owl:onProperty lifeos:resource_type ],
+        [ a owl:Restriction ;
+            owl:allValuesFrom lifeos:TopicTaxonomy ;
+            owl:onProperty lifeos:theme ],
+        [ a owl:Restriction ;
+            owl:maxCardinality 1 ;
+            owl:onProperty lifeos:media_type ] ;
+    skos:definition "Base class for information resources" ;
+    skos:exactMatch dcterms:Resource ;
+    skos:inScheme <http://lifeos.org/ontology/knowledge_management/resource> ;
+    skos:note "I am ignoring dcat:Distribution, which classifies the format of a Resource, and instead lumping into the resource" .
+
+lifeos:created_by a owl:DatatypeProperty ;
+    rdfs:label "created_by" ;
+    skos:inScheme lifeos:common .
+
+lifeos:created_on a owl:DatatypeProperty ;
+    rdfs:label "created_on" ;
+    skos:inScheme lifeos:common .
+
+lifeos:description a owl:DatatypeProperty ;
+    rdfs:label "description" ;
+    skos:inScheme lifeos:common .
+
+lifeos:id a owl:DatatypeProperty ;
+    rdfs:label "id" ;
+    skos:definition "Unique identifier for any entity" ;
+    skos:inScheme lifeos:common .
+
+lifeos:last_updated_on a owl:DatatypeProperty ;
+    rdfs:label "last_updated_on" ;
+    skos:inScheme lifeos:common .
+
+lifeos:title a owl:DatatypeProperty ;
+    rdfs:label "title" ;
+    skos:inScheme lifeos:common .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Project ;
+    owl:onProperty lifeos:activity_type ;
+    owl:someValuesFrom lifeos:Project .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Task ;
+    owl:onProperty lifeos:activity_type ;
+    owl:someValuesFrom lifeos:Task .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Study ;
+    owl:onProperty lifeos:activity_type ;
+    owl:someValuesFrom lifeos:Study .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Bookmark ;
+    owl:onProperty lifeos:resource_type ;
+    owl:someValuesFrom lifeos:Bookmark .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Research ;
+    owl:onProperty lifeos:activity_type ;
+    owl:someValuesFrom lifeos:Research .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Experiment ;
+    owl:onProperty lifeos:activity_type ;
+    owl:someValuesFrom lifeos:Experiment .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Resource ;
+    owl:onProperty lifeos:resource_type ;
+    owl:someValuesFrom lifeos:Resource .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Highlight ;
+    owl:onProperty lifeos:resource_type ;
+    owl:someValuesFrom lifeos:Highlight .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Note ;
+    owl:onProperty lifeos:resource_type ;
+    owl:someValuesFrom lifeos:Note .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Document ;
+    owl:onProperty lifeos:resource_type ;
+    owl:someValuesFrom lifeos:Document .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Collection ;
+    owl:onProperty lifeos:resource_type ;
+    owl:someValuesFrom lifeos:Collection .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Thinking ;
+    owl:onProperty lifeos:activity_type ;
+    owl:someValuesFrom lifeos:Thinking .
+
+[] a owl:Restriction ;
+    rdfs:subClassOf lifeos:Activity ;
+    owl:onProperty lifeos:activity_type ;
+    owl:someValuesFrom lifeos:Activity .
+
+

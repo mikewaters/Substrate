@@ -1,0 +1,315 @@
+# Sample taxonomy and topic dataset for integration tests
+# Format:
+# taxonomies:
+#   - id: <uuid or string>
+#     title: <string>
+#     description: <string>
+#     default_language: en
+#     topics:
+#       - id: <uuid>
+#         title: <string>
+#         description: <string>
+#         status: active
+#         aliases: [list]
+#         parents: [<topic-id>, ...]   # optional for non-root topics
+#
+# Notes:
+# - Hierarchies are expressed by referencing parent topic IDs in each topic's parents list.
+# - Root topics omit the parents field.
+# - For polyhierarchy demonstration, some topics have two parents.
+# - IDs are stable strings (not real UUIDs) for test determinism.
+
+---
+taxonomies:
+  - id: tx:tech
+    title: Technology
+    description: Topics related to technology domains
+    topics:
+      - id: tech:software
+        title: Software
+        description: Software development and engineering
+        status: active
+        aliases: ["software engineering"]
+      - id: tech:hardware
+        title: Hardware
+        description: Physical computing components
+        status: active
+        aliases: ["electronics"]
+      - id: tech:ai
+        title: Artificial Intelligence
+        description: AI and machine learning concepts
+        status: active
+        aliases: ["AI", "machine learning"]
+        parents: [tech:software]
+      - id: tech:cloud
+        title: Cloud Computing
+        description: Distributed and cloud systems
+        status: active
+        aliases: ["cloud"]
+        parents: [tech:software]
+      - id: tech:iot
+        title: Internet of Things
+        description: Networked physical devices
+        status: active
+        aliases: ["IoT"]
+        parents: [tech:hardware, tech:cloud]
+      - id: tech:devops
+        title: DevOps
+        description: Development and operations practices
+        status: active
+        parents: [tech:software, tech:cloud]
+      - id: tech:security
+        title: Cybersecurity
+        description: Security of systems and data
+        status: active
+        aliases: ["information security"]
+        parents: [tech:software, tech:hardware]
+      - id: tech:data
+        title: Data Engineering
+        description: Data pipelines and infrastructure
+        status: active
+        parents: [tech:software]
+      - id: tech:mlops
+        title: MLOps
+        description: Operationalizing ML systems
+        status: active
+        parents: [tech:ai, tech:devops]
+      - id: tech:llm
+        title: Large Language Models
+        description: Foundation and transformer models
+        status: active
+        aliases: ["LLMs", "foundation models"]
+        parents: [tech:ai]
+      - id: tech:edge
+        title: Edge Computing
+        description: Computation near data sources
+        status: active
+        parents: [tech:cloud, tech:iot]
+
+  - id: tx:health
+    title: Health & Wellness
+    description: Physical and mental health topics
+    topics:
+      - id: health:nutrition
+        title: Nutrition
+        description: Diet and nutrients
+        status: active
+      - id: health:fitness
+        title: Fitness
+        description: Exercise and conditioning
+        status: active
+      - id: health:mental
+        title: Mental Health
+        description: Psychological well-being
+        status: active
+      - id: health:sleep
+        title: Sleep
+        description: Sleep science and hygiene
+        status: active
+        parents: [health:mental]
+      - id: health:mindfulness
+        title: Mindfulness
+        description: Awareness and meditation practices
+        status: active
+        parents: [health:mental]
+      - id: health:hydration
+        title: Hydration
+        description: Water intake and balance
+        status: active
+        parents: [health:nutrition]
+      - id: health:microbiome
+        title: Gut Microbiome
+        description: Digestive microbial ecosystem
+        status: active
+        parents: [health:nutrition]
+      - id: health:strength
+        title: Strength Training
+        description: Resistance exercise
+        status: active
+        parents: [health:fitness]
+      - id: health:endurance
+        title: Endurance Training
+        description: Cardiovascular capacity
+        status: active
+        parents: [health:fitness]
+      - id: health:recovery
+        title: Recovery
+        description: Post-exertion restoration
+        status: active
+        parents: [health:fitness, health:sleep]
+      - id: health:stress
+        title: Stress Management
+        description: Coping strategies and reduction
+        status: active
+        parents: [health:mental, health:fitness]
+      - id: health:neuroscience
+        title: Neuroscience
+        description: Brain science and neurological health
+        status: active
+        parents: [health:mental]
+
+  - id: tx:life
+    title: Life Management
+    description: Personal productivity and organization
+    topics:
+      - id: life:productivity
+        title: Productivity
+        description: Getting things done efficiently
+        status: active
+      - id: life:goals
+        title: Goals
+        description: Goal setting and tracking
+        status: active
+        parents: [life:productivity]
+      - id: life:habits
+        title: Habits
+        description: Habit formation and change
+        status: active
+        parents: [life:productivity]
+      - id: life:prioritization
+        title: Prioritization
+        description: Deciding what matters most
+        status: active
+        parents: [life:productivity]
+      - id: life:time-blocking
+        title: Time Blocking
+        description: Structured scheduling
+        status: active
+        parents: [life:productivity, life:prioritization]
+      - id: life:journaling
+        title: Journaling
+        description: Daily reflection and logging
+        status: active
+        parents: [life:habits]
+      - id: life:focus
+        title: Deep Work
+        description: Sustained cognitive focus
+        status: active
+        parents: [life:productivity]
+      - id: life:planning
+        title: Planning
+        description: Forecasting and structuring activities
+        status: active
+        parents: [life:goals, life:prioritization]
+      - id: life:routines
+        title: Routines
+        description: Structured recurring sequences
+        status: active
+        parents: [life:habits]
+      - id: life:motivation
+        title: Motivation
+        description: Intrinsic and extrinsic drivers
+        status: active
+        parents: [life:goals, life:habits]
+
+  - id: tx:knowledge
+    title: Knowledge Management
+    description: Organizing and leveraging information assets
+    topics:
+      - id: know:capture
+        title: Capture
+        description: Collecting notes and ideas
+        status: active
+      - id: know:organize
+        title: Organize
+        description: Structuring knowledge artifacts
+        status: active
+        parents: [know:capture]
+      - id: know:retrieve
+        title: Retrieve
+        description: Accessing stored knowledge
+        status: active
+        parents: [know:organize]
+      - id: know:synthesize
+        title: Synthesize
+        description: Integrating diverse sources
+        status: active
+        parents: [know:organize]
+      - id: know:ai-assist
+        title: AI Assistance
+        description: Using AI to augment knowledge workflows
+        status: active
+        parents: [know:organize, know:synthesize]
+      - id: know:memory
+        title: Memory Systems
+        description: Spaced repetition and recall
+        status: active
+        parents: [know:organize]
+      - id: know:indexing
+        title: Indexing
+        description: Metadata and classification
+        status: active
+        parents: [know:organize]
+      - id: know:insights
+        title: Insight Generation
+        description: Turning knowledge into decisions
+        status: active
+        parents: [know:synthesize]
+      - id: know:sharing
+        title: Sharing
+        description: Disseminating information
+        status: active
+        parents: [know:organize]
+      - id: know:curation
+        title: Curation
+        description: Selecting high-value sources
+        status: active
+        parents: [know:organize]
+
+  - id: tx:work
+    title: Work & Collaboration
+    description: Professional and team dynamics
+    topics:
+      - id: work:communication
+        title: Communication
+        description: Exchanging information effectively
+        status: active
+      - id: work:collaboration
+        title: Collaboration
+        description: Working with others toward goals
+        status: active
+        parents: [work:communication]
+      - id: work:leadership
+        title: Leadership
+        description: Guiding teams and initiatives
+        status: active
+      - id: work:decision
+        title: Decision Making
+        description: Choosing among alternatives
+        status: active
+        parents: [work:leadership]
+      - id: work:projects
+        title: Project Management
+        description: Planning and executing projects
+        status: active
+        parents: [work:collaboration]
+      - id: work:feedback
+        title: Feedback
+        description: Providing and receiving critiques
+        status: active
+        parents: [work:communication]
+      - id: work:conflict
+        title: Conflict Resolution
+        description: Addressing interpersonal friction
+        status: active
+        parents: [work:communication, work:collaboration]
+      - id: work:alignment
+        title: Alignment
+        description: Shared understanding of direction
+        status: active
+        parents: [work:collaboration, work:leadership]
+      - id: work:delegation
+        title: Delegation
+        description: Assigning responsibility effectively
+        status: active
+        parents: [work:leadership, work:collaboration]
+      - id: work:retrospective
+        title: Retrospectives
+        description: Team learning and improvement cycles
+        status: active
+        parents: [work:collaboration]
+      - id: work:onboarding
+        title: Onboarding
+        description: Integrating new team members
+        status: active
+        parents: [work:collaboration]

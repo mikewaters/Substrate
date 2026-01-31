@@ -1,0 +1,409 @@
+# FEAT-006 Topic Suggestion Dataset
+# This dataset demonstrates the note topic suggestion features including:
+# - Fast mode (keyword-based suggestions)
+# - Accurate mode (LLM-based suggestions)
+# - Hybrid mode (combined approach)
+# - New topic generation
+# - Parent topic suggestions
+#
+# The dataset includes:
+# 1. A comprehensive taxonomy for testing
+# 2. A catalog and repository for notes
+# 3. Notes with various content types for testing suggestions
+# 4. Pre-classified examples for testing
+
+# Taxonomy for Testing Topic Suggestions
+taxonomies:
+  - id: tx:knowledge-mgmt
+    title: Knowledge Management
+    description: Topics related to personal knowledge management, note-taking, and information organization
+    topics:
+      # Root level topics
+      - id: km:note-taking
+        title: Note Taking
+        description: Methods and systems for capturing and organizing information
+        status: active
+        aliases: ["note-taking", "notes", "note systems"]
+
+      - id: km:learning
+        title: Learning
+        description: Processes and techniques for acquiring knowledge
+        status: active
+        aliases: ["education", "learning methods"]
+
+      - id: km:productivity
+        title: Productivity
+        description: Methods and tools for effective work and time management
+        status: active
+        aliases: ["efficiency", "time management"]
+
+      - id: km:research
+        title: Research
+        description: Systematic investigation and study methods
+        status: active
+        aliases: ["research methods", "investigation"]
+
+      # Second level topics - note-taking methods
+      - id: km:zettelkasten
+        title: Zettelkasten
+        description: Slip-box method for networked note-taking
+        status: active
+        aliases: ["slip box", "zettelkasten method"]
+        parents: [km:note-taking]
+
+      - id: km:cornell-notes
+        title: Cornell Notes
+        description: Structured note-taking system with cues and summary
+        status: active
+        aliases: ["cornell method", "cornell system"]
+        parents: [km:note-taking]
+
+      - id: km:digital-notes
+        title: Digital Note-Taking
+        description: Electronic methods and tools for capturing notes
+        status: active
+        aliases: ["digital notes", "electronic notes"]
+        parents: [km:note-taking]
+
+      - id: km:handwritten-notes
+        title: Handwritten Notes
+        description: Traditional pen and paper note-taking
+        status: active
+        aliases: ["handwriting", "pen and paper"]
+        parents: [km:note-taking]
+
+      # Learning subtopics
+      - id: km:spaced-repetition
+        title: Spaced Repetition
+        description: Learning technique using increasing intervals for review
+        status: active
+        aliases: ["spaced learning", "interval repetition"]
+        parents: [km:learning]
+
+      - id: km:active-recall
+        title: Active Recall
+        description: Learning by actively retrieving information from memory
+        status: active
+        aliases: ["retrieval practice", "active learning"]
+        parents: [km:learning]
+
+      - id: km:elaboration
+        title: Elaboration
+        description: Learning technique connecting new information to existing knowledge
+        status: active
+        aliases: ["elaborative learning"]
+        parents: [km:learning]
+
+      # Productivity subtopics
+      - id: km:pomodoro
+        title: Pomodoro Technique
+        description: Time management method using 25-minute focused intervals
+        status: active
+        aliases: ["pomodoro", "pomodoro method"]
+        parents: [km:productivity]
+
+      - id: km:gtd
+        title: Getting Things Done
+        description: David Allen's productivity methodology
+        status: active
+        aliases: ["GTD", "getting things done"]
+        parents: [km:productivity]
+
+      - id: km:time-blocking
+        title: Time Blocking
+        description: Scheduling method dedicating specific time blocks to tasks
+        status: active
+        aliases: ["time-blocking", "calendar blocking"]
+        parents: [km:productivity]
+
+      # Research subtopics
+      - id: km:lit-review
+        title: Literature Review
+        description: Comprehensive survey of existing research on a topic
+        status: active
+        aliases: ["literature review", "research review"]
+        parents: [km:research]
+
+      - id: km:citation-mgmt
+        title: Citation Management
+        description: Organizing and formatting bibliographic references
+        status: active
+        aliases: ["citation management", "bibliography", "references"]
+        parents: [km:research]
+
+      - id: km:research-notes
+        title: Research Notes
+        description: Note-taking specifically for academic and scholarly work
+        status: active
+        aliases: ["academic notes", "scholarly notes"]
+        parents: [km:research, km:note-taking]
+
+      # Third level - digital tools
+      - id: km:obsidian
+        title: Obsidian
+        description: Markdown-based note-taking app with bidirectional links
+        status: active
+        aliases: ["obsidian.md"]
+        parents: [km:digital-notes]
+
+      - id: km:notion
+        title: Notion
+        description: All-in-one workspace for notes, databases, and collaboration
+        status: active
+        aliases: ["notion.so"]
+        parents: [km:digital-notes]
+
+      - id: km:roam
+        title: Roam Research
+        description: Note-taking tool for networked thought
+        status: active
+        aliases: ["roam", "roam research"]
+        parents: [km:digital-notes, km:zettelkasten]
+
+# Catalog and Repository for Test Notes
+catalogs:
+  - id: cat:test-notes
+    title: Test Notes
+    description: Collection of test notes for FEAT-006 topic suggestion testing
+    themes: [km:note-taking, km:learning]
+    created_by: test_user
+
+repositories:
+  - id: repo:local-notes
+    title: Local Notes Repository
+    service_name: local_filesystem
+    description: Local file system storage for notes
+    created_by: test_user
+
+# Test Notes for Topic Suggestion
+resources:
+  # Note 1: Clear match for Zettelkasten
+  - id: note:zettel-intro
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Introduction to Slip Box Method
+    description: |
+      The Zettelkasten method is a personal knowledge management system developed by Niklas Luhmann.
+      It involves creating atomic notes, each containing a single idea, and linking them together.
+      The key principles are: one idea per note, use your own words, and create connections between notes.
+      Luhmann used physical index cards (Zettel means slip or card in German), but modern implementations
+      use digital tools like Obsidian or Roam Research. The method emphasizes thinking through writing
+      and building a network of interconnected ideas over time.
+    resource_type: Note
+    note_type: Note
+    related_topics: []  # Empty - will test suggestion
+
+  # Note 2: Should match multiple topics (Spaced Repetition + Active Recall)
+  - id: note:learning-science
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Evidence-Based Learning Techniques
+    description: |
+      Research shows that the most effective learning techniques are spaced repetition and active recall.
+      Spaced repetition means reviewing material at increasing intervals (1 day, 3 days, 1 week, etc.).
+      Active recall involves testing yourself rather than just rereading. Studies by Bjork and others
+      demonstrate these methods dramatically improve long-term retention compared to passive review.
+      Combining both techniques creates a powerful learning system. Tools like Anki implement these
+      principles through flashcards with scheduling algorithms.
+    resource_type: Note
+    note_type: Note
+    related_topics: []
+
+  # Note 3: Hybrid match - some keywords, needs LLM for depth
+  - id: note:productivity-system
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: My Personal Productivity System
+    description: |
+      I've developed a hybrid system combining several methodologies. I use time blocking every morning
+      to schedule my day, breaking it into focused work sessions. During work sessions, I apply the
+      Pomodoro technique with 25-minute intervals followed by 5-minute breaks. For task management,
+      I follow GTD principles: capture everything, clarify next actions, organize by context.
+      The combination helps me maintain focus while ensuring nothing falls through the cracks.
+      I review weekly to adjust and refine the system.
+    resource_type: Note
+    note_type: Note
+    related_topics: []
+
+  # Note 4: Should trigger new topic generation (about mind mapping - not in taxonomy)
+  - id: note:mind-mapping
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Using Mind Maps for Visual Thinking
+    description: |
+      Mind mapping is a visual technique for organizing information radiating from a central concept.
+      Tony Buzan popularized the method in the 1970s. A mind map starts with a central idea and branches
+      out into related subtopics, using colors, images, and keywords. This visual structure mirrors how
+      the brain naturally associates ideas. Mind maps are excellent for brainstorming, planning projects,
+      and studying complex topics. They can be created on paper or using digital tools like MindMeister
+      or XMind. The non-linear format encourages creative thinking and helps reveal connections.
+    resource_type: Note
+    note_type: Note
+    related_topics: []
+
+  # Note 5: Academic research note - should match research + note-taking
+  - id: note:lit-review-process
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Conducting a Systematic Literature Review
+    description: |
+      A literature review requires systematic methodology. Start by defining your research question
+      and search terms. Use academic databases like Google Scholar, JSTOR, and PubMed. As you find
+      relevant papers, maintain detailed notes including key findings, methodology, and limitations.
+      Use citation management software like Zotero or Mendeley to organize references. Create a
+      synthesis matrix to compare studies. Take research notes that connect ideas across papers
+      rather than just summarizing each one. The goal is to identify gaps, trends, and opportunities
+      for future research while building a coherent narrative.
+    resource_type: Note
+    note_type: Note
+    related_topics: []
+
+  # Note 6: Short note with minimal context - challenging for classification
+  - id: note:quick-thought
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Ideas for improving workflow
+    description: |
+      Need to spend more time on deep work. Too many interruptions. Maybe try blocking calendar time?
+      Also should write more summaries after reading. Helps with retention.
+    resource_type: Note
+    note_type: Note
+    related_topics: []
+
+  # Note 7: Tool-specific note - should match digital notes + specific tool
+  - id: note:obsidian-setup
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Setting Up Obsidian for Research
+    description: |
+      Obsidian is a powerful tool for building a personal knowledge base. I use it with the following
+      plugins: Dataview for queries, Calendar for daily notes, Templater for note templates, and
+      Citations for managing research papers. My folder structure separates permanent notes, literature
+      notes, and fleeting notes. I use tags sparingly, preferring links to build connections. The graph
+      view helps visualize the network of ideas. For research, I create literature notes with citations
+      and link them to relevant permanent notes that capture my own thinking.
+    resource_type: Note
+    note_type: Note
+    related_topics: []
+
+  # Note 8: Polyhierarchical match - should match multiple parent paths
+  - id: note:research-workflow
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Academic Research Note-Taking Workflow
+    description: |
+      My research workflow combines digital tools with systematic note-taking. I use Roam Research
+      for networked note-taking, implementing Zettelkasten principles. Each paper gets a literature
+      note with proper citations managed in Zotero. As I read, I create atomic notes for key concepts,
+      always in my own words. I link these to related ideas using bidirectional links. For spaced
+      repetition, I extract key facts into Anki flashcards. The combination of networked notes and
+      active recall creates a powerful system for academic work.
+    resource_type: Note
+    note_type: Note
+    related_topics: []
+
+  # Note 9: Should suggest new subtopics within existing hierarchy
+  - id: note:cornell-method
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Cornell Note-Taking in Lectures
+    description: |
+      The Cornell method divides the page into three sections: notes, cues, and summary. During the
+      lecture, take notes in the main area using abbreviations and diagrams. After class, write
+      questions or keywords in the cue column. At the bottom, write a brief summary in your own words.
+      This structure forces active processing and creates built-in review material. The cue column
+      is perfect for self-testing by covering the notes and trying to answer the questions. I've found
+      this especially effective for classes with heavy conceptual content rather than problem-solving.
+    resource_type: Note
+    note_type: Note
+    related_topics: []
+
+  # Note 10: Mixed concepts - good for hybrid mode testing
+  - id: note:learning-system
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Building an Integrated Learning System
+    description: |
+      An effective learning system integrates multiple techniques. I combine the Zettelkasten method
+      for knowledge management with spaced repetition for memorization. When I learn something new,
+      I create an atomic note in Obsidian and add flashcards to Anki for key facts. I review notes
+      weekly and flashcards daily. For elaboration, I write my own examples and connect new concepts
+      to what I already know. Time blocking ensures I dedicate time to learning daily. The Pomodoro
+      technique helps maintain focus during study sessions. This multi-faceted approach addresses
+      different aspects of learning: understanding, retention, and application.
+    resource_type: Note
+    note_type: Note
+    related_topics: []
+
+  # Note 11: Pre-classified note (for testing apply_suggestions)
+  - id: note:pomodoro-practice
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Implementing Pomodoro at Work
+    description: |
+      Started using the Pomodoro technique this week. Setting 25-minute timers for focused work.
+      Taking 5-minute breaks to stretch and rest eyes. After 4 pomodoros, taking a longer 15-30 minute
+      break. Finding it helps avoid burnout and maintains energy throughout the day. The time constraint
+      creates a sense of urgency that improves focus. Tracking how many pomodoros per task helps
+      estimate future work better.
+    resource_type: Note
+    note_type: Note
+    related_topics: [km:pomodoro, km:productivity, km:time-blocking]
+
+  # Note 12: Edge case - very short note
+  - id: note:brief-reminder
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Remember to review notes weekly
+    description: Weekly review is essential for retention.
+    resource_type: Note
+    note_type: Note
+    related_topics: []
+
+  # Note 13: Should trigger parent suggestion testing
+  - id: note:advanced-zettel
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Advanced Zettelkasten Techniques
+    description: |
+      Beyond basic atomic notes, advanced Zettelkasten practice includes several techniques.
+      Structure notes act as entry points into topics, providing an overview and links to related
+      notes. Hub notes connect related atomic notes into a coherent sequence. Index notes help
+      navigate the system. The principle of elaboration means always writing notes in your own words
+      and making connections explicit. Progressive summarization involves highlighting key points
+      over multiple passes. These advanced techniques help scale the system as it grows to thousands
+      of notes.
+    resource_type: Note
+    note_type: Note
+    related_topics: []
+
+  # Note 14: Bookmarked resource (different resource type for variety)
+  - id: bookmark:feynman-technique
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Feynman Technique for Learning
+    description: |
+      Article about the Feynman Technique - a learning method where you explain a concept in simple
+      terms as if teaching a child. Named after physicist Richard Feynman. Steps: 1) Choose a concept,
+      2) Teach it to someone unfamiliar, 3) Identify gaps in your understanding, 4) Review and simplify.
+      The act of simplifying reveals whether you truly understand something. Similar to elaboration
+      and active recall in its effectiveness.
+    resource_type: Bookmark
+    location: https://example.com/feynman-technique
+    related_topics: []
+
+  # Note 15: Document type - longer form content
+  - id: doc:productivity-guide
+    catalog: cat:test-notes
+    repository: repo:local-notes
+    title: Complete Guide to Personal Productivity
+    description: |
+      Comprehensive guide covering productivity systems including GTD, Pomodoro, time blocking,
+      and energy management. The guide synthesizes research on attention, focus, and habit formation.
+      Includes practical templates for daily planning, weekly reviews, and quarterly goal setting.
+      Discusses the importance of rest and recovery in sustainable productivity. Provides decision
+      frameworks for choosing which system elements to adopt based on individual work style and
+      constraints. Emphasizes experimentation and adaptation over rigid adherence to any single method.
+    resource_type: Document
+    document_type: Document
+    related_topics: []

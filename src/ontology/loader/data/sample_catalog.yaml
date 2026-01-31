@@ -1,0 +1,413 @@
+# Sample catalog dataset for integration tests
+# Format:
+# catalogs:
+#   - id: <string>
+#     title: <string>
+#     description: <string>
+#     themes: [list of theme identifiers]
+#     created_by: <string>  # optional
+#
+# repositories:
+#   - id: <string>
+#     title: <string>
+#     service_name: <string>
+#     description: <string>
+#     created_by: <string>  # optional
+#
+# purposes:
+#   - id: <string>
+#     title: <string>
+#     description: <string>
+#     role: <string>  # optional
+#     meaning: <string>  # optional
+#     created_by: <string>  # optional
+#
+# resources:
+#   - id: <string>
+#     catalog: <catalog identifier>
+#     title: <string>
+#     description: <string>
+#     resource_type: <Resource|Bookmark|Collection|Document|Note>
+#     location: <URL>  # optional
+#     repository: <repository identifier>  # optional
+#     content_location: <URL>  # optional
+#     format: <string>  # optional
+#     media_type: <MIME type>  # optional
+#     theme: <theme identifier>  # optional
+#     subject: <string>  # optional
+#     creator: <string>  # optional
+#     has_purpose: <purpose identifier>  # optional
+#     has_use: [list of use identifiers]  # optional
+#     has_resources: [list of resource identifiers]  # for Collections
+#     related_resources: [list of resource identifiers]  # optional
+#     related_topics: [list of topic identifiers]  # optional
+#     document_type: <string>  # for Documents only
+#     note_type: <string>  # for Notes only
+#
+# Notes:
+# - Resource types: Resource, Bookmark, Collection, Document, Note
+# - Collections use has_resources to list contained resources
+# - Documents have document_type field
+# - Notes have note_type field
+# - IDs are stable strings for test determinism
+
+---
+catalogs:
+  - id: cat:tech-resources
+    title: Technology Resources
+    description: Collection of technical documentation, tutorials, and tools
+    themes: ["tech:software", "tech:ai", "tech:cloud"]
+    created_by: alice
+
+  - id: cat:learning
+    title: Learning Materials
+    description: Educational content across various domains
+    themes: ["know:capture", "know:organize", "life:productivity"]
+    created_by: charlie
+
+  - id: cat:research-papers
+    title: Research Papers
+    description: Academic papers and research findings
+    themes: ["tech:ai", "tech:llm", "know:synthesize"]
+    created_by: bob
+
+  - id: cat:project-docs
+    title: Project Documentation
+    description: Internal project documentation and specifications
+    themes: ["work:collaboration", "know:organize"]
+    created_by: alice
+
+repositories:
+  - id: repo:github
+    title: GitHub
+    service_name: github
+    description: Source code and documentation on GitHub
+    created_by: alice
+
+  - id: repo:notion
+    title: Notion Workspace
+    service_name: notion
+    description: Team knowledge base in Notion
+    created_by: alice
+
+  - id: repo:gdrive
+    title: Google Drive
+    service_name: google_drive
+    description: Shared files on Google Drive
+    created_by: bob
+
+  - id: repo:arxiv
+    title: arXiv
+    service_name: arxiv
+    description: Academic preprints on arXiv
+    created_by: charlie
+
+  - id: repo:local
+    title: Local Filesystem
+    service_name: filesystem
+    description: Files stored locally
+    created_by: alice
+
+purposes:
+  - id: purpose:reference
+    title: Reference Material
+    description: Material kept for future reference and lookup
+    role: reference
+    meaning: To be consulted when needed
+    created_by: alice
+
+  - id: purpose:learning
+    title: Learning Resource
+    description: Material for active learning and skill development
+    role: educational
+    meaning: To acquire new knowledge and skills
+    created_by: charlie
+
+  - id: purpose:project-support
+    title: Project Support
+    description: Resources supporting active project work
+    role: operational
+    meaning: To enable project execution
+    created_by: alice
+
+  - id: purpose:research
+    title: Research Foundation
+    description: Material supporting research activities
+    role: research
+    meaning: To inform research decisions
+    created_by: bob
+
+resources:
+  # Bookmarks
+  - id: res:langchain-docs
+    catalog: cat:tech-resources
+    title: LangChain Documentation
+    description: Official LangChain framework documentation
+    resource_type: Bookmark
+    location: https://python.langchain.com/docs/
+    repository: repo:github
+    format: html
+    media_type: text/html
+    theme: tech:ai
+    subject: LLM Frameworks
+    creator: LangChain Team
+    has_purpose: purpose:reference
+    has_use: ["purpose:learning", "purpose:project-support"]
+    related_topics: ["tech:llm", "tech:ai"]
+
+  - id: res:fastapi-docs
+    catalog: cat:tech-resources
+    title: FastAPI Documentation
+    description: FastAPI web framework documentation
+    resource_type: Bookmark
+    location: https://fastapi.tiangolo.com/
+    repository: repo:github
+    format: html
+    media_type: text/html
+    theme: tech:software
+    subject: Web Frameworks
+    has_purpose: purpose:reference
+    related_topics: ["tech:software"]
+
+  - id: res:pydantic-docs
+    catalog: cat:tech-resources
+    title: Pydantic Documentation
+    description: Data validation using Python type annotations
+    resource_type: Bookmark
+    location: https://docs.pydantic.dev/
+    repository: repo:github
+    format: html
+    media_type: text/html
+    theme: tech:software
+    subject: Data Validation
+    has_purpose: purpose:reference
+    related_topics: ["tech:software"]
+
+  - id: res:sqlalchemy-docs
+    catalog: cat:tech-resources
+    title: SQLAlchemy Documentation
+    description: Python SQL toolkit and ORM
+    resource_type: Bookmark
+    location: https://docs.sqlalchemy.org/
+    repository: repo:github
+    format: html
+    media_type: text/html
+    theme: tech:software
+    subject: Database ORMs
+    has_purpose: purpose:reference
+    related_topics: ["tech:software", "tech:data"]
+
+  # Documents (authored content)
+  - id: res:doc:architecture-decisions
+    catalog: cat:project-docs
+    title: Architecture Decision Records
+    description: Record of key architectural decisions and rationale
+    resource_type: Document
+    document_type: adr
+    repository: repo:notion
+    content_location: https://notion.so/team/architecture-decisions
+    format: markdown
+    media_type: text/markdown
+    theme: work:collaboration
+    subject: Architecture
+    creator: alice
+    has_purpose: purpose:project-support
+    related_topics: ["work:decision", "work:collaboration"]
+    related_resources: ["res:doc:system-design"]
+
+  - id: res:doc:system-design
+    catalog: cat:project-docs
+    title: System Design Document
+    description: Overall system architecture and design principles
+    resource_type: Document
+    document_type: design
+    repository: repo:notion
+    content_location: https://notion.so/team/system-design
+    format: markdown
+    media_type: text/markdown
+    theme: work:collaboration
+    subject: System Design
+    creator: alice
+    has_purpose: purpose:project-support
+    related_topics: ["work:collaboration", "tech:software"]
+
+  - id: res:doc:api-spec
+    catalog: cat:project-docs
+    title: API Specification
+    description: REST API endpoints and data schemas
+    resource_type: Document
+    document_type: specification
+    repository: repo:github
+    location: https://github.com/example/project/blob/main/docs/api.md
+    format: openapi
+    media_type: application/json
+    theme: work:collaboration
+    subject: API Design
+    creator: bob
+    has_purpose: purpose:project-support
+    related_topics: ["work:collaboration", "tech:software"]
+
+  - id: res:doc:onboarding-guide
+    catalog: cat:project-docs
+    title: Team Onboarding Guide
+    description: Guide for new team members
+    resource_type: Document
+    document_type: guide
+    repository: repo:notion
+    content_location: https://notion.so/team/onboarding
+    format: markdown
+    media_type: text/markdown
+    theme: work:collaboration
+    subject: Onboarding
+    creator: alice
+    has_purpose: purpose:project-support
+    related_topics: ["work:onboarding", "work:collaboration"]
+
+  # Notes
+  - id: res:note:llm-experimentation
+    catalog: cat:learning
+    title: LLM Experimentation Notes
+    description: Notes from experimenting with different LLM prompting techniques
+    resource_type: Note
+    note_type: experiment
+    repository: repo:local
+    format: markdown
+    media_type: text/markdown
+    theme: tech:ai
+    subject: Prompt Engineering
+    creator: charlie
+    has_purpose: purpose:learning
+    related_topics: ["tech:llm", "tech:ai"]
+
+  - id: res:note:rust-ownership
+    catalog: cat:learning
+    title: Rust Ownership Model Notes
+    description: Personal notes on understanding Rust's ownership system
+    resource_type: Note
+    note_type: learning
+    repository: repo:local
+    format: markdown
+    media_type: text/markdown
+    theme: tech:software
+    subject: Rust Programming
+    creator: bob
+    has_purpose: purpose:learning
+    related_topics: ["tech:software"]
+
+  - id: res:note:meeting-2025-01-15
+    catalog: cat:project-docs
+    title: Team Meeting Notes - Jan 15, 2025
+    description: Notes from weekly team sync
+    resource_type: Note
+    note_type: meeting
+    repository: repo:notion
+    content_location: https://notion.so/team/meetings/2025-01-15
+    format: markdown
+    media_type: text/markdown
+    theme: work:collaboration
+    subject: Team Meeting
+    creator: alice
+    has_purpose: purpose:project-support
+    related_topics: ["work:collaboration", "work:communication"]
+
+  - id: res:note:debug-session
+    catalog: cat:project-docs
+    title: Debug Session Notes - Memory Leak
+    description: Notes from debugging production memory leak
+    resource_type: Note
+    note_type: troubleshooting
+    repository: repo:local
+    format: markdown
+    media_type: text/markdown
+    theme: tech:software
+    subject: Debugging
+    creator: bob
+    has_purpose: purpose:project-support
+    related_topics: ["tech:software", "tech:devops"]
+
+  # Collections
+  - id: res:coll:llm-resources
+    catalog: cat:learning
+    title: LLM Learning Collection
+    description: Curated collection of LLM learning resources
+    resource_type: Collection
+    repository: repo:notion
+    theme: tech:ai
+    subject: Large Language Models
+    creator: charlie
+    has_purpose: purpose:learning
+    has_resources: ["res:langchain-docs", "res:note:llm-experimentation"]
+    related_topics: ["tech:llm", "tech:ai", "know:curation"]
+
+  - id: res:coll:python-frameworks
+    catalog: cat:tech-resources
+    title: Python Frameworks Collection
+    description: Collection of Python web and data frameworks
+    resource_type: Collection
+    repository: repo:github
+    theme: tech:software
+    subject: Python Frameworks
+    creator: alice
+    has_purpose: purpose:reference
+    has_resources: ["res:fastapi-docs", "res:pydantic-docs", "res:sqlalchemy-docs"]
+    related_topics: ["tech:software"]
+
+  - id: res:coll:project-documentation
+    catalog: cat:project-docs
+    title: Core Project Documentation
+    description: Essential project documentation collection
+    resource_type: Collection
+    repository: repo:notion
+    theme: work:collaboration
+    subject: Project Docs
+    creator: alice
+    has_purpose: purpose:project-support
+    has_resources: ["res:doc:architecture-decisions", "res:doc:system-design", "res:doc:api-spec"]
+    related_topics: ["work:collaboration", "work:projects"]
+
+  # Papers (as generic Resources with specific metadata)
+  - id: res:attention-is-all-you-need
+    catalog: cat:research-papers
+    title: Attention Is All You Need
+    description: Transformer architecture paper
+    resource_type: Resource
+    location: https://arxiv.org/abs/1706.03762
+    repository: repo:arxiv
+    format: pdf
+    media_type: application/pdf
+    theme: tech:ai
+    subject: Neural Network Architectures
+    creator: Vaswani et al.
+    has_purpose: purpose:research
+    related_topics: ["tech:ai", "tech:llm"]
+
+  - id: res:rag-paper
+    catalog: cat:research-papers
+    title: Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks
+    description: RAG methodology paper
+    resource_type: Resource
+    location: https://arxiv.org/abs/2005.11401
+    repository: repo:arxiv
+    format: pdf
+    media_type: application/pdf
+    theme: tech:ai
+    subject: Information Retrieval
+    creator: Lewis et al.
+    has_purpose: purpose:research
+    related_topics: ["tech:ai", "tech:llm", "know:retrieve"]
+
+  - id: res:llm-agents-paper
+    catalog: cat:research-papers
+    title: A Survey on Large Language Model Based Autonomous Agents
+    description: Comprehensive survey of LLM-based agents
+    resource_type: Resource
+    location: https://arxiv.org/abs/2308.11432
+    repository: repo:arxiv
+    format: pdf
+    media_type: application/pdf
+    theme: tech:ai
+    subject: Autonomous Agents
+    creator: Wang et al.
+    has_purpose: purpose:research
+    related_topics: ["tech:ai", "tech:llm"]
+    related_resources: ["res:attention-is-all-you-need", "res:rag-paper"]

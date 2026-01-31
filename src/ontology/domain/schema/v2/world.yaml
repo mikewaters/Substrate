@@ -1,0 +1,82 @@
+id: http://lifeos.org/ontology/world
+name: world
+description: >
+  World domain
+
+default_prefix: lifeos
+default_range: string
+
+prefixes:
+  lifeos: http://lifeos.org/ontology/
+  linkml: https://w3id.org/linkml/
+
+imports:
+  - linkml:types
+  - common
+
+classes:
+  Object:
+    abstract: true
+    description: Abstract class for a Thing in the world
+    slots:
+      - id
+      - title
+      - description
+    annotations:
+      life_bus_domain: World
+    class_uri: lifeos:Object
+
+  PhysicalObject:
+    is_a: Object
+    description: A type of Object that exists physically
+    class_uri: lifeos:PhysicalObject
+
+  DigitalObject:
+    is_a: Object
+    description: A type of Object that exists digitally (files, apps, etc.)
+    class_uri: lifeos:DigitalObject
+
+  Asset:
+    is_a: Object
+    description: >
+      Representation of an object (physical or virtual) that you are
+      using for some reason
+    slots:
+      - id
+      - title
+      - description
+      - uses_object
+      - has_usage
+      - has_age
+    slot_usage:
+      uses_object:
+        required: true
+        range: Object
+        any_of:
+          - range: PhysicalObject
+          - range: DigitalObject
+        inlined: false # Reference by ID
+    class_uri: lifeos:Asset
+
+slots:
+  has_usage:
+    description: Description of how an asset is used
+    range: string
+    required: false
+    slot_uri: lifeos:has_usage
+
+  has_age:
+    description: Age of an asset in relevant units
+    range: integer
+    required: false
+    minimum_value: 0
+    slot_uri: lifeos:has_age
+
+  uses_object:
+    description: Links an Asset to the Object it uses
+    range: Object
+    multivalued: false
+    required: true
+    slot_uri: lifeos:uses_object
+    domain_of:
+      - Asset

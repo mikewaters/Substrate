@@ -1,0 +1,130 @@
+# Sample Data for Testing Association Table Relationships
+#
+# This dataset specifically tests the three many-to-many association tables:
+# 1. catalog_taxonomies - Catalog to Taxonomy relationships
+# 2. resource_related_resources - Resource to Resource relationships
+# 3. resource_related_topics - Resource to Topic relationships
+#
+# Dependencies:
+# - Requires sample_taxonomies.yaml to be loaded first (for taxonomies and topics)
+
+# Catalog with taxonomy relationships (tests catalog_taxonomies table)
+catalogs:
+  - id: cat:relationships-test
+    title: Relationships Test Catalog
+    description: Catalog for testing many-to-many relationship handling
+    themes: [tx:tech, tx:health]  # Links to multiple taxonomies
+
+repositories:
+  - id: repo:relationships-test
+    title: Relationships Test Repository
+    service_name: local_filesystem
+    description: Repository for relationship testing
+
+# Resources with related_resources and related_topics (tests both association tables)
+resources:
+  # Resource 1: Software development guide with related topics
+  - id: res:software-guide
+    catalog: cat:relationships-test
+    repository: repo:relationships-test
+    title: Software Development Best Practices
+    description: Comprehensive guide to software engineering practices
+    resource_type: Document
+    document_type: Guide
+    related_topics: [tech:software, tech:devops]  # Tests resource_related_topics
+
+  # Resource 2: AI and ML guide
+  - id: res:ai-patterns
+    catalog: cat:relationships-test
+    repository: repo:relationships-test
+    title: AI and Machine Learning Patterns
+    description: Best practices for building AI systems
+    resource_type: Document
+    document_type: Guide
+    related_topics: [tech:ai, tech:llm, tech:mlops]  # Tests resource_related_topics
+
+  # Resource 3: Cloud architecture
+  - id: res:cloud-architecture
+    catalog: cat:relationships-test
+    repository: repo:relationships-test
+    title: Cloud Architecture Patterns
+    description: Strategies for designing cloud-native applications
+    resource_type: Document
+    document_type: Article
+    related_topics: [tech:cloud, tech:edge]  # Tests resource_related_topics
+    related_resources: [res:ai-patterns]  # Tests resource_related_resources
+
+  # Resource 4: Full-stack development
+  - id: res:fullstack-dev
+    catalog: cat:relationships-test
+    repository: repo:relationships-test
+    title: Full-Stack Application Development
+    description: Complete guide to building modern applications
+    resource_type: Document
+    document_type: Tutorial
+    related_topics: [tech:software, tech:data]  # Tests resource_related_topics
+    related_resources: [res:software-guide, res:ai-patterns, res:cloud-architecture]  # Tests resource_related_resources
+
+  # Resource 5: Health tracking app
+  - id: res:health-tracker
+    catalog: cat:relationships-test
+    repository: repo:relationships-test
+    title: Building a Health Tracking Application
+    description: Tutorial on building a health and wellness tracking app
+    resource_type: Document
+    document_type: Tutorial
+    related_topics: [health:fitness, tech:software]  # Cross-taxonomy topics
+    related_resources: [res:fullstack-dev, res:cloud-architecture]  # Tests resource_related_resources
+
+  # Resource 6: Exercise science research
+  - id: res:exercise-science
+    catalog: cat:relationships-test
+    repository: repo:relationships-test
+    title: Exercise Science Research Papers
+    description: Collection of research on exercise physiology
+    resource_type: Collection
+    related_topics: [health:fitness, health:endurance, health:strength]  # Tests resource_related_topics
+
+  # Resource 7: Nutrition database
+  - id: res:nutrition-db
+    catalog: cat:relationships-test
+    repository: repo:relationships-test
+    title: Nutrition Database System
+    description: System for managing nutritional information
+    resource_type: Document
+    document_type: Reference
+    related_topics: [health:nutrition, health:microbiome, tech:data]  # Multiple taxonomies
+    related_resources: [res:ai-patterns, res:health-tracker]  # Tests resource_related_resources
+
+  # Resource 8: Bookmark with relationships
+  - id: res:tech-bookmark
+    catalog: cat:relationships-test
+    repository: repo:relationships-test
+    title: Useful Tech Resources
+    description: Bookmark collection of technology resources
+    resource_type: Bookmark
+    location: https://example.com/tech-resources
+    related_topics: [tech:software, tech:ai]  # Tests resource_related_topics
+    related_resources: [res:software-guide]  # Tests resource_related_resources
+
+  # Resource 9: Note with relationships
+  - id: res:dev-notes
+    catalog: cat:relationships-test
+    repository: repo:relationships-test
+    title: Development Notes
+    description: Quick notes on development practices
+    resource_type: Note
+    note_type: Note
+    related_topics: [tech:software, tech:devops, tech:security]  # Tests resource_related_topics
+    related_resources: [res:fullstack-dev, res:software-guide]  # Tests resource_related_resources
+
+  # Resource 10: Testing bidirectional relationships
+  - id: res:bidirectional-test
+    catalog: cat:relationships-test
+    repository: repo:relationships-test
+    title: Bidirectional Relationship Test
+    description: Resource to test that relationships work in both directions
+    resource_type: Note
+    note_type: Note
+    related_topics: [tech:cloud, tech:data, work:projects]  # Tests resource_related_topics across taxonomies
+    related_resources: [res:ai-patterns, res:cloud-architecture, res:software-guide]  # Tests resource_related_resources

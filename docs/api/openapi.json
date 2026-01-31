@@ -1,0 +1,5793 @@
+{
+  "components": {
+    "schemas": {
+      "CatalogCreate": {
+        "description": "Schema for creating a new catalog.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "identifier": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identifier",
+            "type": "string"
+          },
+          "themes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Themes",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "title"
+        ],
+        "title": "CatalogCreate",
+        "type": "object"
+      },
+      "CatalogListResponse": {
+        "description": "Schema for paginated catalog list responses.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CatalogResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "CatalogListResponse",
+        "type": "object"
+      },
+      "CatalogResponse": {
+        "description": "Schema for catalog responses.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional description",
+            "title": "Description"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "identifier": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identifier",
+            "type": "string"
+          },
+          "themes": {
+            "description": "List of theme identifiers",
+            "items": {
+              "type": "string"
+            },
+            "title": "Themes",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "title",
+          "id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "CatalogResponse",
+        "type": "object"
+      },
+      "CatalogUpdate": {
+        "description": "Schema for updating an existing catalog.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "themes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Themes"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "CatalogUpdate",
+        "type": "object"
+      },
+      "ClassificationHistoryResponse": {
+        "description": "Historical classification results for a document.",
+        "properties": {
+          "classifications": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentClassificationResponse"
+            },
+            "title": "Classifications",
+            "type": "array"
+          },
+          "document_id": {
+            "format": "uuid",
+            "title": "Document Id",
+            "type": "string"
+          },
+          "document_type": {
+            "title": "Document Type",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "document_id",
+          "document_type",
+          "classifications",
+          "total"
+        ],
+        "title": "ClassificationHistoryResponse",
+        "type": "object"
+      },
+      "DocumentClassificationRequest": {
+        "description": "Request to classify a document into taxonomy and topics.\n\nThe user provides the document content and optional constraints.\nThe system will suggest taxonomy first, then topics within that taxonomy.",
+        "properties": {
+          "content": {
+            "description": "Document content to classify",
+            "maxLength": 50000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional document ID if classifying existing document",
+            "title": "Document Id"
+          },
+          "document_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Type of document (Note, Document, etc.)",
+            "title": "Document Type"
+          },
+          "max_topics": {
+            "default": 5,
+            "description": "Maximum number of topics to suggest",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Max Topics",
+            "type": "integer"
+          },
+          "min_confidence": {
+            "default": 0.3,
+            "description": "Minimum confidence threshold for suggestions",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Min Confidence",
+            "type": "number"
+          },
+          "store_result": {
+            "default": true,
+            "description": "Whether to persist the classification result",
+            "title": "Store Result",
+            "type": "boolean"
+          },
+          "taxonomy_hint": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional taxonomy hint to scope the classification",
+            "title": "Taxonomy Hint"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "title": "DocumentClassificationRequest",
+        "type": "object"
+      },
+      "DocumentClassificationResponse": {
+        "description": "Complete classification response including taxonomy and topics.",
+        "properties": {
+          "alternative_taxonomies": {
+            "items": {
+              "$ref": "#/components/schemas/TaxonomySuggestion"
+            },
+            "title": "Alternative Taxonomies",
+            "type": "array"
+          },
+          "classification_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ID of stored classification if persisted",
+            "title": "Classification Id"
+          },
+          "content_preview": {
+            "description": "First 200 chars of content",
+            "title": "Content Preview",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "document_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Type"
+          },
+          "model_name": {
+            "title": "Model Name",
+            "type": "string"
+          },
+          "model_version": {
+            "title": "Model Version",
+            "type": "string"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "suggested_taxonomy": {
+            "$ref": "#/components/schemas/TaxonomySuggestion"
+          },
+          "suggested_topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicSuggestion"
+            },
+            "title": "Suggested Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "content_preview",
+          "suggested_taxonomy",
+          "model_name",
+          "model_version",
+          "prompt_version",
+          "created_at"
+        ],
+        "title": "DocumentClassificationResponse",
+        "type": "object"
+      },
+      "Entry": {
+        "properties": {
+          "count": {
+            "description": "Number of topics in taxonomy.",
+            "minimum": 0.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "taxonomy_id": {
+            "description": "Taxonomy identifier.",
+            "format": "uuid",
+            "title": "Taxonomy Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taxonomy_id",
+          "count"
+        ],
+        "title": "Entry",
+        "type": "object"
+      },
+      "FeedbackRequest": {
+        "description": "User feedback on a classification result.",
+        "properties": {
+          "classification_id": {
+            "format": "uuid",
+            "title": "Classification Id",
+            "type": "string"
+          },
+          "corrected_taxonomy_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrected Taxonomy Id"
+          },
+          "corrected_topic_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corrected Topic Ids"
+          },
+          "feedback": {
+            "enum": [
+              "accepted",
+              "rejected",
+              "modified"
+            ],
+            "title": "Feedback",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "required": [
+          "classification_id",
+          "feedback"
+        ],
+        "title": "FeedbackRequest",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Item": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "taxonomy_id": {
+            "format": "uuid",
+            "title": "Taxonomy Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "taxonomy_id",
+          "title",
+          "slug",
+          "path",
+          "status",
+          "created_at"
+        ],
+        "title": "Item",
+        "type": "object"
+      },
+      "PurposeCreate": {
+        "description": "Schema for creating a new purpose.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "identifier": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identifier",
+            "type": "string"
+          },
+          "meaning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meaning"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "title"
+        ],
+        "title": "PurposeCreate",
+        "type": "object"
+      },
+      "PurposeListResponse": {
+        "description": "Schema for paginated purpose list responses.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PurposeResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "PurposeListResponse",
+        "type": "object"
+      },
+      "PurposeResponse": {
+        "description": "Schema for purpose responses.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "identifier": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identifier",
+            "type": "string"
+          },
+          "meaning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meaning"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "title",
+          "id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PurposeResponse",
+        "type": "object"
+      },
+      "PurposeUpdate": {
+        "description": "Schema for updating an existing purpose.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "meaning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meaning"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "PurposeUpdate",
+        "type": "object"
+      },
+      "RepositoryCreate": {
+        "description": "Schema for creating a new repository.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "identifier": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identifier",
+            "type": "string"
+          },
+          "service_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Service Name",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "title",
+          "service_name"
+        ],
+        "title": "RepositoryCreate",
+        "type": "object"
+      },
+      "RepositoryListResponse": {
+        "description": "Schema for paginated repository list responses.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "RepositoryListResponse",
+        "type": "object"
+      },
+      "RepositoryResponse": {
+        "description": "Schema for repository responses.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "identifier": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identifier",
+            "type": "string"
+          },
+          "service_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Service Name",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "title",
+          "service_name",
+          "id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "RepositoryResponse",
+        "type": "object"
+      },
+      "RepositoryUpdate": {
+        "description": "Schema for updating an existing repository.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "service_name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Name"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "RepositoryUpdate",
+        "type": "object"
+      },
+      "ResourceCreate": {
+        "description": "Schema for creating a new resource.\n\nBase Resource type requires a location (URL to external resource).\nTyped resources (Document, Note, etc.) require a repository instead.\n\nidentifier is optional - if not provided, will be auto-generated from\ncatalog identifier and resource title in format: \"{catalog_ns}:{title-slug}\"",
+        "properties": {
+          "catalog": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Catalog",
+            "type": "string"
+          },
+          "catalog_id": {
+            "format": "uuid",
+            "title": "Catalog Id",
+            "type": "string"
+          },
+          "content_location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Location"
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creator"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "has_purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Purpose"
+          },
+          "has_use": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Has Use",
+            "type": "array"
+          },
+          "identifier": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Identifier"
+          },
+          "location": {
+            "description": "Required for base Resource type",
+            "title": "Location",
+            "type": "string"
+          },
+          "media_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Type"
+          },
+          "related_resources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Resources",
+            "type": "array"
+          },
+          "related_topics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Topics",
+            "type": "array"
+          },
+          "repository": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repository"
+          },
+          "repository_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repository Id"
+          },
+          "resource_type": {
+            "default": "Resource",
+            "enum": [
+              "Resource",
+              "Bookmark",
+              "Collection",
+              "Document",
+              "Note"
+            ],
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Theme"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "catalog",
+          "catalog_id",
+          "title",
+          "location"
+        ],
+        "title": "ResourceCreate",
+        "type": "object"
+      },
+      "ResourceListResponse": {
+        "description": "Schema for paginated resource list responses.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ResourceResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "ResourceListResponse",
+        "type": "object"
+      },
+      "ResourceResponse": {
+        "description": "Schema for resource responses.",
+        "properties": {
+          "catalog": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Catalog",
+            "type": "string"
+          },
+          "catalog_id": {
+            "format": "uuid",
+            "title": "Catalog Id",
+            "type": "string"
+          },
+          "content_location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Location"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creator"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "has_purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Purpose"
+          },
+          "has_use": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Has Use",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "identifier": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identifier",
+            "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "media_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Type"
+          },
+          "related_resources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Resources",
+            "type": "array"
+          },
+          "related_topics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Related Topics",
+            "type": "array"
+          },
+          "repository": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repository"
+          },
+          "repository_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repository Id"
+          },
+          "resource_type": {
+            "default": "Resource",
+            "enum": [
+              "Resource",
+              "Bookmark",
+              "Collection",
+              "Document",
+              "Note"
+            ],
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Theme"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "catalog",
+          "title",
+          "id",
+          "catalog_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ResourceResponse",
+        "type": "object"
+      },
+      "ResourceUpdate": {
+        "description": "Schema for updating an existing resource.",
+        "properties": {
+          "content_location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Location"
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Creator"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format"
+          },
+          "has_purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Purpose"
+          },
+          "has_use": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Has Use"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "media_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Type"
+          },
+          "related_resources": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Resources"
+          },
+          "related_topics": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Topics"
+          },
+          "repository": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repository"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Theme"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "ResourceUpdate",
+        "type": "object"
+      },
+      "TaxonomyCreate": {
+        "description": "Schema for creating a new taxonomy.\n\nUsed for API requests when creating a new taxonomy.\nDoes not include ID or timestamps.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional taxonomy description",
+            "title": "Description"
+          },
+          "identifier": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Taxonomy CURIE",
+            "title": "Identifier"
+          },
+          "skos_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional SKOS URI for alignment",
+            "title": "Skos Uri"
+          },
+          "title": {
+            "description": "Taxonomy title",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "TaxonomyCreate",
+        "type": "object"
+      },
+      "TaxonomyListResponse": {
+        "description": "Schema for paginated taxonomy list responses.",
+        "properties": {
+          "items": {
+            "description": "List of taxonomies",
+            "items": {
+              "$ref": "#/components/schemas/TaxonomyResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "description": "Items per page",
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Offset from start",
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total count of taxonomies",
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "TaxonomyListResponse",
+        "type": "object"
+      },
+      "TaxonomyResponse": {
+        "description": "Schema for taxonomy responses.\n\nUsed for API responses. Includes all fields including ID and timestamps.",
+        "properties": {
+          "created_at": {
+            "description": "Creation timestamp",
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional taxonomy description",
+            "title": "Description"
+          },
+          "id": {
+            "description": "Unique identifier",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "identifier": {
+            "description": "Taxonomy CURIE",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identifier",
+            "type": "string"
+          },
+          "skos_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional SKOS URI for alignment",
+            "title": "Skos Uri"
+          },
+          "title": {
+            "description": "Taxonomy title",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "Last update timestamp",
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "identifier",
+          "id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TaxonomyResponse",
+        "type": "object"
+      },
+      "TaxonomySuggestion": {
+        "description": "A single taxonomy suggestion with confidence.",
+        "properties": {
+          "confidence": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning"
+          },
+          "taxonomy_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxonomy Description"
+          },
+          "taxonomy_id": {
+            "format": "uuid",
+            "title": "Taxonomy Id",
+            "type": "string"
+          },
+          "taxonomy_identifier": {
+            "title": "Taxonomy Identifier",
+            "type": "string"
+          },
+          "taxonomy_title": {
+            "title": "Taxonomy Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taxonomy_id",
+          "taxonomy_identifier",
+          "taxonomy_title",
+          "taxonomy_description",
+          "confidence"
+        ],
+        "title": "TaxonomySuggestion",
+        "type": "object"
+      },
+      "TaxonomyUpdate": {
+        "description": "Schema for updating an existing taxonomy.\n\nAll fields are optional to support partial updates.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "skos_uri": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skos Uri"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "TaxonomyUpdate",
+        "type": "object"
+      },
+      "TopicCountsResponse": {
+        "description": "Counts grouped by taxonomy.",
+        "properties": {
+          "items": {
+            "description": "Counts per taxonomy.",
+            "items": {
+              "$ref": "#/components/schemas/Entry"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "description": "Total topics across all taxonomies.",
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total"
+        ],
+        "title": "TopicCountsResponse",
+        "type": "object"
+      },
+      "TopicCreate": {
+        "description": "Schema for creating a new topic.\n\nUsed for API requests when creating a new topic.\nSlug is optional and will be auto-generated from title if not provided.",
+        "properties": {
+          "aliases": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "external_refs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "External Refs",
+            "type": "object"
+          },
+          "identifier": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Topic CURIE",
+            "title": "Identifier"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "status": {
+            "default": "draft",
+            "enum": [
+              "draft",
+              "active",
+              "deprecated",
+              "merged"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "taxonomy_id": {
+            "format": "uuid",
+            "title": "Taxonomy Id",
+            "type": "string"
+          },
+          "taxonomy_identifier": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Parent taxonomy CURIE",
+            "title": "Taxonomy Identifier"
+          },
+          "title": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taxonomy_id",
+          "title"
+        ],
+        "title": "TopicCreate",
+        "type": "object"
+      },
+      "TopicEdgeCreate": {
+        "description": "Schema for creating a new topic edge.",
+        "properties": {
+          "child_id": {
+            "description": "Child topic ID",
+            "format": "uuid",
+            "title": "Child Id",
+            "type": "string"
+          },
+          "confidence": {
+            "default": 1.0,
+            "description": "Confidence score",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "is_primary": {
+            "default": false,
+            "description": "Primary parent flag for materialized path maintenance",
+            "title": "Is Primary",
+            "type": "boolean"
+          },
+          "parent_id": {
+            "description": "Parent topic ID",
+            "format": "uuid",
+            "title": "Parent Id",
+            "type": "string"
+          },
+          "role": {
+            "default": "broader",
+            "description": "Relationship type",
+            "enum": [
+              "broader",
+              "part_of",
+              "instance_of",
+              "related"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Source of relationship",
+            "title": "Source"
+          }
+        },
+        "required": [
+          "parent_id",
+          "child_id"
+        ],
+        "title": "TopicEdgeCreate",
+        "type": "object"
+      },
+      "TopicEdgeResponse": {
+        "description": "Schema for topic edge responses.",
+        "properties": {
+          "child_id": {
+            "description": "Child topic ID",
+            "format": "uuid",
+            "title": "Child Id",
+            "type": "string"
+          },
+          "confidence": {
+            "default": 1.0,
+            "description": "Confidence score",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "created_at": {
+            "description": "Creation timestamp",
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique identifier",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_primary": {
+            "default": false,
+            "description": "Primary parent flag for materialized path maintenance",
+            "title": "Is Primary",
+            "type": "boolean"
+          },
+          "parent_id": {
+            "description": "Parent topic ID",
+            "format": "uuid",
+            "title": "Parent Id",
+            "type": "string"
+          },
+          "role": {
+            "default": "broader",
+            "description": "Relationship type",
+            "enum": [
+              "broader",
+              "part_of",
+              "instance_of",
+              "related"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Source of relationship",
+            "title": "Source"
+          }
+        },
+        "required": [
+          "parent_id",
+          "child_id",
+          "id",
+          "created_at"
+        ],
+        "title": "TopicEdgeResponse",
+        "type": "object"
+      },
+      "TopicListResponse": {
+        "description": "Schema for paginated topic list responses.",
+        "properties": {
+          "items": {
+            "description": "List of topics",
+            "items": {
+              "$ref": "#/components/schemas/TopicResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "description": "Items per page",
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Offset from start",
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total count of topics",
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "TopicListResponse",
+        "type": "object"
+      },
+      "TopicOverview": {
+        "description": "Topic data enriched with relationship details for UI rendering.",
+        "properties": {
+          "child_count": {
+            "description": "Number of immediate children for this topic",
+            "minimum": 0.0,
+            "title": "Child Count",
+            "type": "integer"
+          },
+          "children": {
+            "description": "Immediate children (first page of children for quick display)",
+            "items": {
+              "$ref": "#/components/schemas/TopicRelationshipRef"
+            },
+            "title": "Children",
+            "type": "array"
+          },
+          "parents": {
+            "description": "Immediate parents of this topic",
+            "items": {
+              "$ref": "#/components/schemas/TopicRelationshipRef"
+            },
+            "title": "Parents",
+            "type": "array"
+          },
+          "topic": {
+            "$ref": "#/components/schemas/TopicResponse",
+            "description": "Full topic details"
+          }
+        },
+        "required": [
+          "topic",
+          "child_count"
+        ],
+        "title": "TopicOverview",
+        "type": "object"
+      },
+      "TopicOverviewListResponse": {
+        "description": "Paginated list of topic overviews within a taxonomy.",
+        "properties": {
+          "items": {
+            "description": "List of topic overviews",
+            "items": {
+              "$ref": "#/components/schemas/TopicOverview"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "description": "Items per page",
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "Offset from start",
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total count of topics",
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "TopicOverviewListResponse",
+        "type": "object"
+      },
+      "TopicRecentListResponse": {
+        "description": "Recently created topics.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Item"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "taxonomy_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional taxonomy scope for recent topics.",
+            "title": "Taxonomy Id"
+          }
+        },
+        "title": "TopicRecentListResponse",
+        "type": "object"
+      },
+      "TopicRelationshipRef": {
+        "description": "Minimal representation of a related topic.",
+        "properties": {
+          "id": {
+            "description": "Topic identifier",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "identifier": {
+            "description": "CURIE for the related topic",
+            "title": "Identifier",
+            "type": "string"
+          },
+          "status": {
+            "description": "Current status of the related topic",
+            "enum": [
+              "draft",
+              "active",
+              "deprecated",
+              "merged"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "description": "Human-readable topic title",
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "identifier",
+          "title",
+          "status"
+        ],
+        "title": "TopicRelationshipRef",
+        "type": "object"
+      },
+      "TopicResponse": {
+        "description": "Schema for topic responses.\n\nUsed for API responses. Includes all fields including ID and timestamps.",
+        "properties": {
+          "aliases": {
+            "description": "Alternative names",
+            "items": {
+              "type": "string"
+            },
+            "title": "Aliases",
+            "type": "array"
+          },
+          "created_at": {
+            "description": "Creation timestamp",
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional topic description",
+            "title": "Description"
+          },
+          "external_refs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "External system references",
+            "title": "External Refs",
+            "type": "object"
+          },
+          "id": {
+            "description": "Unique identifier",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "identifier": {
+            "description": "Topic CURIE",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Identifier",
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Materialized path for hierarchy",
+            "title": "Path"
+          },
+          "slug": {
+            "description": "URL-friendly slug",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Slug",
+            "type": "string"
+          },
+          "status": {
+            "default": "draft",
+            "description": "Topic status",
+            "enum": [
+              "draft",
+              "active",
+              "deprecated",
+              "merged"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "taxonomy_id": {
+            "description": "Parent taxonomy ID",
+            "format": "uuid",
+            "title": "Taxonomy Id",
+            "type": "string"
+          },
+          "taxonomy_identifier": {
+            "description": "Parent taxonomy CURIE",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Taxonomy Identifier",
+            "type": "string"
+          },
+          "title": {
+            "description": "Topic title",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "Last update timestamp",
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taxonomy_id",
+          "taxonomy_identifier",
+          "identifier",
+          "title",
+          "slug",
+          "id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TopicResponse",
+        "type": "object"
+      },
+      "TopicSearchRequest": {
+        "description": "Schema for topic search requests.",
+        "properties": {
+          "limit": {
+            "default": 50,
+            "description": "Max results",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "default": 0,
+            "description": "Result offset",
+            "minimum": 0.0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "query": {
+            "description": "Search query",
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "draft",
+                  "active",
+                  "deprecated",
+                  "merged"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter by status",
+            "title": "Status"
+          },
+          "taxonomy_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Filter by taxonomy",
+            "title": "Taxonomy Id"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "TopicSearchRequest",
+        "type": "object"
+      },
+      "TopicSuggestion": {
+        "description": "A single topic suggestion with confidence and rank.",
+        "properties": {
+          "confidence": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "rank": {
+            "minimum": 1.0,
+            "title": "Rank",
+            "type": "integer"
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning"
+          },
+          "topic_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Description"
+          },
+          "topic_id": {
+            "format": "uuid",
+            "title": "Topic Id",
+            "type": "string"
+          },
+          "topic_identifier": {
+            "title": "Topic Identifier",
+            "type": "string"
+          },
+          "topic_title": {
+            "title": "Topic Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic_id",
+          "topic_identifier",
+          "topic_title",
+          "topic_description",
+          "confidence",
+          "rank"
+        ],
+        "title": "TopicSuggestion",
+        "type": "object"
+      },
+      "TopicSuggestionRequest": {
+        "description": "Request payload for topic suggestions.",
+        "properties": {
+          "limit": {
+            "default": 5,
+            "description": "Maximum number of suggestions to return.",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "min_confidence": {
+            "default": 0.1,
+            "description": "Minimum confidence required to include a suggestion.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Min Confidence",
+            "type": "number"
+          },
+          "taxonomy_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional taxonomy scope for suggestions.",
+            "title": "Taxonomy Id"
+          },
+          "text": {
+            "description": "Input text to classify.",
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "TopicSuggestionRequest",
+        "type": "object"
+      },
+      "TopicSuggestionResponse": {
+        "description": "Response payload for topic suggestions.",
+        "properties": {
+          "input_text": {
+            "description": "Original input text.",
+            "title": "Input Text",
+            "type": "string"
+          },
+          "model_name": {
+            "description": "Classifier implementation name.",
+            "title": "Model Name",
+            "type": "string"
+          },
+          "model_version": {
+            "description": "Classifier version.",
+            "title": "Model Version",
+            "type": "string"
+          },
+          "suggestions": {
+            "description": "Ordered list of topic suggestions.",
+            "items": {
+              "$ref": "#/components/schemas/TopicSuggestionResult"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "input_text",
+          "model_name",
+          "model_version"
+        ],
+        "title": "TopicSuggestionResponse",
+        "type": "object"
+      },
+      "TopicSuggestionResult": {
+        "description": "Single suggestion item returned to clients.",
+        "properties": {
+          "confidence": {
+            "description": "Confidence score.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "metadata": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Additional metadata for the suggestion.",
+            "title": "Metadata",
+            "type": "object"
+          },
+          "rank": {
+            "description": "Rank order (1 = best).",
+            "minimum": 1.0,
+            "title": "Rank",
+            "type": "integer"
+          },
+          "slug": {
+            "description": "Topic slug.",
+            "title": "Slug",
+            "type": "string"
+          },
+          "taxonomy_id": {
+            "description": "Taxonomy containing the topic.",
+            "format": "uuid",
+            "title": "Taxonomy Id",
+            "type": "string"
+          },
+          "title": {
+            "description": "Topic title.",
+            "title": "Title",
+            "type": "string"
+          },
+          "topic_id": {
+            "description": "Suggested topic ID.",
+            "format": "uuid",
+            "title": "Topic Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic_id",
+          "taxonomy_id",
+          "title",
+          "slug",
+          "confidence",
+          "rank"
+        ],
+        "title": "TopicSuggestionResult",
+        "type": "object"
+      },
+      "TopicSummaryResponse": {
+        "description": "Aggregate summary of topics by status.",
+        "properties": {
+          "by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Counts keyed by status value.",
+            "title": "By Status",
+            "type": "object"
+          },
+          "taxonomy_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional taxonomy scope for counts.",
+            "title": "Taxonomy Id"
+          },
+          "total": {
+            "description": "Total topics in scope.",
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total"
+        ],
+        "title": "TopicSummaryResponse",
+        "type": "object"
+      },
+      "TopicUpdate": {
+        "description": "Schema for updating an existing topic.\n\nAll fields are optional to support partial updates.",
+        "properties": {
+          "aliases": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aliases"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "external_refs": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Refs"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Unique identifier",
+            "title": "Id"
+          },
+          "identifier": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Topic CURIE",
+            "title": "Identifier"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "draft",
+                  "active",
+                  "deprecated",
+                  "merged"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "taxonomy_identifier": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Parent taxonomy CURIE",
+            "title": "Taxonomy Identifier"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "TopicUpdate",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      },
+      "BearerAuth": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "email": "mike@mikewaters.net",
+      "name": "LifeOS Development Team",
+      "url": "https://github.com/LifeOS/Substrate"
+    },
+    "description": "REST API for topic taxonomy and knowledge management",
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "title": "Ontology API",
+    "version": "0.1.0",
+    "x-api-id": "ontology-api",
+    "x-audience": "internal"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "description": "Root endpoint.\n\nReturns:\n    API information",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Root  Get",
+                  "type": "object"
+                },
+                "example": {
+                  "name": "Ontology API",
+                  "version": "0.1.0",
+                  "docs": "/docs"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Root",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/catalogs": {
+      "get": {
+        "description": "List catalogs with pagination.\n\nArgs:\n    service: Catalog service dependency\n    limit: Maximum number of results (1-100)\n    offset: Number of results to skip\n\nReturns:\n    Paginated list of catalogs",
+        "operationId": "list_catalogs_catalogs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogListResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000000-0000-0000-378e-7dd8dd9e4e11",
+                      "identifier": "cat:tech-resources",
+                      "title": "Technology Resources",
+                      "description": "Collection of technical documentation, tutorials, and tools",
+                      "themes": [
+                        "tech:software",
+                        "tech:ai",
+                        "tech:cloud"
+                      ],
+                      "created_at": "2025-11-04T02:55:11.302186Z",
+                      "updated_at": "2025-11-04T02:55:11.302186Z"
+                    },
+                    {
+                      "id": "00000000-0000-0000-2b44-4d5e362b4a2a",
+                      "identifier": "cat:learning",
+                      "title": "Learning Materials",
+                      "description": "Educational content across various domains",
+                      "themes": [
+                        "know:capture",
+                        "know:organize",
+                        "life:productivity"
+                      ],
+                      "created_at": "2025-11-04T02:55:11.302186Z",
+                      "updated_at": "2025-11-04T02:55:11.302186Z"
+                    }
+                  ],
+                  "total": 2,
+                  "limit": 50,
+                  "offset": 0
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List catalogs",
+        "tags": [
+          "catalogs"
+        ]
+      },
+      "post": {
+        "description": "Create a new catalog.\n\nArgs:\n    catalog: Catalog creation data\n    service: Catalog service dependency\n\nReturns:\n    Created catalog",
+        "operationId": "create_catalog_catalogs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create a new catalog",
+        "tags": [
+          "catalogs"
+        ]
+      }
+    },
+    "/catalogs/{catalog_id}": {
+      "delete": {
+        "description": "Delete a catalog.\n\nArgs:\n    catalog_id: Catalog ID\n    service: Catalog service dependency\n\nRaises:\n    NotFoundError: If catalog not found",
+        "operationId": "delete_catalog_catalogs__catalog_id__delete",
+        "parameters": [
+          {
+            "description": "Catalog ID",
+            "in": "path",
+            "name": "catalog_id",
+            "required": true,
+            "schema": {
+              "description": "Catalog ID",
+              "format": "uuid",
+              "title": "Catalog Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a catalog",
+        "tags": [
+          "catalogs"
+        ]
+      },
+      "get": {
+        "description": "Get a catalog by ID.\n\nArgs:\n    catalog_id: Catalog ID\n    service: Catalog service dependency\n\nReturns:\n    Catalog\n\nRaises:\n    NotFoundError: If catalog not found",
+        "operationId": "get_catalog_catalogs__catalog_id__get",
+        "parameters": [
+          {
+            "description": "Catalog ID",
+            "in": "path",
+            "name": "catalog_id",
+            "required": true,
+            "schema": {
+              "description": "Catalog ID",
+              "format": "uuid",
+              "title": "Catalog Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get a catalog by ID",
+        "tags": [
+          "catalogs"
+        ]
+      },
+      "put": {
+        "description": "Update a catalog.\n\nArgs:\n    catalog_id: Catalog ID\n    updates: Fields to update\n    service: Catalog service dependency\n\nReturns:\n    Updated catalog\n\nRaises:\n    NotFoundError: If catalog not found",
+        "operationId": "update_catalog_catalogs__catalog_id__put",
+        "parameters": [
+          {
+            "description": "Catalog ID",
+            "in": "path",
+            "name": "catalog_id",
+            "required": true,
+            "schema": {
+              "description": "Catalog ID",
+              "format": "uuid",
+              "title": "Catalog Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CatalogUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update a catalog",
+        "tags": [
+          "catalogs"
+        ]
+      }
+    },
+    "/classification/classify": {
+      "post": {
+        "description": "Classify document content into an appropriate taxonomy and suggest relevant topics.\n\n    This endpoint performs a two-stage LLM-based classification:\n    1. Analyzes content to suggest which taxonomy it belongs to\n    2. Suggests relevant topics within the selected taxonomy\n\n    The classification results can optionally be persisted for historical tracking.",
+        "operationId": "classify_document_classification_classify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentClassificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentClassificationResponse"
+                },
+                "example": {
+                  "content_preview": "# Dopamine and Neuroplasticity\n\nDopamine is a crucial neurotransmitter in the brain that plays a significant role in several\nfunctions, including reward, motivation, memory, attention, and learning. I...",
+                  "suggested_taxonomy": {
+                    "taxonomy_id": "00000000-0000-0000-188d-6696711aee7d",
+                    "taxonomy_identifier": "tx:health",
+                    "taxonomy_title": "Health & Wellness",
+                    "taxonomy_description": "Physical and mental health topics",
+                    "confidence": 0.95,
+                    "reasoning": "Document clearly focuses on neuroscience and brain health, discussing neurotransmitters, brain function, and neurological conditions"
+                  },
+                  "alternative_taxonomies": [],
+                  "suggested_topics": [
+                    {
+                      "topic_id": "00000000-0000-0000-1efa-920e8e68fd95",
+                      "topic_identifier": "health:neuroscience",
+                      "topic_title": "Neuroscience",
+                      "topic_description": null,
+                      "confidence": 0.92,
+                      "rank": 1,
+                      "reasoning": "Core focus on neurotransmitter function and brain mechanisms"
+                    },
+                    {
+                      "topic_id": "00000000-0000-0000-ba9e-f5ac06da5ea0",
+                      "topic_identifier": "health:mental",
+                      "topic_title": "Mental",
+                      "topic_description": null,
+                      "confidence": 0.78,
+                      "rank": 2,
+                      "reasoning": "Discusses learning, memory, and attention which relate to mental health"
+                    }
+                  ],
+                  "model_name": "claude-sonnet-4-20250514",
+                  "model_version": 20250514,
+                  "prompt_version": "1.0.0",
+                  "classification_id": "00000000-0000-0000-9fde-8003bdd7f083",
+                  "created_at": "2025-11-04T02:55:11.302186Z",
+                  "document_id": "00000000-0000-0000-9543-7e729e91ecbc",
+                  "document_type": "Note"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Classify document into taxonomy and topics",
+        "tags": [
+          "classification"
+        ]
+      }
+    },
+    "/classification/feedback": {
+      "post": {
+        "description": "Record user feedback to improve future classifications.",
+        "operationId": "submit_feedback_classification_feedback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit feedback on classification results",
+        "tags": [
+          "classification"
+        ]
+      }
+    },
+    "/classification/history/{document_id}": {
+      "get": {
+        "description": "Retrieve historical classification results for a document.",
+        "operationId": "get_classification_history_classification_history__document_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Type of document",
+            "in": "query",
+            "name": "document_type",
+            "required": true,
+            "schema": {
+              "description": "Type of document",
+              "title": "Document Type",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum results",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "description": "Maximum results",
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassificationHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get classification history for a document",
+        "tags": [
+          "classification"
+        ]
+      }
+    },
+    "/classifier/suggestions": {
+      "post": {
+        "description": "Return ranked topic suggestions for the supplied text.",
+        "operationId": "suggest_topics_classifier_suggestions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicSuggestionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicSuggestionResponse"
+                },
+                "example": {
+                  "input_text": "Using Claude for building AI applications with transformers",
+                  "model_name": "token_classifier",
+                  "model_version": "1.0.0",
+                  "suggestions": [
+                    {
+                      "topic_id": "00000000-0000-0000-df70-3781f1070368",
+                      "taxonomy_id": "00000000-0000-0000-d315-cb6cbdc35142",
+                      "title": "Software",
+                      "slug": "software",
+                      "confidence": 0.89,
+                      "rank": 1,
+                      "metadata": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate topic suggestions for input text",
+        "tags": [
+          "classifier"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Health check endpoint.\n\nReturns:\n    Health status",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                },
+                "example": {
+                  "status": "healthy"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/purposes": {
+      "get": {
+        "description": "List purposes with pagination.\n\nArgs:\n    service: Purpose service dependency\n    limit: Maximum number of results (1-100)\n    offset: Number of results to skip\n\nReturns:\n    Paginated list of purposes",
+        "operationId": "list_purposes_purposes_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurposeListResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000000-0000-0000-a68c-d152bbfe92d2",
+                      "identifier": "purpose:reference",
+                      "title": "Reference Material",
+                      "description": "Material kept for future reference and lookup",
+                      "role": "reference",
+                      "meaning": "To be consulted when needed",
+                      "created_at": "2025-11-04T02:55:11.302186Z",
+                      "updated_at": "2025-11-04T02:55:11.302186Z"
+                    }
+                  ],
+                  "total": 1,
+                  "limit": 50,
+                  "offset": 0
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List purposes",
+        "tags": [
+          "purposes"
+        ]
+      },
+      "post": {
+        "description": "Create a new purpose.\n\nArgs:\n    purpose: Purpose creation data\n    service: Purpose service dependency\n\nReturns:\n    Created purpose",
+        "operationId": "create_purpose_purposes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurposeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurposeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create a new purpose",
+        "tags": [
+          "purposes"
+        ]
+      }
+    },
+    "/purposes/{purpose_id}": {
+      "delete": {
+        "description": "Delete a purpose.\n\nArgs:\n    purpose_id: Purpose ID\n    service: Purpose service dependency\n\nRaises:\n    NotFoundError: If purpose not found",
+        "operationId": "delete_purpose_purposes__purpose_id__delete",
+        "parameters": [
+          {
+            "description": "Purpose ID",
+            "in": "path",
+            "name": "purpose_id",
+            "required": true,
+            "schema": {
+              "description": "Purpose ID",
+              "format": "uuid",
+              "title": "Purpose Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a purpose",
+        "tags": [
+          "purposes"
+        ]
+      },
+      "get": {
+        "description": "Get a purpose by ID.\n\nArgs:\n    purpose_id: Purpose ID\n    service: Purpose service dependency\n\nReturns:\n    Purpose\n\nRaises:\n    NotFoundError: If purpose not found",
+        "operationId": "get_purpose_purposes__purpose_id__get",
+        "parameters": [
+          {
+            "description": "Purpose ID",
+            "in": "path",
+            "name": "purpose_id",
+            "required": true,
+            "schema": {
+              "description": "Purpose ID",
+              "format": "uuid",
+              "title": "Purpose Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurposeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get a purpose by ID",
+        "tags": [
+          "purposes"
+        ]
+      },
+      "put": {
+        "description": "Update a purpose.\n\nArgs:\n    purpose_id: Purpose ID\n    updates: Fields to update\n    service: Purpose service dependency\n\nReturns:\n    Updated purpose\n\nRaises:\n    NotFoundError: If purpose not found",
+        "operationId": "update_purpose_purposes__purpose_id__put",
+        "parameters": [
+          {
+            "description": "Purpose ID",
+            "in": "path",
+            "name": "purpose_id",
+            "required": true,
+            "schema": {
+              "description": "Purpose ID",
+              "format": "uuid",
+              "title": "Purpose Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurposeUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurposeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update a purpose",
+        "tags": [
+          "purposes"
+        ]
+      }
+    },
+    "/read-model/taxonomies/{taxonomy_id}/topics": {
+      "get": {
+        "description": "Returns paginated topic overviews for a taxonomy, including parent/child\n    metadata needed for UI rendering (child counts, parent names, etc.).",
+        "operationId": "list_taxonomy_topic_overviews_read_model_taxonomies__taxonomy_id__topics_get",
+        "parameters": [
+          {
+            "description": "Taxonomy ID whose topics should be returned",
+            "in": "path",
+            "name": "taxonomy_id",
+            "required": true,
+            "schema": {
+              "description": "Taxonomy ID whose topics should be returned",
+              "format": "uuid",
+              "title": "Taxonomy Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter by status",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "draft",
+                    "active",
+                    "deprecated",
+                    "merged"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by status",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Full-text search over topic title/description",
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Full-text search over topic title/description",
+              "title": "Search"
+            }
+          },
+          {
+            "description": "Field to sort by",
+            "in": "query",
+            "name": "sort_by",
+            "required": false,
+            "schema": {
+              "default": "title",
+              "description": "Field to sort by",
+              "pattern": "^(title|status|created_at|updated_at|child_count)$",
+              "title": "Sort By",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sort order",
+            "in": "query",
+            "name": "sort_order",
+            "required": false,
+            "schema": {
+              "default": "asc",
+              "description": "Sort order",
+              "pattern": "^(asc|desc)$",
+              "title": "Sort Order",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicOverviewListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List enriched topics for a taxonomy",
+        "tags": [
+          "read-model"
+        ]
+      }
+    },
+    "/read-model/topics/counts": {
+      "get": {
+        "operationId": "get_topic_counts_read_model_topics_counts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicCountsResponse"
+                },
+                "example": {
+                  "total": 53,
+                  "items": [
+                    {
+                      "taxonomy_id": "00000000-0000-0000-d315-cb6cbdc35142",
+                      "count": 11
+                    },
+                    {
+                      "taxonomy_id": "00000000-0000-0000-188d-6696711aee7d",
+                      "count": 11
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Topic counts grouped by taxonomy",
+        "tags": [
+          "read-model"
+        ]
+      }
+    },
+    "/read-model/topics/recent": {
+      "get": {
+        "operationId": "get_recent_topics_read_model_topics_recent_get",
+        "parameters": [
+          {
+            "description": "Optional taxonomy ID",
+            "in": "query",
+            "name": "taxonomy_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional taxonomy ID",
+              "title": "Taxonomy Id"
+            }
+          },
+          {
+            "description": "Maximum results",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "description": "Maximum results",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicRecentListResponse"
+                },
+                "example": {
+                  "taxonomy_id": null,
+                  "items": [
+                    {
+                      "id": "00000000-0000-0000-df70-3781f1070368",
+                      "taxonomy_id": "00000000-0000-0000-d315-cb6cbdc35142",
+                      "title": "Software",
+                      "slug": "software",
+                      "path": "/tech:software",
+                      "status": "active",
+                      "created_at": "2025-11-04T02:55:11.302186Z"
+                    },
+                    {
+                      "id": "00000000-0000-0000-ebec-568259ed5d1b",
+                      "taxonomy_id": "00000000-0000-0000-d315-cb6cbdc35142",
+                      "title": "Hardware",
+                      "slug": "hardware",
+                      "path": "/tech:hardware",
+                      "status": "active",
+                      "created_at": "2025-11-04T02:55:11.302186Z"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recently created topics",
+        "tags": [
+          "read-model"
+        ]
+      }
+    },
+    "/read-model/topics/summary": {
+      "get": {
+        "operationId": "get_topic_summary_read_model_topics_summary_get",
+        "parameters": [
+          {
+            "description": "Optional taxonomy ID",
+            "in": "query",
+            "name": "taxonomy_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional taxonomy ID",
+              "title": "Taxonomy Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicSummaryResponse"
+                },
+                "example": {
+                  "taxonomy_id": null,
+                  "total": 53,
+                  "by_status": {
+                    "active": 53,
+                    "draft": 0,
+                    "deprecated": 0,
+                    "merged": 0
+                  }
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Aggregate topic counts by status",
+        "tags": [
+          "read-model"
+        ]
+      }
+    },
+    "/read-model/topics/{topic_id}": {
+      "get": {
+        "description": "Returns the TopicOverview (topic details plus parents/children metadata) for a single topic.",
+        "operationId": "get_topic_overview_read_model_topics__topic_id__get",
+        "parameters": [
+          {
+            "description": "Topic ID",
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "description": "Topic ID",
+              "format": "uuid",
+              "title": "Topic Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fetch a single topic overview",
+        "tags": [
+          "read-model"
+        ]
+      }
+    },
+    "/repositories": {
+      "get": {
+        "description": "List repositories with pagination.\n\nArgs:\n    service: Repository service dependency\n    limit: Maximum number of results (1-100)\n    offset: Number of results to skip\n\nReturns:\n    Paginated list of repositories",
+        "operationId": "list_repositories_repositories_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryListResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000000-0000-0000-e19d-5686cc6de918",
+                      "identifier": "repo:github",
+                      "title": "GitHub",
+                      "service_name": "github",
+                      "description": "Source code and documentation on GitHub",
+                      "created_at": "2025-11-04T02:55:11.302186Z",
+                      "updated_at": "2025-11-04T02:55:11.302186Z"
+                    },
+                    {
+                      "id": "00000000-0000-0000-e6f2-d9f291777f8c",
+                      "identifier": "repo:notion",
+                      "title": "Notion Workspace",
+                      "service_name": "notion",
+                      "description": "Team knowledge base in Notion",
+                      "created_at": "2025-11-04T02:55:11.302186Z",
+                      "updated_at": "2025-11-04T02:55:11.302186Z"
+                    }
+                  ],
+                  "total": 2,
+                  "limit": 50,
+                  "offset": 0
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List repositories",
+        "tags": [
+          "repositories"
+        ]
+      },
+      "post": {
+        "description": "Create a new repository.\n\nArgs:\n    repository: Repository creation data\n    service: Repository service dependency\n\nReturns:\n    Created repository",
+        "operationId": "create_repository_repositories_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepositoryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create a new repository",
+        "tags": [
+          "repositories"
+        ]
+      }
+    },
+    "/repositories/{repository_id}": {
+      "delete": {
+        "description": "Delete a repository.\n\nArgs:\n    repository_id: Repository ID\n    service: Repository service dependency\n\nRaises:\n    NotFoundError: If repository not found",
+        "operationId": "delete_repository_repositories__repository_id__delete",
+        "parameters": [
+          {
+            "description": "Repository ID",
+            "in": "path",
+            "name": "repository_id",
+            "required": true,
+            "schema": {
+              "description": "Repository ID",
+              "format": "uuid",
+              "title": "Repository Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a repository",
+        "tags": [
+          "repositories"
+        ]
+      },
+      "get": {
+        "description": "Get a repository by ID.\n\nArgs:\n    repository_id: Repository ID\n    service: Repository service dependency\n\nReturns:\n    Repository\n\nRaises:\n    NotFoundError: If repository not found",
+        "operationId": "get_repository_repositories__repository_id__get",
+        "parameters": [
+          {
+            "description": "Repository ID",
+            "in": "path",
+            "name": "repository_id",
+            "required": true,
+            "schema": {
+              "description": "Repository ID",
+              "format": "uuid",
+              "title": "Repository Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get a repository by ID",
+        "tags": [
+          "repositories"
+        ]
+      },
+      "put": {
+        "description": "Update a repository.\n\nArgs:\n    repository_id: Repository ID\n    updates: Fields to update\n    service: Repository service dependency\n\nReturns:\n    Updated repository\n\nRaises:\n    NotFoundError: If repository not found",
+        "operationId": "update_repository_repositories__repository_id__put",
+        "parameters": [
+          {
+            "description": "Repository ID",
+            "in": "path",
+            "name": "repository_id",
+            "required": true,
+            "schema": {
+              "description": "Repository ID",
+              "format": "uuid",
+              "title": "Repository Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepositoryUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update a repository",
+        "tags": [
+          "repositories"
+        ]
+      }
+    },
+    "/resources": {
+      "get": {
+        "description": "List resources with optional filters and pagination.\n\nArgs:\n    service: Resource service dependency\n    catalog_id: Optional catalog ID filter\n    repository_id: Optional repository ID filter\n    resource_type: Optional resource type filter\n    limit: Maximum number of results (1-100)\n    offset: Number of results to skip\n\nReturns:\n    Paginated list of resources",
+        "operationId": "list_resources_resources_get",
+        "parameters": [
+          {
+            "description": "Filter by catalog ID",
+            "in": "query",
+            "name": "catalog_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by catalog ID",
+              "title": "Catalog Id"
+            }
+          },
+          {
+            "description": "Filter by repository ID",
+            "in": "query",
+            "name": "repository_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by repository ID",
+              "title": "Repository Id"
+            }
+          },
+          {
+            "description": "Filter by resource type",
+            "in": "query",
+            "name": "resource_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by resource type",
+              "title": "Resource Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceListResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000000-0000-0000-780e-d300b11dc5a6",
+                      "catalog_id": "00000000-0000-0000-378e-7dd8dd9e4e11",
+                      "catalog": "cat:tech-resources",
+                      "identifier": "res:python-docs",
+                      "title": "Python Documentation",
+                      "description": "Official Python language documentation",
+                      "resource_type": "Bookmark",
+                      "location": "https://docs.python.org/3/",
+                      "repository": null,
+                      "repository_id": null,
+                      "content_location": null,
+                      "format": "HTML",
+                      "media_type": "text/html",
+                      "theme": "tech:software",
+                      "subject": "Python programming language",
+                      "creator": null,
+                      "has_purpose": null,
+                      "has_use": [],
+                      "related_resources": [],
+                      "related_topics": [
+                        "tech:software"
+                      ],
+                      "created_at": "2025-11-04T02:55:11.302186Z",
+                      "updated_at": "2025-11-04T02:55:11.302186Z"
+                    }
+                  ],
+                  "total": 1,
+                  "limit": 50,
+                  "offset": 0
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List resources",
+        "tags": [
+          "resources"
+        ]
+      },
+      "post": {
+        "description": "Create a new resource.\n\nArgs:\n    resource: Resource creation data\n    service: Resource service dependency\n\nReturns:\n    Created resource",
+        "operationId": "create_resource_resources_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create a new resource",
+        "tags": [
+          "resources"
+        ]
+      }
+    },
+    "/resources/{resource_id}": {
+      "delete": {
+        "description": "Delete a resource.\n\nArgs:\n    resource_id: Resource ID\n    service: Resource service dependency\n\nRaises:\n    NotFoundError: If resource not found",
+        "operationId": "delete_resource_resources__resource_id__delete",
+        "parameters": [
+          {
+            "description": "Resource ID",
+            "in": "path",
+            "name": "resource_id",
+            "required": true,
+            "schema": {
+              "description": "Resource ID",
+              "format": "uuid",
+              "title": "Resource Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a resource",
+        "tags": [
+          "resources"
+        ]
+      },
+      "get": {
+        "description": "Get a resource by ID.\n\nArgs:\n    resource_id: Resource ID\n    service: Resource service dependency\n\nReturns:\n    Resource\n\nRaises:\n    NotFoundError: If resource not found",
+        "operationId": "get_resource_resources__resource_id__get",
+        "parameters": [
+          {
+            "description": "Resource ID",
+            "in": "path",
+            "name": "resource_id",
+            "required": true,
+            "schema": {
+              "description": "Resource ID",
+              "format": "uuid",
+              "title": "Resource Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get a resource by ID",
+        "tags": [
+          "resources"
+        ]
+      },
+      "put": {
+        "description": "Update a resource.\n\nArgs:\n    resource_id: Resource ID\n    updates: Fields to update\n    service: Resource service dependency\n\nReturns:\n    Updated resource\n\nRaises:\n    NotFoundError: If resource not found",
+        "operationId": "update_resource_resources__resource_id__put",
+        "parameters": [
+          {
+            "description": "Resource ID",
+            "in": "path",
+            "name": "resource_id",
+            "required": true,
+            "schema": {
+              "description": "Resource ID",
+              "format": "uuid",
+              "title": "Resource Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update a resource",
+        "tags": [
+          "resources"
+        ]
+      }
+    },
+    "/taxonomies": {
+      "get": {
+        "description": "List taxonomies with pagination.\n\nArgs:\n    service: Taxonomy service dependency\n    limit: Maximum number of results (1-100)\n    offset: Number of results to skip\n\nReturns:\n    Paginated list of taxonomies",
+        "operationId": "list_taxonomies_taxonomies_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxonomyListResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000000-0000-0000-d315-cb6cbdc35142",
+                      "identifier": "tx:tech",
+                      "title": "Technology",
+                      "description": "Topics related to technology domains",
+                      "skos_uri": null,
+                      "created_at": "2025-11-04T02:55:11.302186Z",
+                      "updated_at": "2025-11-04T02:55:11.302186Z"
+                    },
+                    {
+                      "id": "00000000-0000-0000-188d-6696711aee7d",
+                      "identifier": "tx:health",
+                      "title": "Health & Wellness",
+                      "description": "Physical and mental health topics",
+                      "skos_uri": null,
+                      "created_at": "2025-11-04T02:55:11.302186Z",
+                      "updated_at": "2025-11-04T02:55:11.302186Z"
+                    }
+                  ],
+                  "total": 2,
+                  "limit": 50,
+                  "offset": 0
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List taxonomies",
+        "tags": [
+          "taxonomies"
+        ]
+      },
+      "post": {
+        "description": "Create a new taxonomy.\n\nArgs:\n    taxonomy: Taxonomy creation data\n    service: Taxonomy service dependency\n\nReturns:\n    Created taxonomy\n\nRaises:\n    ValidationError: If validation fails",
+        "operationId": "create_taxonomy_taxonomies_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxonomyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxonomyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create a new taxonomy",
+        "tags": [
+          "taxonomies"
+        ]
+      }
+    },
+    "/taxonomies/{taxonomy_id}": {
+      "delete": {
+        "description": "Delete a taxonomy.\n\nArgs:\n    taxonomy_id: Taxonomy ID\n    service: Taxonomy service dependency\n    cascade: If True, delete associated topics\n\nRaises:\n    NotFoundError: If taxonomy not found",
+        "operationId": "delete_taxonomy_taxonomies__taxonomy_id__delete",
+        "parameters": [
+          {
+            "description": "Taxonomy ID",
+            "in": "path",
+            "name": "taxonomy_id",
+            "required": true,
+            "schema": {
+              "description": "Taxonomy ID",
+              "format": "uuid",
+              "title": "Taxonomy Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Delete associated topics",
+            "in": "query",
+            "name": "cascade",
+            "required": false,
+            "schema": {
+              "default": true,
+              "description": "Delete associated topics",
+              "title": "Cascade",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a taxonomy",
+        "tags": [
+          "taxonomies"
+        ]
+      },
+      "get": {
+        "description": "Get a taxonomy by ID.\n\nArgs:\n    taxonomy_id: Taxonomy ID\n    service: Taxonomy service dependency\n\nReturns:\n    Taxonomy\n\nRaises:\n    NotFoundError: If taxonomy not found",
+        "operationId": "get_taxonomy_taxonomies__taxonomy_id__get",
+        "parameters": [
+          {
+            "description": "Taxonomy ID",
+            "in": "path",
+            "name": "taxonomy_id",
+            "required": true,
+            "schema": {
+              "description": "Taxonomy ID",
+              "format": "uuid",
+              "title": "Taxonomy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxonomyResponse"
+                },
+                "example": {
+                  "id": "00000000-0000-0000-d315-cb6cbdc35142",
+                  "identifier": "tx:tech",
+                  "title": "Technology",
+                  "description": "Topics related to technology domains",
+                  "skos_uri": null,
+                  "created_at": "2025-11-04T02:55:11.302186Z",
+                  "updated_at": "2025-11-04T02:55:11.302186Z"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get a taxonomy by ID",
+        "tags": [
+          "taxonomies"
+        ]
+      },
+      "put": {
+        "description": "Update a taxonomy.\n\nArgs:\n    taxonomy_id: Taxonomy ID\n    updates: Fields to update\n    service: Taxonomy service dependency\n\nReturns:\n    Updated taxonomy\n\nRaises:\n    NotFoundError: If taxonomy not found",
+        "operationId": "update_taxonomy_taxonomies__taxonomy_id__put",
+        "parameters": [
+          {
+            "description": "Taxonomy ID",
+            "in": "path",
+            "name": "taxonomy_id",
+            "required": true,
+            "schema": {
+              "description": "Taxonomy ID",
+              "format": "uuid",
+              "title": "Taxonomy Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxonomyUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxonomyResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update a taxonomy",
+        "tags": [
+          "taxonomies"
+        ]
+      }
+    },
+    "/topics": {
+      "get": {
+        "description": "List topics with optional filters and pagination.\n\nArgs:\n    service: Topic service dependency\n    taxonomy_id: Filter by taxonomy\n    status_filter: Filter by status\n    created_after: Filter by creation date (after)\n    created_before: Filter by creation date (before)\n    limit: Maximum number of results (1-100)\n    offset: Number of results to skip\n\nReturns:\n    Paginated list of topics",
+        "operationId": "list_topics_topics_get",
+        "parameters": [
+          {
+            "description": "Filter by taxonomy",
+            "in": "query",
+            "name": "taxonomy_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by taxonomy",
+              "title": "Taxonomy Id"
+            }
+          },
+          {
+            "description": "Filter by status",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "draft",
+                    "active",
+                    "deprecated",
+                    "merged"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by status",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Filter by creation date (after)",
+            "in": "query",
+            "name": "created_after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by creation date (after)",
+              "title": "Created After"
+            }
+          },
+          {
+            "description": "Filter by creation date (before)",
+            "in": "query",
+            "name": "created_before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by creation date (before)",
+              "title": "Created Before"
+            }
+          },
+          {
+            "description": "Filter by materialized path prefix",
+            "in": "query",
+            "name": "path_prefix",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by materialized path prefix",
+              "title": "Path Prefix"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicListResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000000-0000-0000-df70-3781f1070368",
+                      "taxonomy_id": "00000000-0000-0000-d315-cb6cbdc35142",
+                      "taxonomy_identifier": "tx:tech",
+                      "identifier": "tech:software",
+                      "title": "Software",
+                      "slug": "software",
+                      "description": "Software development and engineering",
+                      "status": "active",
+                      "path": "/tech:software",
+                      "aliases": [
+                        "software engineering"
+                      ],
+                      "external_refs": {},
+                      "created_at": "2025-11-04T02:55:11.302186Z",
+                      "updated_at": "2025-11-04T02:55:11.302186Z"
+                    },
+                    {
+                      "id": "00000000-0000-0000-ebec-568259ed5d1b",
+                      "taxonomy_id": "00000000-0000-0000-d315-cb6cbdc35142",
+                      "taxonomy_identifier": "tx:tech",
+                      "identifier": "tech:hardware",
+                      "title": "Hardware",
+                      "slug": "hardware",
+                      "description": "Physical computing components",
+                      "status": "active",
+                      "path": "/tech:hardware",
+                      "aliases": [
+                        "electronics"
+                      ],
+                      "external_refs": {},
+                      "created_at": "2025-11-04T02:55:11.302186Z",
+                      "updated_at": "2025-11-04T02:55:11.302186Z"
+                    }
+                  ],
+                  "total": 2,
+                  "limit": 50,
+                  "offset": 0
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List topics with filters",
+        "tags": [
+          "topics"
+        ]
+      },
+      "post": {
+        "description": "Create a new topic.\n\nArgs:\n    topic: Topic creation data\n    service: Topic service dependency\n\nReturns:\n    Created topic\n\nRaises:\n    ValidationError: If validation fails or slug is already taken",
+        "operationId": "add_topic_topics_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create a new topic",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/topics/edges": {
+      "post": {
+        "description": "Create a topic edge (relationship).\n\nArgs:\n    edge: Edge creation data\n    service: Topic service dependency\n\nReturns:\n    Created edge\n\nRaises:\n    ValidationError: If edge would create a cycle",
+        "operationId": "create_edge_topics_edges_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicEdgeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicEdgeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create a topic edge",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/topics/edges/{parent_id}/{child_id}": {
+      "delete": {
+        "description": "Delete a topic edge.\n\nArgs:\n    parent_id: Parent topic ID\n    child_id: Child topic ID\n    service: Topic service dependency\n\nRaises:\n    NotFoundError: If edge not found",
+        "operationId": "delete_edge_topics_edges__parent_id___child_id__delete",
+        "parameters": [
+          {
+            "description": "Parent topic ID",
+            "in": "path",
+            "name": "parent_id",
+            "required": true,
+            "schema": {
+              "description": "Parent topic ID",
+              "format": "uuid",
+              "title": "Parent Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Child topic ID",
+            "in": "path",
+            "name": "child_id",
+            "required": true,
+            "schema": {
+              "description": "Child topic ID",
+              "format": "uuid",
+              "title": "Child Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a topic edge",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/topics/multi-parent": {
+      "get": {
+        "description": "Find topics with multiple parent relationships.\n\nArgs:\n    service: Topic service dependency\n    min_parents: Minimum number of parents\n    taxonomy_id: Optional filter by taxonomy\n\nReturns:\n    List of topics with multiple parents",
+        "operationId": "find_multi_parent_topics_topics_multi_parent_get",
+        "parameters": [
+          {
+            "description": "Minimum number of parents",
+            "in": "query",
+            "name": "min_parents",
+            "required": false,
+            "schema": {
+              "default": 2,
+              "description": "Minimum number of parents",
+              "minimum": 2,
+              "title": "Min Parents",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter by taxonomy",
+            "in": "query",
+            "name": "taxonomy_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by taxonomy",
+              "title": "Taxonomy Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TopicResponse"
+                  },
+                  "title": "Response Find Multi Parent Topics Topics Multi Parent Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Find topics with multiple parents",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/topics/orphans": {
+      "get": {
+        "description": "Find topics with no parent relationships.\n\nArgs:\n    service: Topic service dependency\n    taxonomy_id: Optional filter by taxonomy\n\nReturns:\n    List of orphan topics",
+        "operationId": "find_orphan_topics_topics_orphans_get",
+        "parameters": [
+          {
+            "description": "Filter by taxonomy",
+            "in": "query",
+            "name": "taxonomy_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by taxonomy",
+              "title": "Taxonomy Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TopicResponse"
+                  },
+                  "title": "Response Find Orphan Topics Topics Orphans Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Find orphan topics",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/topics/search": {
+      "post": {
+        "description": "Search for topics by title or alias.\n\nSupports case-insensitive substring matching with optional filters\nfor taxonomy and status.\n\nArgs:\n    request: Search request with query and filters\n    service: Topic service dependency\n\nReturns:\n    Paginated list of matching topics",
+        "operationId": "search_topics_topics_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicListResponse"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "00000000-0000-0000-df70-3781f1070368",
+                      "taxonomy_id": "00000000-0000-0000-d315-cb6cbdc35142",
+                      "taxonomy_identifier": "tx:tech",
+                      "identifier": "tech:software",
+                      "title": "Software",
+                      "slug": "software",
+                      "description": "Software development and engineering",
+                      "status": "active",
+                      "path": "/tech:software",
+                      "aliases": [
+                        "software engineering"
+                      ],
+                      "external_refs": {},
+                      "created_at": "2025-11-04T02:55:11.302186Z",
+                      "updated_at": "2025-11-04T02:55:11.302186Z"
+                    }
+                  ],
+                  "total": 1,
+                  "limit": 50,
+                  "offset": 0
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search for topics",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/topics/{topic_id}": {
+      "delete": {
+        "description": "Delete a topic.\n\nArgs:\n    topic_id: Topic ID\n    service: Topic service dependency\n\nRaises:\n    NotFoundError: If topic not found",
+        "operationId": "delete_topic_topics__topic_id__delete",
+        "parameters": [
+          {
+            "description": "Topic ID",
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "description": "Topic ID",
+              "format": "uuid",
+              "title": "Topic Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a topic",
+        "tags": [
+          "topics"
+        ]
+      },
+      "get": {
+        "description": "Get a topic by ID.\n\nArgs:\n    topic_id: Topic ID\n    service: Topic service dependency\n\nReturns:\n    Topic\n\nRaises:\n    NotFoundError: If topic not found",
+        "operationId": "get_topic_topics__topic_id__get",
+        "parameters": [
+          {
+            "description": "Topic ID",
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "description": "Topic ID",
+              "format": "uuid",
+              "title": "Topic Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicResponse"
+                },
+                "example": {
+                  "id": "00000000-0000-0000-df70-3781f1070368",
+                  "taxonomy_id": "00000000-0000-0000-d315-cb6cbdc35142",
+                  "taxonomy_identifier": "tx:tech",
+                  "identifier": "tech:software",
+                  "title": "Software",
+                  "slug": "software",
+                  "description": "Software development and engineering",
+                  "status": "active",
+                  "path": "/tech:software",
+                  "aliases": [
+                    "software engineering"
+                  ],
+                  "external_refs": {},
+                  "created_at": "2025-11-04T02:55:11.302186Z",
+                  "updated_at": "2025-11-04T02:55:11.302186Z"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get a topic by ID",
+        "tags": [
+          "topics"
+        ]
+      },
+      "put": {
+        "description": "Update a topic.\n\nArgs:\n    topic_id: Topic ID\n    updates: Fields to update\n    service: Topic service dependency\n\nReturns:\n    Updated topic\n\nRaises:\n    NotFoundError: If topic not found",
+        "operationId": "update_topic_topics__topic_id__put",
+        "parameters": [
+          {
+            "description": "Topic ID",
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "description": "Topic ID",
+              "format": "uuid",
+              "title": "Topic Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update a topic",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/topics/{topic_id}/ancestors": {
+      "get": {
+        "description": "Get all ancestor topics.\n\nArgs:\n    topic_id: Topic ID\n    service: Topic service dependency\n    max_depth: Optional maximum depth to traverse\n\nReturns:\n    List of ancestor topics\n\nRaises:\n    NotFoundError: If topic not found",
+        "operationId": "get_ancestors_topics__topic_id__ancestors_get",
+        "parameters": [
+          {
+            "description": "Topic ID",
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "description": "Topic ID",
+              "format": "uuid",
+              "title": "Topic Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum depth to traverse",
+            "in": "query",
+            "name": "max_depth",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Maximum depth to traverse",
+              "title": "Max Depth"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TopicResponse"
+                  },
+                  "title": "Response Get Ancestors Topics  Topic Id  Ancestors Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get ancestor topics",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/topics/{topic_id}/deprecate": {
+      "post": {
+        "description": "Mark a topic as deprecated.\n\nArgs:\n    topic_id: Topic ID\n    service: Topic service dependency\n\nReturns:\n    Deprecated topic\n\nRaises:\n    NotFoundError: If topic not found",
+        "operationId": "deprecate_topic_topics__topic_id__deprecate_post",
+        "parameters": [
+          {
+            "description": "Topic ID",
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "description": "Topic ID",
+              "format": "uuid",
+              "title": "Topic Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Deprecate a topic",
+        "tags": [
+          "topics"
+        ]
+      }
+    },
+    "/topics/{topic_id}/descendants": {
+      "get": {
+        "description": "Get all descendant topics.\n\nArgs:\n    topic_id: Topic ID\n    service: Topic service dependency\n    max_depth: Optional maximum depth to traverse\n\nReturns:\n    List of descendant topics\n\nRaises:\n    NotFoundError: If topic not found",
+        "operationId": "get_descendants_topics__topic_id__descendants_get",
+        "parameters": [
+          {
+            "description": "Topic ID",
+            "in": "path",
+            "name": "topic_id",
+            "required": true,
+            "schema": {
+              "description": "Topic ID",
+              "format": "uuid",
+              "title": "Topic Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum depth to traverse",
+            "in": "query",
+            "name": "max_depth",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Maximum depth to traverse",
+              "title": "Max Depth"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TopicResponse"
+                  },
+                  "title": "Response Get Descendants Topics  Topic Id  Descendants Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get descendant topics",
+        "tags": [
+          "topics"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Development server",
+      "url": "http://localhost:8000"
+    },
+    {
+      "description": "Production server",
+      "url": "https://api.lifeos.dev"
+    }
+  ]
+}

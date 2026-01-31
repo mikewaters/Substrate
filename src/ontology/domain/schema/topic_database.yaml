@@ -1,0 +1,46 @@
+# LinkML Schema for Life Ontology
+# Converted from owlready2 ontology structure
+# Preserves OWL semantics with LinkML validation features
+
+id: http://lifeos.org/ontology/lifeos-ontology
+name: ontology
+description: >
+  A comprehensive ontology for modeling personal life management,
+  including self-identity, work activities, and world objects.
+
+license: https://creativecommons.org/publicdomain/zero/1.0/ #TODO
+
+default_prefix: lifeos
+default_range: string
+
+prefixes:
+  lifeos: http://lifeos.org/ontology/
+  linkml: https://w3id.org/linkml/
+#   schema: http://schema.org/
+#   owl: http://www.w3.org/2002/07/owl#
+#   foaf: http://xmlns.com/foaf/0.1/
+
+imports:
+  - linkml:types
+  - common
+  - information
+
+classes:
+  Database:
+    attributes:
+      themes:
+        multivalued: true
+        inlined_as_list: true
+        range: TopicTaxonomy
+      topics:
+        multivalued: true
+        inlined_as_list: true
+        range: Topic
+      topic_edges:
+        multivalued: true
+        inlined_as_list: true
+        range: TopicEdge
+      topic_closures:
+        multivalued: true
+        inlined_as_list: true
+        range: TopicClosure

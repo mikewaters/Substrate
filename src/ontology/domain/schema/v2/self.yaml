@@ -1,0 +1,233 @@
+id: http://lifeos.org/ontology/work
+name: work
+description: >
+  Work domain
+
+default_prefix: lifeos
+default_range: string
+
+prefixes:
+  lifeos: http://lifeos.org/ontology/
+  linkml: https://w3id.org/linkml/
+  foaf: http://xmlns.com/foaf/0.1/
+  owl: http://www.w3.org/2002/07/owl#
+
+imports:
+  - linkml:types
+  - common
+
+emit_prefixes:
+  - foaf
+
+classes:
+  # ---------------------------------------------------------------------------
+  # DOMAIN: SELF (Organism)
+  # ---------------------------------------------------------------------------
+  Organism:
+    description: >
+      Represents a single person - the central individual using the Life OS system.
+      Extends FOAF Agent to add life management capabilities.
+    class_uri: foaf:Agent
+    slots:
+      - id
+      - name
+      - title
+      - givenName
+      - familyName
+      - mbox
+      - birthday
+      - homepage
+      - topic_interest
+    slot_usage:
+      name:
+        required: true
+    annotations:
+      life_bus_domain: Organism
+    comments:
+      - This class represents the single individual managing their life
+      - Maps to foaf:Agent for semantic web interoperability
+      - FOAF properties maintain their standard semantics and constraints
+
+  Role:
+    description: >
+      The societal roles that are most important to you, or
+      examples of individuals you aspire to be like
+    slots:
+      - id
+      - title
+      - description
+    annotations:
+      life_bus_domain: Organism.Identity
+    class_uri: lifeos:Role
+
+  Value:
+    description: Value statements that guide your decisions
+    slots:
+      - id
+      - title
+      - description
+    annotations:
+      life_bus_domain: Organism.Purpose
+    class_uri: lifeos:Value
+
+  Principle:
+    description: Principle statements that govern your behavior
+    slots:
+      - id
+      - title
+      - description
+    annotations:
+      life_bus_domain: Organism.Operations
+    class_uri: lifeos:Principle
+
+  Behavior:
+    abstract: true
+    description: >
+      Physical manifestations and actual actions you define that help you
+      live in alignment with your principles
+    slots:
+      - id
+      - title
+      - description
+    annotations:
+      life_bus_domain: Organism.Operations
+    class_uri: lifeos:Behavior
+
+  Method:
+    is_a: Behavior
+    description: Specific manner in which you accomplish a type of task or goal
+    class_uri: lifeos:Method
+
+  Process:
+    is_a: Behavior
+    description: A sequence of steps or techniques
+    class_uri: lifeos:Process
+
+  Routine:
+    is_a: Behavior
+    description: A sequence of steps that is taken regularly
+    class_uri: lifeos:Routine
+
+  Habit:
+    is_a: Behavior
+    description: A habituated sequence of steps that is taken regularly
+    class_uri: lifeos:Habit
+
+  Vision:
+    description: A set of high-level future state assertions
+    slots:
+      - id
+      - title
+      - description
+    annotations:
+      life_bus_domain: Organism.Evolution
+    class_uri: lifeos:Vision
+
+  Goal:
+    description: >
+      A low-level statement of some change or outcome, in alignment with
+      one or more Visions, that specifies desired outcomes and is time-bound
+    slots:
+      - id
+      - title
+      - description
+      - aligned_with_vision
+    slot_usage:
+      aligned_with_vision:
+        required: false
+        multivalued: true
+    annotations:
+      life_bus_domain: Organism.Evolution
+    class_uri: lifeos:Goal
+
+  Delta:
+    abstract: true
+    description: Abstract class for specific individual changes that are desired
+    slots:
+      - id
+      - title
+      - description
+    annotations:
+      life_bus_domain: Organism.Evolution
+    class_uri: lifeos:Delta
+
+  Outcome:
+    is_a: Delta
+    description: A type of Delta that describes a target state
+    class_uri: lifeos:Outcome
+
+  Action:
+    is_a: Delta
+    description: A type of Delta that describes doing something differently
+    class_uri: lifeos:Action
+
+slots:
+  # ---- FOAF Agent/Person slots ----
+  # These map directly to FOAF URIs without redefining FOAF's semantics
+  name:
+    description: Full name
+    slot_uri: foaf:name
+  givenName:
+    description: Given name
+    slot_uri: foaf:givenName
+  familyName:
+    description: Family name
+    slot_uri: foaf:familyName
+  mbox:
+    description: Email mailbox
+    slot_uri: foaf:mbox
+  birthday:
+    description: Birthday
+    slot_uri: foaf:birthday
+  homepage:
+    description: Homepage URL
+    slot_uri: foaf:homepage
+    range: uri
+  topic_interest:
+    description: Topics or things the person is interested in
+    slot_uri: foaf:topic_interest
+    range: uriorcurie #TODO: map this to Information domain
+    multivalued: true
+
+  # --- Relationships/edges
+  has_identity:
+    description: Links an Organism to their societal roles or aspirational archetypes
+    multivalued: true
+    required: false
+    slot_uri: lifeos:has_identity
+    domain_of:
+      - Organism
+    range: Role
+    annotations:
+      owl_type: ObjectProperty
+
+  has_purpose:
+    description: Links an Organism to the values that define their operation
+    range: Value
+    multivalued: true
+    required: false
+    slot_uri: lifeos:has_purpose
+    domain_of:
+      - Organism
+    annotations:
+      owl_type: ObjectProperty
+
+  has_future_state:
+    description: Links an Organism to their vision for the future
+    range: Vision
+    multivalued: true
+    required: false
+    slot_uri: lifeos:has_future_state
+    domain_of:
+      - Organism
+    annotations:
+      owl_type: ObjectProperty
+
+  aligned_with_vision:
+    description: Links a Goal to one or more Visions
+    range: Vision
+    multivalued: true
+    required: false
+    slot_uri: lifeos:aligned_with_vision
+    domain_of:
+      - Goal

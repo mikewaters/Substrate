@@ -1,0 +1,103 @@
+id: http://lifeos.org/ontology/common
+name: common
+description: >
+  Shared slots and enums
+
+default_prefix: lifeos
+default_range: string
+
+prefixes:
+  lifeos: http://lifeos.org/ontology/
+  linkml: https://w3id.org/linkml/
+  schema: http://schema.org/
+  dcterms: http://purl.org/dc/terms/
+
+imports:
+  - linkml:types
+  #- resource
+
+###
+# Useful default slots, per [SlotDefinition](https://linkml.io/linkml-model/latest/docs/SlotDefinition/)
+# name
+# title
+# description
+# comments string
+# notes string
+# todos string
+# created_by uriorcurie
+# modified_by uriorcurie
+# created_on datetime
+# last_updated_on datetime
+# keywords string
+# examples Example{value:string, value_description:string, value_object:Anything} https://linkml.io/linkml-model/latest/docs/Example/
+# equals_string
+# deprecated string
+
+classes:
+  # Mixins suck because they get bundled into DDL
+  # LifeEntity:
+  #   mixin: true
+  #   description: An entity that's part of the Life domain, which will drive certain types of relations
+  #   slots:
+  #     - relation
+  #     - url
+  # EntityLog: #unused, TBD
+  #   description: utility class for tracking entity lifecycle
+  #   slots:
+  #     - created_on
+  #     - created_by
+  #     - last_updated_on
+
+slots:
+  # ---- Core shared types ----
+  identifier:
+    identifier: true
+    description: Unique identifier for any entity
+    #range: uriorcurie # aka Compact URI: https://linkml.io/linkml/schemas/uris-and-mappings.html
+    required: true
+    slot_uri: schema:identifier
+  title:
+    required: true
+  description:
+  created_by:
+  created_on:
+  last_updated_on:
+  # title:
+  #   description: Human-readable title or name
+  #   slot_uri: dcterms:title
+
+  # description:
+  #   description: Textual description of the entity
+  #   slot_uri: schema:description
+
+  # date_created:
+  #   slot_uri: schema:dateCreated
+  #   range: date
+  #   required: false
+  #   description: The date on which the entity was created.
+
+  # date_modified:
+  #   slot_uri: schema:dateModified
+  #   range: date
+  #   required: false
+  #   description: The date on which the entity was most recently modified.
+
+  # Removed `documentation`, instead I will use a relation type - an edge with a property
+  # (consider Actor --> (Starred in) --> Move, where starred_in has a "role" proeprty)
+  # documentation:
+  #   range: Resource
+  #   multivalued: true
+  #   description: "Resource instances that directly pertain to some aspect of an instance"
+
+  url:
+    slot_uri: schema:url
+    range: uri
+    description: An optional URL associated with this instance.
+
+  relation:
+    slot_uri: dcterms:relation
+    description: "unspecified relationship"
+    multivalued: true
+    range: string
+    comments:
+      - "Should ne an URI, in the LifeOS domain or otherwaisxe"

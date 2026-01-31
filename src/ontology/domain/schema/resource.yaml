@@ -1,0 +1,208 @@
+# example: https://ruisdael-catalog.citg.tudelft.nl/index.php?title=Special:Types/Page
+# another: https://dvcs.w3.org/hg/gld/raw-file/tip/adms/adms20121023.html#SemanticAssetRepository
+#          https://philarcher.org/adms/
+# another: https://github.com/Health-RI/health-ri-metadata
+# example of a document: https://biolink.github.io/biolink-model/InformationContentEntity/
+# List of Media Types from IANA:   https://www.iana.org/assignments/media-types/media-types.xhtml
+
+# TODO:
+# 1. Add more PROV-O terms for resource provenance
+# 2. Cleanup unused prefixes
+# 3. Make Catalog a singleton?
+#
+id: http://lifeos.org/ontology/knowledge_management/resource
+name: resource
+description: >
+  Information Management classes
+
+default_prefix: lifeos
+default_range: string
+
+prefixes:
+  lifeos: http://lifeos.org/ontology/
+  linkml: https://w3id.org/linkml/
+  foaf: http://xmlns.com/foaf/0.1/
+  dcterms: http://purl.org/dc/terms/
+  schema: http://schema.org/
+  dcat: http://www.w3.org/ns/dcat#
+
+  prov: http://www.w3.org/ns/prov#
+  owl: http://www.w3.org/2002/07/owl#
+
+  dcmitype: http://purl.org/dc/dcmitype/
+  void: http://rdfs.org/ns/void#
+  skos: http://www.w3.org/2004/02/skos/core#
+
+imports:
+  - linkml:types
+  - common
+  - knowledge_management
+
+classes:
+  Resource:
+    #abstract: true
+    class_uri: dcterms:Resource
+    description: "Base class for information resources"
+    slots:
+      - identifier
+      - title
+      - description
+      - created_by
+      - created_on
+      - last_updated_on
+
+      - resource_type
+
+      - location
+      - content_location
+      - format
+      - media_type
+      - created
+      - modified
+      - creator
+
+      - theme
+      - subject
+      - related_topics
+      - related_resources
+
+      - has_use
+      - has_purpose
+
+      - catalog
+      - repository
+
+    comments:
+      - "I am ignoring dcat:Distribution, which classifies the format of a Resource, and instead lumping into the resource"
+
+  Purpose:
+    slots:
+      - identifier
+      - title
+      - description
+      - created_by
+      - created_on
+      - last_updated_on
+
+      - meaning
+      - role
+
+slots:
+  resource_type:
+    designates_type: true
+    range: string
+  ###
+  # Resource Metadata
+  #resource_type:
+  #  description: "Type designator for Resource subclasses"
+  location:
+    slot_uri: dcat:accessURL
+    description: "The canonical URL of the resource in its external repository."
+  content_location:
+    slot_uri: dcat:accessURL
+    description: "URL of the content for this resource, expectation is these are served from an object store"
+  created:
+    slot_uri: dcterms:created
+    range: datetime
+    description: The date on which the entity was created.
+  modified:
+    slot_uri: dcterms:modified
+    range: datetime
+    description: The date on which the entity was updated.
+  format:
+    slot_uri: dcterms:format
+    description: "The file format of the resource object"
+    range: string # for now
+    comments:
+      - "Github, Markdown, GithubMarkdown, HeptabaseMarkdown, HN thread comment, PDF etc"
+  media_type:
+    slot_uri: dcat:mediaType
+    description: "MIME type (e.g., text/markdown, video/mp4) of the resource's content"
+  version:
+    slot_uri: schema:version
+    description: The version of the entity embodied by a specified resource.
+  creator:
+    slot_uri: foaf:mbox #dcterms:creator TBD
+    comments:
+      - "foaf:Agent subclass"
+
+  ###
+  # Life domain context
+  has_use:
+    slot_uri: dcterms:isPartOf
+    domain: Resource
+    range: Activity # LifeEntity
+    multivalued: true
+    description: "Resource is part of an ongoing effort or activity on the life business"
+    comments:
+      - "A related resource in which the described resource is physically or logically included."
+
+  has_purpose:
+    description: "Resource is the designated $X of $Y"
+    domain: Resource
+    range: Purpose
+
+  meaning:
+    #slot_uri: dcterms:relation
+    description: what meaning is applied to the purpose
+    range: Activity
+
+  role:
+    description: how does this provide meaning
+    range: string
+
+  ###
+  # Informaiton domain context
+  theme:
+    slot_uri: dcat:theme
+    description: "Resource is releated to some topic, subject, concept defined in the life business knowledge taxonomy"
+    domain: Resource
+    range: TopicTaxonomy
+    multivalued: false
+
+  subject:
+    slot_uri: dcterms:relation
+    domain: Resource
+    range: Topic
+    multivalued: false
+
+  related_topics:
+    slot_uri: dcterms:relation
+    domain: Resource
+    range: Topic
+    multivalued: true
+    #inlined_as_list: true
+
+  related_resources:
+    slot_uri: dcterms:relation
+    domain: Resource
+    range: Resource
+    multivalued: true
+
+  catalog:
+    slot_uri: dcterms:isPartOf
+    description: "The Catalog the resource belongs to"
+    required: true
+    multivalued: false
+    #inverse: resource_items
+    domain: Resource
+    range: Catalog
+
+enums:
+  # FormatType:
+  #   # https://linkml.io/linkml/schemas/enums.html#dynamic-enums
+  #   # http://dbpedia.org/resource/Markdown - https://stackoverflow.com/questions/75529923/how-to-use-mime-types-for-rdf-typed-literals
+  #   # https://vocabularies.coar-repositories.org/resource_types/ --> has things like Transcription, Journal etc
+  #   #
+  #   permissible_values:
+  #     TBD:
+  # TextMedia:
+  #   # here are the iana assignments, just have to figure out how to URI-ify these: https://www.iana.org/assignments/media-types/media-types.xhtml
+  #   # this codebase tries to, but unsure: https://gist.github.com/zednis/226fc1a65e468565e08640794edeb63f
+  #   # I *think* these are supposed to be dcat:MediaTypes: https://www.w3.org/TR/vocab-adms/#dcat-mediatype
+  #   # ... but I dont know how to URI these.
+  #   permissible_values:
+  #     text:
+  #       description: "text/plain"
+  #     text/markdown:
+  #     text/html:

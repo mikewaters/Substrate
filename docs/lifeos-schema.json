@@ -1,0 +1,1718 @@
+{
+    "$defs": {
+        "Bookmark": {
+            "additionalProperties": false,
+            "description": "A Collected Resource, aka a URL with no content",
+            "properties": {
+                "catalog": {
+                    "description": "The Catalog the resource belongs to",
+                    "type": "string"
+                },
+                "content_location": {
+                    "description": "URL of the content for this resource, expectation is these are served from an object store",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "description": "The date on which the entity was created.",
+                    "format": "date-time",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "creator": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "format": {
+                    "description": "The file format of the resource object",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "has_purpose": {
+                    "description": "Resource is the designated $X of $Y",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "has_use": {
+                    "description": "Resource is part of an ongoing effort or activity on the life business",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "location": {
+                    "description": "The canonical URL of the resource in its external repository.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "media_type": {
+                    "description": "MIME type (e.g., text/markdown, video/mp4) of the resource's content",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "description": "The date on which the entity was updated.",
+                    "format": "date-time",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "related_resources": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "related_topics": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "repository": {
+                    "description": "The repository a resource is stored in",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "resource_type": {
+                    "enum": [
+                        "Bookmark"
+                    ],
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "subject": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "theme": {
+                    "description": "Resource is releated to some topic, subject, concept defined in the life business knowledge taxonomy",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "title",
+                "catalog"
+            ],
+            "title": "Bookmark",
+            "type": "object"
+        },
+        "Catalog": {
+            "additionalProperties": false,
+            "description": "A group of similar Resource instances around a theme or topic",
+            "properties": {
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "themes": {
+                    "description": "",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "title"
+            ],
+            "title": "Catalog",
+            "type": "object"
+        },
+        "Collection": {
+            "additionalProperties": false,
+            "description": "A group of Resources centered around some need or theme",
+            "properties": {
+                "catalog": {
+                    "description": "The Catalog the resource belongs to",
+                    "type": "string"
+                },
+                "content_location": {
+                    "description": "URL of the content for this resource, expectation is these are served from an object store",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "description": "The date on which the entity was created.",
+                    "format": "date-time",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "creator": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "format": {
+                    "description": "The file format of the resource object",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "has_purpose": {
+                    "description": "Resource is the designated $X of $Y",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "has_resources": {
+                    "description": "A collection of related resources",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "has_use": {
+                    "description": "Resource is part of an ongoing effort or activity on the life business",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "location": {
+                    "description": "The canonical URL of the resource in its external repository.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "media_type": {
+                    "description": "MIME type (e.g., text/markdown, video/mp4) of the resource's content",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "description": "The date on which the entity was updated.",
+                    "format": "date-time",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "related_resources": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "related_topics": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "repository": {
+                    "description": "The repository a resource is stored in",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "resource_type": {
+                    "enum": [
+                        "Collection"
+                    ],
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "subject": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "theme": {
+                    "description": "Resource is releated to some topic, subject, concept defined in the life business knowledge taxonomy",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "title",
+                "catalog",
+                "has_use"
+            ],
+            "title": "Collection",
+            "type": "object"
+        },
+        "Document": {
+            "additionalProperties": false,
+            "description": "Larger container or promoted Note; used only for documents authored by the Self",
+            "properties": {
+                "catalog": {
+                    "description": "The Catalog the resource belongs to",
+                    "type": "string"
+                },
+                "content_location": {
+                    "description": "URL of the content for this resource, expectation is these are served from an object store",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "description": "The date on which the entity was created.",
+                    "format": "date-time",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "creator": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "document_type": {
+                    "$ref": "#/$defs/DocumentType"
+                },
+                "format": {
+                    "description": "The file format of the resource object",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "has_purpose": {
+                    "description": "Resource is the designated $X of $Y",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "has_use": {
+                    "description": "Resource is part of an ongoing effort or activity on the life business",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "location": {
+                    "description": "The canonical URL of the resource in its external repository.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "media_type": {
+                    "description": "MIME type (e.g., text/markdown, video/mp4) of the resource's content",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "description": "The date on which the entity was updated.",
+                    "format": "date-time",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "related_resources": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "related_topics": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "repository": {
+                    "description": "The repository a resource is stored in",
+                    "type": "string"
+                },
+                "resource_type": {
+                    "enum": [
+                        "Document"
+                    ],
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "subject": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "theme": {
+                    "description": "Resource is releated to some topic, subject, concept defined in the life business knowledge taxonomy",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "title",
+                "catalog",
+                "repository"
+            ],
+            "title": "Document",
+            "type": "object"
+        },
+        "DocumentType": {
+            "description": "",
+            "enum": [
+                "Document",
+                "Journal",
+                "List",
+                "Notebook",
+                "Logbook",
+                "Inventory",
+                "Landscape"
+            ],
+            "title": "DocumentType",
+            "type": "string"
+        },
+        "EdgeRole": {
+            "description": "Semantic relationship type between topics",
+            "enum": [
+                "broader",
+                "narrower",
+                "part_of",
+                "instance_of",
+                "related"
+            ],
+            "title": "EdgeRole",
+            "type": "string"
+        },
+        "Experiment": {
+            "additionalProperties": false,
+            "description": "Just fooling around, a type of Activity",
+            "properties": {
+                "activity_type": {
+                    "enum": [
+                        "Experiment"
+                    ],
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "description": "An optional URL associated with this instance.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id",
+                "title"
+            ],
+            "title": "Experiment",
+            "type": "object"
+        },
+        "Note": {
+            "additionalProperties": false,
+            "description": "Small data being ingested",
+            "properties": {
+                "catalog": {
+                    "description": "The Catalog the resource belongs to",
+                    "type": "string"
+                },
+                "content_location": {
+                    "description": "URL of the content for this resource, expectation is these are served from an object store",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "description": "The date on which the entity was created.",
+                    "format": "date-time",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "creator": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "format": {
+                    "description": "The file format of the resource object",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "has_purpose": {
+                    "description": "Resource is the designated $X of $Y",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "has_use": {
+                    "description": "Resource is part of an ongoing effort or activity on the life business",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "location": {
+                    "description": "The canonical URL of the resource in its external repository.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "media_type": {
+                    "description": "MIME type (e.g., text/markdown, video/mp4) of the resource's content",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "description": "The date on which the entity was updated.",
+                    "format": "date-time",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "note_type": {
+                    "$ref": "#/$defs/NoteType"
+                },
+                "related_resources": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "related_topics": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "repository": {
+                    "description": "The repository a resource is stored in",
+                    "type": "string"
+                },
+                "resource_type": {
+                    "enum": [
+                        "Note"
+                    ],
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "subject": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "theme": {
+                    "description": "Resource is releated to some topic, subject, concept defined in the life business knowledge taxonomy",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "title",
+                "catalog",
+                "repository"
+            ],
+            "title": "Note",
+            "type": "object"
+        },
+        "NoteType": {
+            "description": "",
+            "enum": [
+                "Note",
+                "Log",
+                "Thought",
+                "Idea",
+                "Reference",
+                "Highlight"
+            ],
+            "title": "NoteType",
+            "type": "string"
+        },
+        "Project": {
+            "additionalProperties": false,
+            "description": "Some set of tasks and outcomes that you are spending time on",
+            "properties": {
+                "activity_type": {
+                    "enum": [
+                        "Project"
+                    ],
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "description": "An optional URL associated with this instance.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id",
+                "title"
+            ],
+            "title": "Project",
+            "type": "object"
+        },
+        "Purpose": {
+            "additionalProperties": false,
+            "description": "",
+            "properties": {
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "meaning": {
+                    "description": "what meaning is applied to the purpose",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "role": {
+                    "description": "how does this provide meaning",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "title"
+            ],
+            "title": "Purpose",
+            "type": "object"
+        },
+        "Repository": {
+            "additionalProperties": false,
+            "description": "The system that houses a given resource",
+            "properties": {
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "service_name": {
+                    "description": "The name of an app being used for KM, future state this will be a first-class entity",
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "title",
+                "service_name"
+            ],
+            "title": "Repository",
+            "type": "object"
+        },
+        "Research": {
+            "additionalProperties": false,
+            "description": "In preparation for work, you need to spend time figuring out how to approach a problem",
+            "properties": {
+                "activity_type": {
+                    "enum": [
+                        "Research"
+                    ],
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "description": "An optional URL associated with this instance.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id",
+                "title"
+            ],
+            "title": "Research",
+            "type": "object"
+        },
+        "Resource": {
+            "additionalProperties": false,
+            "description": "Base class for information resources",
+            "properties": {
+                "catalog": {
+                    "description": "The Catalog the resource belongs to",
+                    "type": "string"
+                },
+                "content_location": {
+                    "description": "URL of the content for this resource, expectation is these are served from an object store",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created": {
+                    "description": "The date on which the entity was created.",
+                    "format": "date-time",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "creator": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "format": {
+                    "description": "The file format of the resource object",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "has_purpose": {
+                    "description": "Resource is the designated $X of $Y",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "has_use": {
+                    "description": "Resource is part of an ongoing effort or activity on the life business",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "location": {
+                    "description": "The canonical URL of the resource in its external repository.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "media_type": {
+                    "description": "MIME type (e.g., text/markdown, video/mp4) of the resource's content",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "modified": {
+                    "description": "The date on which the entity was updated.",
+                    "format": "date-time",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "related_resources": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "related_topics": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "repository": {
+                    "description": "The repository a resource is stored in",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "resource_type": {
+                    "enum": [
+                        "Resource"
+                    ],
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "subject": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "theme": {
+                    "description": "Resource is releated to some topic, subject, concept defined in the life business knowledge taxonomy",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "title",
+                "catalog"
+            ],
+            "title": "Resource",
+            "type": "object"
+        },
+        "Self": {
+            "additionalProperties": false,
+            "description": "",
+            "properties": {
+                "activities": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/$defs/Experiment"
+                            },
+                            {
+                                "$ref": "#/$defs/Research"
+                            },
+                            {
+                                "$ref": "#/$defs/Study"
+                            },
+                            {
+                                "$ref": "#/$defs/Thinking"
+                            },
+                            {
+                                "$ref": "#/$defs/Task"
+                            },
+                            {
+                                "$ref": "#/$defs/Project"
+                            }
+                        ]
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "bookmarks": {
+                    "items": {
+                        "$ref": "#/$defs/Bookmark"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "catalog": {
+                    "items": {
+                        "$ref": "#/$defs/Catalog"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "collections": {
+                    "items": {
+                        "$ref": "#/$defs/Collection"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "documents": {
+                    "items": {
+                        "$ref": "#/$defs/Document"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "notes": {
+                    "items": {
+                        "$ref": "#/$defs/Note"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "purposes": {
+                    "items": {
+                        "$ref": "#/$defs/Purpose"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "repositories": {
+                    "items": {
+                        "$ref": "#/$defs/Repository"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "resources": {
+                    "items": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/$defs/Resource"
+                            },
+                            {
+                                "$ref": "#/$defs/Collection"
+                            },
+                            {
+                                "$ref": "#/$defs/Note"
+                            },
+                            {
+                                "$ref": "#/$defs/Document"
+                            },
+                            {
+                                "$ref": "#/$defs/Bookmark"
+                            }
+                        ]
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "themes": {
+                    "items": {
+                        "$ref": "#/$defs/TopicTaxonomy"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "topic_closures": {
+                    "items": {
+                        "$ref": "#/$defs/TopicClosure"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "topic_edges": {
+                    "items": {
+                        "$ref": "#/$defs/TopicEdge"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "topics": {
+                    "items": {
+                        "$ref": "#/$defs/Topic"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                }
+            },
+            "title": "Self",
+            "type": "object"
+        },
+        "Study": {
+            "additionalProperties": false,
+            "description": "You spend specific directed effort learning some new thing",
+            "properties": {
+                "activity_type": {
+                    "enum": [
+                        "Study"
+                    ],
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "description": "An optional URL associated with this instance.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id",
+                "title"
+            ],
+            "title": "Study",
+            "type": "object"
+        },
+        "Task": {
+            "additionalProperties": false,
+            "description": "An individual item of work",
+            "properties": {
+                "activity_type": {
+                    "enum": [
+                        "Task"
+                    ],
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "description": "An optional URL associated with this instance.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id",
+                "title"
+            ],
+            "title": "Task",
+            "type": "object"
+        },
+        "Thinking": {
+            "additionalProperties": false,
+            "description": "You spend time creating mental models of life and the world in order to understand it better",
+            "properties": {
+                "activity_type": {
+                    "enum": [
+                        "Thinking"
+                    ],
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "description": "An optional URL associated with this instance.",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                }
+            },
+            "required": [
+                "id",
+                "title"
+            ],
+            "title": "Thinking",
+            "type": "object"
+        },
+        "Topic": {
+            "additionalProperties": false,
+            "description": "A concept within a taxonomy (SKOS Concept)",
+            "properties": {
+                "aliases": {
+                    "description": "Alternative names (SKOS altLabel)",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": [
+                        "array",
+                        "null"
+                    ]
+                },
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "materialized_path": {
+                    "description": "Pre-computed path for display (e.g., /parent/child/grandchild)",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "slug": {
+                    "description": "URL-safe identifier derived from title",
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "taxonomy_id": {
+                    "description": "The taxonomy this topic belongs to (SKOS inScheme)",
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "taxonomy_id",
+                "title"
+            ],
+            "title": "Topic",
+            "type": "object"
+        },
+        "TopicClosure": {
+            "additionalProperties": false,
+            "description": "Transitive closure table for efficient ancestor/descendant queries",
+            "properties": {
+                "ancestor_id": {
+                    "description": "Ancestor topic ID",
+                    "type": "string"
+                },
+                "depth": {
+                    "description": "Number of edges in path (0 = self-reference)",
+                    "minimum": 0,
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
+                "descendant_id": {
+                    "description": "Descendant topic ID",
+                    "type": "string"
+                }
+            },
+            "required": [
+                "ancestor_id",
+                "descendant_id"
+            ],
+            "title": "TopicClosure",
+            "type": "object"
+        },
+        "TopicEdge": {
+            "additionalProperties": false,
+            "description": "Directed edge between topics in a hierarchy",
+            "properties": {
+                "child_id": {
+                    "description": "Child topic ID",
+                    "type": "string"
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "parent_id": {
+                    "description": "Parent topic ID",
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/$defs/EdgeRole",
+                    "description": "Semantic relationship type"
+                }
+            },
+            "required": [
+                "parent_id",
+                "child_id",
+                "role"
+            ],
+            "title": "TopicEdge",
+            "type": "object"
+        },
+        "TopicTaxonomy": {
+            "additionalProperties": false,
+            "description": "A taxonomy for categorizing resources (SKOS Concept Scheme)",
+            "properties": {
+                "created_by": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "created_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "description": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "id": {
+                    "description": "Unique identifier for any entity",
+                    "type": "string"
+                },
+                "last_updated_on": {
+                    "type": [
+                        "string",
+                        "null"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "title"
+            ],
+            "title": "TopicTaxonomy",
+            "type": "object"
+        }
+    },
+    "$id": "http://lifeos.org/ontology/lifeos-ontology",
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "additionalProperties": true,
+    "metamodel_version": "1.7.0",
+    "title": "ontology",
+    "type": "object",
+    "version": null
+}
+

@@ -1,0 +1,40 @@
+{
+  "recommendations": [
+    // GitHub Copilot and AI
+    "github.copilot",
+    "github.copilot-chat",
+
+    // Python Development
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "charliermarsh.ruff",
+
+    // Database Support
+    "oracle.sql-developer",
+    "mtxr.sqltools",
+
+    // Testing
+    "ms-python.pytest",
+
+    // Documentation and Markup
+    "redhat.vscode-yaml",
+    "yzhang.markdown-all-in-one",
+    "bierner.markdown-mermaid",
+
+    // Git and Version Control
+    "eamodio.gitlens",
+
+    // Development Utilities
+    "ms-vscode.makefile-tools",
+    "usernamehw.errorlens",
+    "streetsidesoftware.code-spell-checker",
+
+    // JSON and Configuration
+    "vscode.json-language-features",
+
+    // Optional but helpful for this project type
+    "ms-toolsai.jupyter",
+    "ms-toolsai.jupyter-renderers"
+  ]
+}

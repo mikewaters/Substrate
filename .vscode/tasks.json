@@ -1,0 +1,182 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Prime - Initialize Codebase Understanding",
+      "type": "shell",
+      "command": "python3",
+      "args": [".vscode/scripts/command_bridge.py", "prime"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start System Services",
+      "type": "shell",
+      "command": "python3",
+      "args": [".vscode/scripts/command_bridge.py", "start"],
+      "group": "build",
+      "isBackground": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Install Dependencies",
+      "type": "shell",
+      "command": "just",
+      "args": ["install"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run All Tests",
+      "type": "shell",
+      "command": "just",
+      "args": ["test"],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Code Quality Checks",
+      "type": "shell",
+      "command": "just",
+      "args": ["check"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": [
+        "$python"
+      ]
+    },
+    {
+      "label": "Execute Plan - Interactive",
+      "type": "shell",
+      "command": "python3",
+      "args": [".vscode/scripts/command_bridge.py", "execute-plan", "${input:featureId}", "${input:storyId}"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Git Status and Files",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "echo '🔍 Git Status:' && git status --short && echo '' && echo '📂 Recent Files:' && git ls-files | head -15"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Convert Paths to Absolute",
+      "type": "shell",
+      "command": "python3",
+      "args": [
+        "-c",
+        "import os; import sys; paths = sys.argv[1].split() if len(sys.argv) > 1 else []; [print(os.path.abspath(p)) for p in paths]",
+        "${input:relativePaths}"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Load AI Documentation Context",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "echo '📚 AI Documentation Context Loading...' && echo '' && echo '📖 Key files to review:' && echo '• AGENTS.md - Project guidelines and principles' && echo '• CLAUDE.md - Claude-specific instructions' && echo '• README.md - Project overview' && echo '• docs/ - Technical documentation' && echo '' && echo 'Context loaded for AI assistant interaction.'"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Smart Commit",
+      "type": "shell",
+      "command": "python3",
+      "args": [".vscode/scripts/command_bridge.py", "commit"],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "relativePaths",
+      "description": "Enter relative paths separated by spaces",
+      "default": "",
+      "type": "promptString"
+    },
+    {
+      "id": "featureId",
+      "description": "Enter Feature ID (e.g., FEAT-001)",
+      "default": "FEAT-001",
+      "type": "promptString"
+    },
+    {
+      "id": "storyId", 
+      "description": "Enter Story ID (e.g., 1.1)",
+      "default": "1.1",
+      "type": "promptString"
+    }
+  ]
+}

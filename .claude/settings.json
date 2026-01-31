@@ -1,0 +1,71 @@
+{
+  "projectName": "Substrate",
+  "description": "",
+  "preferences": {
+    "codeStyle": "consistent",
+    "testFramework": "auto-detect",
+    "linting": true,
+    "formatting": true
+  },
+  "disabledMcpjsonServers": [
+    "browser-use",
+    "repomix",
+    "zen"
+  ],
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "browser-use",
+    "context7",
+    "deepwiki",
+    "repomix",
+    "zen"
+  ],
+  "permissions": {
+    "allow": [
+        "Bash",
+        "WebFetch",
+        "Bash(wc:*)",
+        "Bash(git add:*)",
+        "Bash(git commit:*)",
+        "Bash(python -m py_compile:*)",
+        "Bash(uv:*)",
+        "Bash(sqlite3:*)",
+        "Bash(bd:*)",
+        "Bash(tree:*)",
+        "mcp__plugin_beads_beads__list",
+        "mcp__context7__get-library-docs",
+        "mcp__context7__resolve-library-id",
+        "mcp__context7__query-docs",
+        "Skill(work-breakdown)"
+    ],
+    "deny": [
+        "mcp__deepwiki__read_wiki_contents",
+        "Read(meatspace)",
+        "Read(patches)"
+    ]
+  },
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "command": "bd prime",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "bd prime",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ]
+  }
+}

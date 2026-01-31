@@ -1,0 +1,80 @@
+node_modules
+
+.ropeproject/
+.ruff_cache/
+
+### Python ###
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+__marimo__/
+# C extensions
+*.so
+
+# Distribution / packaging
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Claude Code local settings
+.claude/settings.local.json
+#
+# Gemini CLI environment variables
+.gemini/.env
+.data/
+apps/ontology-browser/node_modules/
+apps/ontology-browser/dist/
+apps/ontology-browser/coverage/
+.pnpm-store/
+
+.testmondata
+
+features/

@@ -1,0 +1,21 @@
+# Gemini CLI ignore file
+# Add files and directories that Gemini should ignore
+
+# Common ignores
+node_modules/
+.git/
+dist/
+build/
+*.log
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

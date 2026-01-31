@@ -1,0 +1,3 @@
+[submodule "src/advanced_alchemy"]
+	path = src/advanced_alchemy
+	url = git@github.com:mikewaters/advanced-alchemy.git

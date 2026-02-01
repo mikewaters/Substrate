@@ -484,6 +484,10 @@ class PersistenceTransform(TransformComponent):
             except (ValueError, TypeError):
                 pass
 
+        # Extract title and description from node metadata (set by ObsidianEnrichmentTransform)
+        title = node.metadata.get("title") if node.metadata else None
+        description = node.metadata.get("description") if node.metadata else None
+
         existing = existing_docs.get(path)
 
         if existing is not None:
@@ -493,6 +497,10 @@ class PersistenceTransform(TransformComponent):
                 if not existing.active:
                     existing.active = True
                     existing.metadata_json = metadata_json
+                    if title is not None:
+                        existing.title = title
+                    if description is not None:
+                        existing.description = description
                     session.flush()
                     fts.upsert(existing.id, path, body)
                     self.stats.updated += 1
@@ -510,6 +518,10 @@ class PersistenceTransform(TransformComponent):
             existing.last_modified = last_modified
             existing.active = True
             existing.metadata_json = metadata_json
+            if title is not None:
+                existing.title = title
+            if description is not None:
+                existing.description = description
             session.flush()
 
             fts.upsert(existing.id, path, body)
@@ -525,6 +537,8 @@ class PersistenceTransform(TransformComponent):
                 uri=f"document:{self._dataset_id}/{path}",
                 content_hash=content_hash,
                 body=body,
+                title=title,
+                description=description,
                 etag=etag,
                 last_modified=last_modified,
                 metadata_json=metadata_json,

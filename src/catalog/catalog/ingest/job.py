@@ -10,7 +10,7 @@ Example YAML::
     source:
       type: obsidian
       source_path: /Users/mike/Obsidian/MyVault
-      vault_schema: catalog.ontology.vault_schema.VaultSchema
+      vault_schema: catalog.integrations.obsidian.vault_schema.VaultSchema
 
     embedding:
       backend: mlx
@@ -41,7 +41,7 @@ from agentlayer.logging import get_logger
 if TYPE_CHECKING:
     from llama_index.core.embeddings import BaseEmbedding
 
-    from catalog.ingest.schemas import IngestObsidianConfig
+    from catalog.integrations.obsidian import IngestObsidianConfig
 
 __all__ = [
     "DatasetJob",
@@ -61,7 +61,7 @@ def _import_class(dotted_path: str) -> type:
 
     Args:
         dotted_path: Fully-qualified class path, e.g.
-            ``"catalog.ontology.vault_schema.VaultSchema"``.
+            ``"catalog.integrations.obsidian.vault_schema.VaultSchema"``.
 
     Returns:
         The resolved class.
@@ -167,7 +167,7 @@ class DatasetJob(BaseModel):
         Returns:
             IngestObsidianConfig ready for use with IngestPipeline.
         """
-        from catalog.ingest.schemas import IngestObsidianConfig
+        from catalog.integrations.obsidian import IngestObsidianConfig
 
         dataset_name = self.source.dataset_name or self.source.source_path.name
         vault_schema_cls = self.source.resolve_vault_schema()

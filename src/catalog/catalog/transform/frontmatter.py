@@ -1,6 +1,6 @@
 """catalog.transform.frontmatter - Frontmatter-to-ontology transform.
 
-Validates raw YAML frontmatter through an optional :class:`VaultSchema`,
+Validates raw YAML frontmatter through an optional :class:`FrontmatterSchema`,
 converts it to a :class:`DocumentMeta`, and writes structured ontology
 metadata onto each node. Absorbs title/description derivation logic
 formerly in ``ObsidianEnrichmentTransform``.
@@ -15,8 +15,7 @@ from typing import Any
 from agentlayer.logging import get_logger
 from llama_index.core.schema import BaseNode, TransformComponent
 
-from catalog.ontology.schema import DocumentMeta
-from catalog.ontology.vault_schema import VaultSchema
+from catalog.ontology.schema import DocumentMeta, FrontmatterSchema
 
 __all__ = [
     "FrontmatterTransform",
@@ -34,18 +33,17 @@ class FrontmatterTransform(TransformComponent):
     2. If a ``vault_schema_cls`` is provided, validates through it and
        converts to :class:`DocumentMeta` via ``to_document_meta()``.
     3. Otherwise constructs a best-effort ``DocumentMeta`` from raw keys.
-    4. Derives ``title`` (frontmatter → aliases[0] → note_name).
-    5. Derives ``description`` (frontmatter → summary key → None).
+    4. Derives ``title`` (frontmatter -> aliases[0] -> note_name).
+    5. Derives ``description`` (frontmatter -> summary key -> None).
     6. Writes ``title`` and ``description`` to ``node.metadata``.
     7. Promotes ``promote_keys`` fields to top-level ``node.metadata``
        so they are visible to embeddings and available as vector store
        filter keys.
     8. Writes ``_ontology_meta`` = ``DocumentMeta.to_dict()`` to ``node.metadata``.
-    9. Normalizes wikilinks/backlinks into underscore-prefixed keys.
-    10. Removes the raw ``frontmatter`` key from ``node.metadata``.
+    9. Removes the raw ``frontmatter`` key from ``node.metadata``.
 
     Attributes:
-        vault_schema_cls: Optional VaultSchema subclass for typed validation.
+        vault_schema_cls: Optional FrontmatterSchema-compatible class for typed validation.
         frontmatter_key: Metadata key where raw frontmatter lives.
         promote_keys: DocumentMeta field names to write as top-level
             node.metadata keys for downstream embedding/vector use.
@@ -55,7 +53,7 @@ class FrontmatterTransform(TransformComponent):
         strict: If True, raise on validation errors instead of falling back.
     """
 
-    vault_schema_cls: type[VaultSchema] | None = None
+    vault_schema_cls: type[FrontmatterSchema] | None = None
     frontmatter_key: str = "frontmatter"
     strict: bool = False
 
@@ -65,7 +63,7 @@ class FrontmatterTransform(TransformComponent):
 
     def __init__(
         self,
-        vault_schema_cls: type[VaultSchema] | None = None,
+        vault_schema_cls: type[FrontmatterSchema] | None = None,
         *,
         frontmatter_key: str = "frontmatter",
         promote_keys: list[str] | None = None,
@@ -139,14 +137,11 @@ class FrontmatterTransform(TransformComponent):
         # Write structured ontology metadata.
         meta["_ontology_meta"] = doc_meta.to_dict()
 
-        # Normalize links into underscore-prefixed keys.
-        self._normalize_links(meta)
-
         # Remove raw frontmatter — it's been consumed.
         meta.pop(self.frontmatter_key, None)
 
     def _build_document_meta(self, fm: dict[str, Any]) -> DocumentMeta:
-        """Build a DocumentMeta from frontmatter, optionally via VaultSchema."""
+        """Build a DocumentMeta from frontmatter, optionally via FrontmatterSchema."""
         if self.vault_schema_cls is not None:
             try:
                 schema = self.vault_schema_cls.from_frontmatter(fm)
@@ -220,20 +215,6 @@ class FrontmatterTransform(TransformComponent):
 
         return None
 
-    def _normalize_links(self, meta: dict[str, Any]) -> None:
-        """Normalize wikilinks and backlinks into underscore-prefixed keys.
-
-        Strips fragment identifiers (``Note#Section`` → ``Note``),
-        removes empty results, and deduplicates while preserving order.
-        """
-        wikilinks = meta.get("wikilinks")
-        if isinstance(wikilinks, list):
-            meta["_obsidian_wikilinks"] = _strip_fragments(wikilinks)
-
-        backlinks = meta.get("backlinks")
-        if isinstance(backlinks, list):
-            meta["_obsidian_backlinks"] = _strip_fragments(backlinks)
-
 
 def _coerce_list(value: Any) -> list[str]:
     """Coerce a value to a list of strings."""
@@ -244,17 +225,3 @@ def _coerce_list(value: Any) -> list[str]:
     if isinstance(value, list):
         return [str(v) for v in value if v is not None]
     return [str(value)]
-
-
-def _strip_fragments(links: list[object]) -> list[str]:
-    """Strip fragment identifiers from link names and deduplicate.
-
-    ``"Note#Section"`` → ``"Note"``; ``"#Section"`` (empty note name) is
-    excluded. Order-preserving deduplication via ``dict.fromkeys``.
-    """
-    stripped: list[str] = []
-    for raw in links:
-        name = str(raw).split("#", 1)[0]
-        if name:
-            stripped.append(name)
-    return list(dict.fromkeys(stripped))

@@ -1,4 +1,4 @@
-"""Tests for LinkResolutionTransform."""
+"""Tests for LinkResolutionTransform (catalog.integrations.obsidian.transforms)."""
 
 from pathlib import Path
 
@@ -12,7 +12,8 @@ from catalog.store.fts import create_fts_table
 from catalog.store.models import Dataset, Document, DocumentLink, DocumentLinkKind
 from catalog.store.repositories import DocumentLinkRepository, DocumentRepository
 from catalog.store.session_context import use_session
-from catalog.transform.llama import LinkResolutionTransform, PersistenceTransform
+from catalog.integrations.obsidian import LinkResolutionTransform
+from catalog.transform.llama import PersistenceTransform
 
 
 @pytest.fixture
@@ -43,7 +44,7 @@ def _make_node(path: str, wikilinks: list[str] | None = None, **extra_meta) -> L
     """Build a LlamaDocument with metadata mimicking post-PersistenceTransform state."""
     meta = {"relative_path": path, "note_name": Path(path).stem}
     if wikilinks is not None:
-        meta["_obsidian_wikilinks"] = wikilinks
+        meta["wikilinks"] = wikilinks
     meta.update(extra_meta)
     return LlamaDocument(text=f"Content of {path}", metadata=meta)
 

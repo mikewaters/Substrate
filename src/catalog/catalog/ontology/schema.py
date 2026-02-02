@@ -3,12 +3,16 @@
 Defines the canonical DocumentMeta dataclass that all source-specific
 schemas map into. This is the structured metadata that gets persisted
 alongside documents in the catalog store.
+
+Also provides the ``FrontmatterSchema`` Protocol so that
+FrontmatterTransform can accept any schema implementation without
+depending on a concrete class like VaultSchema.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 
 @dataclass
@@ -62,3 +66,18 @@ class DocumentMeta:
             author=data.get("author"),
             extra=data.get("extra", {}),
         )
+
+
+@runtime_checkable
+class FrontmatterSchema(Protocol):
+    """Protocol for frontmatter schema implementations.
+
+    Any class that provides ``from_frontmatter()`` and ``to_document_meta()``
+    satisfies this protocol, decoupling FrontmatterTransform from VaultSchema's
+    concrete location.
+    """
+
+    @classmethod
+    def from_frontmatter(cls, raw: dict[str, Any]) -> FrontmatterSchema: ...
+
+    def to_document_meta(self) -> DocumentMeta: ...

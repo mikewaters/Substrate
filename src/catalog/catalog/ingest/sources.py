@@ -1,11 +1,10 @@
-from enum import Enum
 from functools import singledispatch
 
 from llama_index.core import SimpleDirectoryReader
 
 from catalog.ingest.directory import DirectorySource
-from catalog.ingest.obsidian import ObsidianVaultSource, ObsidianVaultReader
-from catalog.ingest.schemas import IngestDirectoryConfig, IngestObsidianConfig
+from catalog.ingest.schemas import IngestDirectoryConfig
+from catalog.integrations.obsidian import ObsidianVaultSource, ObsidianVaultReader, IngestObsidianConfig
 
 __all__ = ["create_source", "create_reader"]
 

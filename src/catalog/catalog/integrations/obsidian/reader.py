@@ -570,6 +570,3 @@ class ObsidianVaultSource:
             raise ValueError(
                 f"Not a valid Obsidian vault (missing .obsidian directory): {path}"
             )
-
-
-__all__ = ["ObsidianVaultSource"]

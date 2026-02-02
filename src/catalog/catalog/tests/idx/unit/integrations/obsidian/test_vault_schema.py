@@ -1,10 +1,10 @@
-"""Tests for catalog.ontology.vault_schema — VaultSchema mapping."""
+"""Tests for catalog.integrations.obsidian.vault_schema — VaultSchema mapping."""
 
 import pytest
 from pydantic import Field
 
 from catalog.ontology.schema import DocumentMeta
-from catalog.ontology.vault_schema import VaultSchema
+from catalog.integrations.obsidian import VaultSchema
 
 
 # --- Test schemas ---

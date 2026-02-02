@@ -61,7 +61,7 @@ class TestSourceConfig:
             type="obsidian",
             source_path=tmp_path,
             dataset_name="my-vault",
-            vault_schema="catalog.ontology.vault_schema.VaultSchema",
+            vault_schema="catalog.integrations.obsidian.vault_schema.VaultSchema",
             force=True,
         )
         assert cfg.dataset_name == "my-vault"
@@ -175,7 +175,7 @@ class TestDatasetJob:
         })
         config = job.to_ingest_config()
 
-        from catalog.ingest.schemas import IngestObsidianConfig
+        from catalog.integrations.obsidian import IngestObsidianConfig
         assert isinstance(config, IngestObsidianConfig)
         assert config.source_path == vault_dir
         assert config.dataset_name == "my-vault"

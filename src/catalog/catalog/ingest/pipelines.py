@@ -43,7 +43,8 @@ from llama_index.vector_stores.duckdb import DuckDBVectorStore
 from catalog.embedding import get_embed_model
 from catalog.ingest.cache import clear_cache, persist_documents
 from catalog.ingest.job import DatasetJob
-from catalog.ingest.schemas import IngestDirectoryConfig, IngestObsidianConfig, IngestResult, DatasetIngestConfig
+from catalog.ingest.schemas import IngestDirectoryConfig, IngestResult, DatasetIngestConfig
+from catalog.integrations.obsidian import IngestObsidianConfig
 from catalog.ingest.sources import create_source, create_reader
 from catalog.store.database import get_session
 from catalog.store.dataset import DatasetService, normalize_dataset_name
@@ -51,9 +52,9 @@ from catalog.store.fts import create_fts_table
 from catalog.store.fts_chunk import create_chunks_fts_table
 from catalog.store.session_context import use_session
 from catalog.transform.frontmatter import FrontmatterTransform
+from catalog.integrations.obsidian import LinkResolutionTransform
 from catalog.transform.llama import (
     ChunkPersistenceTransform,
-    LinkResolutionTransform,
     PersistenceTransform,
     TextNormalizerTransform,
 )
@@ -75,6 +76,7 @@ logger = get_logger(__name__)
 
 
 class IngestPipeline:
+    # renam to DatasetIngesitonPipeline
     """Pipeline for ingesting documents from sources.
 
     Pipeline flow:

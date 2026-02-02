@@ -15,7 +15,7 @@ from llama_index.core.ingestion import IngestionPipeline
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from catalog.ingest.obsidian import ObsidianVaultReader
+from catalog.integrations.obsidian import ObsidianVaultReader
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.dataset import DatasetService
 from catalog.store.fts import create_fts_table
@@ -23,7 +23,8 @@ from catalog.store.models import DocumentLink, DocumentLinkKind
 from catalog.store.repositories import DocumentLinkRepository
 from catalog.store.session_context import use_session
 from catalog.transform.frontmatter import FrontmatterTransform
-from catalog.transform.llama import LinkResolutionTransform, PersistenceTransform
+from catalog.integrations.obsidian import LinkResolutionTransform
+from catalog.transform.llama import PersistenceTransform
 
 
 # ---------------------------------------------------------------------------

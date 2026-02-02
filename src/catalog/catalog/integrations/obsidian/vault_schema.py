@@ -1,4 +1,4 @@
-"""catalog.ontology.vault_schema - Pydantic base for vault-specific frontmatter schemas.
+"""catalog.integrations.obsidian.vault_schema - Pydantic base for vault-specific frontmatter schemas.
 
 Clients subclass ``VaultSchema`` and annotate fields with
 ``json_schema_extra={"maps_to": "<ontology_field>"}`` to declare how
@@ -117,8 +117,8 @@ def _get_maps_to(field_info: Any) -> str | None:
 def _coerce_for_target(target: str, value: Any) -> Any:
     """Coerce a value to match the expected ontology field type.
 
-    - List targets: scalar string → single-element list.
-    - String targets: non-string → str().
+    - List targets: scalar string -> single-element list.
+    - String targets: non-string -> str().
     """
     if target in _LIST_ONTOLOGY_FIELDS:
         if isinstance(value, str):

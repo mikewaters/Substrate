@@ -17,8 +17,8 @@ from pydantic import Field
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from catalog.ingest.obsidian import ObsidianVaultReader
-from catalog.ontology.vault_schema import VaultSchema
+from catalog.integrations.obsidian import ObsidianVaultReader
+from catalog.integrations.obsidian import VaultSchema
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.dataset import DatasetService
 from catalog.store.fts import create_fts_table

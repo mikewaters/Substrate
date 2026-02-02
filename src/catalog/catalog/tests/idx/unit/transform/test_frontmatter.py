@@ -7,7 +7,7 @@ from llama_index.core.schema import Document as LlamaDocument
 from pydantic import Field
 
 from catalog.ontology.schema import DocumentMeta
-from catalog.ontology.vault_schema import VaultSchema
+from catalog.integrations.obsidian import VaultSchema
 from catalog.transform.frontmatter import FrontmatterTransform
 
 
@@ -184,64 +184,6 @@ class TestFrontmatterRemoval:
         node = _make_node(fm={"title": "T"}, note_name="N")
         [result] = transform([node])
         assert "fm" not in result.metadata
-
-
-# --- Link normalization ---
-
-class TestLinkNormalization:
-    """Wikilinks and backlinks are normalized."""
-
-    def test_wikilinks_normalized(self) -> None:
-        transform = FrontmatterTransform()
-        node = _make_node(wikilinks=["A", "B"], note_name="N")
-        [result] = transform([node])
-        assert result.metadata["_obsidian_wikilinks"] == ["A", "B"]
-
-    def test_backlinks_normalized(self) -> None:
-        transform = FrontmatterTransform()
-        node = _make_node(backlinks=["X"], note_name="N")
-        [result] = transform([node])
-        assert result.metadata["_obsidian_backlinks"] == ["X"]
-
-    def test_no_links_no_keys(self) -> None:
-        transform = FrontmatterTransform()
-        node = _make_node(note_name="N")
-        [result] = transform([node])
-        assert "_obsidian_wikilinks" not in result.metadata
-        assert "_obsidian_backlinks" not in result.metadata
-
-    def test_fragment_stripped(self) -> None:
-        transform = FrontmatterTransform()
-        node = _make_node(wikilinks=["Note#Section"], note_name="N")
-        [result] = transform([node])
-        assert result.metadata["_obsidian_wikilinks"] == ["Note"]
-
-    def test_fragment_only_excluded(self) -> None:
-        transform = FrontmatterTransform()
-        node = _make_node(wikilinks=["#Section", "Note"], note_name="N")
-        [result] = transform([node])
-        assert result.metadata["_obsidian_wikilinks"] == ["Note"]
-
-    def test_fragment_dedup(self) -> None:
-        transform = FrontmatterTransform()
-        node = _make_node(wikilinks=["Note#A", "Note#B", "Note"], note_name="N")
-        [result] = transform([node])
-        assert result.metadata["_obsidian_wikilinks"] == ["Note"]
-
-    def test_backlinks_fragment_stripped(self) -> None:
-        transform = FrontmatterTransform()
-        node = _make_node(backlinks=["X#Heading", "Y"], note_name="N")
-        [result] = transform([node])
-        assert result.metadata["_obsidian_backlinks"] == ["X", "Y"]
-
-    def test_multiple_fragments_deduped(self) -> None:
-        transform = FrontmatterTransform()
-        node = _make_node(
-            wikilinks=["A#One", "B", "A#Two", "C#Three", "B#Four"],
-            note_name="N",
-        )
-        [result] = transform([node])
-        assert result.metadata["_obsidian_wikilinks"] == ["A", "B", "C"]
 
 
 # --- Promote keys ---

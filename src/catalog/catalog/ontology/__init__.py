@@ -1,13 +1,12 @@
 """catalog.ontology - Structured metadata ontology for catalog documents.
 
-Provides the shared ``DocumentMeta`` schema and the ``VaultSchema`` base
-class for mapping source-specific frontmatter into the ontology.
+Provides the shared ``DocumentMeta`` schema and the ``FrontmatterSchema``
+Protocol for source-agnostic frontmatter mapping.
 """
 
-from catalog.ontology.schema import DocumentMeta
-from catalog.ontology.vault_schema import VaultSchema
+from catalog.ontology.schema import DocumentMeta, FrontmatterSchema
 
 __all__ = [
     "DocumentMeta",
-    "VaultSchema",
+    "FrontmatterSchema",
 ]

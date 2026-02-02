@@ -5,6 +5,7 @@ for persistence and indexing.
 """
 
 from catalog.transform.chunker import Chunk, ChunkerTransform, LineChunker
+from catalog.transform.frontmatter import FrontmatterTransform
 from catalog.transform.llama import FTSIndexerTransform, TextNormalizerTransform
 from catalog.transform.normalize import (
                                      MimeDetector,
@@ -14,16 +15,15 @@ from catalog.transform.normalize import (
                                      is_text_file,
                                      is_text_mime,
 )
-from catalog.transform.obsidian import ObsidianEnrichmentTransform
 from catalog.transform.splitter import SizeAwareChunkSplitter
 
 __all__ = [
     "Chunk",
     "ChunkerTransform",
     "FTSIndexerTransform",
+    "FrontmatterTransform",
     "LineChunker",
     "MimeDetector",
-    "ObsidianEnrichmentTransform",
     "SizeAwareChunkSplitter",
     "TextNormalizer",
     "TextNormalizerTransform",

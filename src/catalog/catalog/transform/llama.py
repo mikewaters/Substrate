@@ -431,6 +431,9 @@ class PersistenceTransform(TransformComponent):
                 self.stats.failed += 1
                 self.stats.errors.append(f"{path}: {e}")
 
+        #TODO: second pass through nodes to apply intra-document
+        # relationships if present
+
         session.flush()
 
         logger.info(
@@ -449,10 +452,20 @@ class PersistenceTransform(TransformComponent):
         return node.node_id
 
     def _get_metadata_json(self, node: BaseNode) -> str | None:
-        """Extract metadata as JSON string."""
+        """Extract metadata as JSON string.
+
+        Prefers structured ontology metadata if present (written by
+        FrontmatterTransform). Falls back to filtered raw metadata.
+        """
         if not node.metadata:
             return None
-        # Filter out internal keys
+
+        # Prefer structured ontology if FrontmatterTransform ran.
+        ontology = node.metadata.get("_ontology_meta")
+        if ontology is not None:
+            return json.dumps(ontology)
+
+        # Fallback: original behavior.
         filtered = {
             k: v for k, v in node.metadata.items()
             if not k.startswith("_") and k not in ("file_path",)
@@ -484,7 +497,7 @@ class PersistenceTransform(TransformComponent):
             except (ValueError, TypeError):
                 pass
 
-        # Extract title and description from node metadata (set by ObsidianEnrichmentTransform)
+        # Extract title and description from node metadata if available
         title = node.metadata.get("title") if node.metadata else None
         description = node.metadata.get("description") if node.metadata else None
 

@@ -52,6 +52,7 @@ from catalog.store.session_context import use_session
 from catalog.transform.frontmatter import FrontmatterTransform
 from catalog.transform.llama import (
     ChunkPersistenceTransform,
+    LinkResolutionTransform,
     PersistenceTransform,
     TextNormalizerTransform,
 )
@@ -166,12 +167,15 @@ class IngestPipeline:
                 # Get the vector store for native pipeline integration
                 vector_store = vector_manager.get_vector_store()
 
+                link_resolve = LinkResolutionTransform(dataset_id=dataset_id)
+
                 # Build pipeline with native vector_store integration
                 # Using UPSERTS strategy for proper handling of document updates
                 pipeline = IngestionPipeline(
                     transformations=[
                         FrontmatterTransform(),
                         persist,
+                        link_resolve,
                         #embed_model,
                     ],
                     # docstore=SimpleDocumentStore(),
@@ -337,6 +341,8 @@ class IngestPipeline:
                 vault_schema = getattr(source, "vault_schema", None)
                 frontmatter = FrontmatterTransform(vault_schema_cls=vault_schema)
 
+                link_resolve = LinkResolutionTransform(dataset_id=dataset_id)
+
                 # Build pipeline with native vector_store integration
                 # Using UPSERTS strategy for proper handling of document updates
                 pipeline = IngestionPipeline(
@@ -344,6 +350,7 @@ class IngestPipeline:
                         TextNormalizerTransform(),
                         frontmatter,
                         persist,
+                        link_resolve,
                         split,
                         chunk_persist,
                         size_splitter,

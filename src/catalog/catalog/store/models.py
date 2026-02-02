@@ -27,6 +27,8 @@ __all__ = [
     "Dataset",
     "Document",
     "DocumentKind",
+    "DocumentLink",
+    "DocumentLinkKind",
     "Repository",
     "RepositoryLink",
     "Resource",
@@ -70,6 +72,12 @@ class BookmarkRelationKind(str, enum.Enum):
     DERIVED_FROM = "derived_from"
     RELEVANT_TO = "relevant_to"
     SOURCE_FOR = "source_for"
+
+
+class DocumentLinkKind(str, enum.Enum):
+    """Describes the type of link between two documents."""
+
+    WIKILINK = "wikilink"
 
 
 # ---------------------------------------------------------------------------
@@ -202,6 +210,17 @@ class Document(Resource):
         back_populates="documents",
     )
 
+    outgoing_links: Mapped[list["DocumentLink"]] = relationship(
+        "DocumentLink",
+        foreign_keys="[DocumentLink.source_id]",
+        cascade="all, delete-orphan",
+    )
+    incoming_links: Mapped[list["DocumentLink"]] = relationship(
+        "DocumentLink",
+        foreign_keys="[DocumentLink.target_id]",
+        cascade="all, delete-orphan",
+    )
+
     __table_args__ = (
         Index("ix_documents_parent_path", "parent_id", "path", unique=True),
         Index("ix_documents_parent_active", "parent_id", "active"),
@@ -236,6 +255,51 @@ class Document(Resource):
             value: Metadata dictionary to serialize.
         """
         self.metadata_json = json.dumps(value)
+
+
+# ---------------------------------------------------------------------------
+# DocumentLink
+# ---------------------------------------------------------------------------
+
+
+class DocumentLink(Base):
+    """A directed link between two documents (e.g. an Obsidian wikilink).
+
+    Uses composite primary key ``(source_id, target_id)`` matching the
+    pattern established by ``BookmarkLink`` and ``RepositoryLink``.
+
+    Attributes:
+        source_id: FK to the linking document.
+        target_id: FK to the linked-to document.
+        relation: The kind of link (e.g. wikilink).
+        source: Relationship to the source Document.
+        target: Relationship to the target Document.
+    """
+
+    __tablename__ = "document_links"
+
+    source_id: Mapped[int] = mapped_column(
+        ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True
+    )
+    target_id: Mapped[int] = mapped_column(
+        ForeignKey("documents.id", ondelete="CASCADE"), primary_key=True
+    )
+    relation: Mapped[DocumentLinkKind] = mapped_column(
+        Enum(DocumentLinkKind), nullable=False
+    )
+
+    source: Mapped["Document"] = relationship(
+        "Document", foreign_keys=[source_id], overlaps="outgoing_links"
+    )
+    target: Mapped["Document"] = relationship(
+        "Document", foreign_keys=[target_id], overlaps="incoming_links"
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"<DocumentLink(source_id={self.source_id}, "
+            f"target_id={self.target_id}, relation='{self.relation}')>"
+        )
 
 
 # ---------------------------------------------------------------------------

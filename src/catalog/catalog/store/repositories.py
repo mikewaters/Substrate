@@ -21,6 +21,8 @@ from catalog.store.models import (
     Dataset,
     Document,
     DocumentKind,
+    DocumentLink,
+    DocumentLinkKind,
     Repository,
     RepositoryLink,
     Resource,
@@ -32,6 +34,7 @@ __all__ = [
     "CatalogRepository",
     "CollectionRepository",
     "DatasetRepository",
+    "DocumentLinkRepository",
     "DocumentRepository",
     "RepoRepository",
 ]
@@ -171,6 +174,8 @@ class DocumentRepository(_BaseRepository):
         content_hash: str,
         body: str,
         *,
+        title: str | None = None,
+        description: str | None = None,
         doc_type: DocumentKind = DocumentKind.OTHER,
         etag: str | None = None,
         last_modified: datetime | None = None,
@@ -184,6 +189,8 @@ class DocumentRepository(_BaseRepository):
             path: Relative path within the parent.
             content_hash: SHA256 hash of content.
             body: Full normalized text content.
+            title: Optional human-readable title.
+            description: Optional description.
             doc_type: Document type classification.
             etag: Optional source etag.
             last_modified: Optional source modification time.
@@ -198,6 +205,8 @@ class DocumentRepository(_BaseRepository):
             path=path,
             content_hash=content_hash,
             body=body,
+            title=title,
+            description=description,
             doc_type=doc_type,
             etag=etag,
             last_modified=last_modified,
@@ -278,6 +287,8 @@ class DocumentRepository(_BaseRepository):
         self,
         doc: Document,
         *,
+        title: str | None = None,
+        description: str | None = None,
         content_hash: str | None = None,
         body: str | None = None,
         etag: str | None = None,
@@ -289,6 +300,8 @@ class DocumentRepository(_BaseRepository):
 
         Args:
             doc: The document to update.
+            title: New title if changed.
+            description: New description if changed.
             content_hash: New content hash if changed.
             body: New text content if changed.
             etag: New etag if changed.
@@ -299,6 +312,10 @@ class DocumentRepository(_BaseRepository):
         Returns:
             The updated Document instance.
         """
+        if title is not None:
+            doc.title = title
+        if description is not None:
+            doc.description = description
         if content_hash is not None:
             doc.content_hash = content_hash
         if body is not None:
@@ -408,6 +425,131 @@ class DocumentRepository(_BaseRepository):
             stmt = stmt.where(Document.active == True)  # noqa: E712
         count = self._session.execute(stmt).scalar()
         return count or 0
+
+
+class DocumentLinkRepository(_BaseRepository):
+    """Repository for DocumentLink model operations."""
+
+    def create(
+        self,
+        source_id: int,
+        target_id: int,
+        relation: DocumentLinkKind,
+    ) -> DocumentLink:
+        """Create a new document link.
+
+        Args:
+            source_id: Source document ID.
+            target_id: Target document ID.
+            relation: The link type.
+
+        Returns:
+            The created DocumentLink instance.
+        """
+        link = DocumentLink(
+            source_id=source_id,
+            target_id=target_id,
+            relation=relation,
+        )
+        self._session.add(link)
+        return link
+
+    def upsert(
+        self,
+        source_id: int,
+        target_id: int,
+        relation: DocumentLinkKind,
+    ) -> DocumentLink:
+        """Create or update a document link.
+
+        Args:
+            source_id: Source document ID.
+            target_id: Target document ID.
+            relation: The link type.
+
+        Returns:
+            The DocumentLink instance (existing or new).
+        """
+        existing = self.get(source_id, target_id)
+        if existing is not None:
+            existing.relation = relation
+            return existing
+        return self.create(source_id, target_id, relation)
+
+    def get(self, source_id: int, target_id: int) -> DocumentLink | None:
+        """Get a document link by source and target.
+
+        Args:
+            source_id: Source document ID.
+            target_id: Target document ID.
+
+        Returns:
+            The DocumentLink if found, None otherwise.
+        """
+        return self._session.get(DocumentLink, (source_id, target_id))
+
+    def list_outgoing(self, source_id: int) -> list[DocumentLink]:
+        """List all outgoing links from a document.
+
+        Args:
+            source_id: Source document ID.
+
+        Returns:
+            List of DocumentLink instances.
+        """
+        stmt = select(DocumentLink).where(DocumentLink.source_id == source_id)
+        return list(self._session.execute(stmt).scalars().all())
+
+    def list_incoming(self, target_id: int) -> list[DocumentLink]:
+        """List all incoming links to a document (backlinks).
+
+        Args:
+            target_id: Target document ID.
+
+        Returns:
+            List of DocumentLink instances.
+        """
+        stmt = select(DocumentLink).where(DocumentLink.target_id == target_id)
+        return list(self._session.execute(stmt).scalars().all())
+
+    def delete_outgoing(self, source_id: int) -> int:
+        """Delete all outgoing links from a document.
+
+        Args:
+            source_id: Source document ID.
+
+        Returns:
+            Number of links deleted.
+        """
+        stmt = select(DocumentLink).where(DocumentLink.source_id == source_id)
+        links = list(self._session.execute(stmt).scalars().all())
+        for link in links:
+            self._session.delete(link)
+        return len(links)
+
+    def delete_by_parent(self, parent_id: int) -> int:
+        """Delete all links where source or target belongs to a parent resource.
+
+        Args:
+            parent_id: Parent resource ID (e.g. dataset ID).
+
+        Returns:
+            Number of links deleted.
+        """
+        # Get all document IDs under this parent
+        doc_ids_stmt = select(Document.id).where(Document.parent_id == parent_id)
+        doc_ids = set(self._session.execute(doc_ids_stmt).scalars().all())
+        if not doc_ids:
+            return 0
+
+        stmt = select(DocumentLink).where(
+            (DocumentLink.source_id.in_(doc_ids))
+            | (DocumentLink.target_id.in_(doc_ids))
+        )
+        links = list(self._session.execute(stmt).scalars().all())
+        for link in links:
+            self._session.delete(link)
+        return len(links)
 
 
 class CatalogRepository(_BaseRepository):

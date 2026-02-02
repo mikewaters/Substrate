@@ -45,6 +45,8 @@ from catalog.store.models import (
     Dataset,
     Document,
     DocumentKind,
+    DocumentLink,
+    DocumentLinkKind,
     Repository,
     RepositoryLink,
     Resource,
@@ -55,6 +57,7 @@ from catalog.store.repositories import (
     CatalogRepository,
     CollectionRepository,
     DatasetRepository,
+    DocumentLinkRepository,
     DocumentRepository,
     RepoRepository,
 )
@@ -92,6 +95,8 @@ __all__ = [
     "Dataset",
     "Document",
     "DocumentKind",
+    "DocumentLink",
+    "DocumentLinkKind",
     "Repository",
     "RepositoryLink",
     "Resource",
@@ -101,6 +106,7 @@ __all__ = [
     "CatalogRepository",
     "CollectionRepository",
     "DatasetRepository",
+    "DocumentLinkRepository",
     "DocumentRepository",
     "RepoRepository",
     # Schemas

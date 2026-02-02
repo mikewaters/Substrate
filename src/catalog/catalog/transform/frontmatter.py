@@ -221,14 +221,18 @@ class FrontmatterTransform(TransformComponent):
         return None
 
     def _normalize_links(self, meta: dict[str, Any]) -> None:
-        """Normalize wikilinks and backlinks into underscore-prefixed keys."""
+        """Normalize wikilinks and backlinks into underscore-prefixed keys.
+
+        Strips fragment identifiers (``Note#Section`` → ``Note``),
+        removes empty results, and deduplicates while preserving order.
+        """
         wikilinks = meta.get("wikilinks")
         if isinstance(wikilinks, list):
-            meta["_obsidian_wikilinks"] = wikilinks
+            meta["_obsidian_wikilinks"] = _strip_fragments(wikilinks)
 
         backlinks = meta.get("backlinks")
         if isinstance(backlinks, list):
-            meta["_obsidian_backlinks"] = backlinks
+            meta["_obsidian_backlinks"] = _strip_fragments(backlinks)
 
 
 def _coerce_list(value: Any) -> list[str]:
@@ -240,3 +244,17 @@ def _coerce_list(value: Any) -> list[str]:
     if isinstance(value, list):
         return [str(v) for v in value if v is not None]
     return [str(value)]
+
+
+def _strip_fragments(links: list[object]) -> list[str]:
+    """Strip fragment identifiers from link names and deduplicate.
+
+    ``"Note#Section"`` → ``"Note"``; ``"#Section"`` (empty note name) is
+    excluded. Order-preserving deduplication via ``dict.fromkeys``.
+    """
+    stripped: list[str] = []
+    for raw in links:
+        name = str(raw).split("#", 1)[0]
+        if name:
+            stripped.append(name)
+    return list(dict.fromkeys(stripped))

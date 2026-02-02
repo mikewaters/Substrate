@@ -210,6 +210,39 @@ class TestLinkNormalization:
         assert "_obsidian_wikilinks" not in result.metadata
         assert "_obsidian_backlinks" not in result.metadata
 
+    def test_fragment_stripped(self) -> None:
+        transform = FrontmatterTransform()
+        node = _make_node(wikilinks=["Note#Section"], note_name="N")
+        [result] = transform([node])
+        assert result.metadata["_obsidian_wikilinks"] == ["Note"]
+
+    def test_fragment_only_excluded(self) -> None:
+        transform = FrontmatterTransform()
+        node = _make_node(wikilinks=["#Section", "Note"], note_name="N")
+        [result] = transform([node])
+        assert result.metadata["_obsidian_wikilinks"] == ["Note"]
+
+    def test_fragment_dedup(self) -> None:
+        transform = FrontmatterTransform()
+        node = _make_node(wikilinks=["Note#A", "Note#B", "Note"], note_name="N")
+        [result] = transform([node])
+        assert result.metadata["_obsidian_wikilinks"] == ["Note"]
+
+    def test_backlinks_fragment_stripped(self) -> None:
+        transform = FrontmatterTransform()
+        node = _make_node(backlinks=["X#Heading", "Y"], note_name="N")
+        [result] = transform([node])
+        assert result.metadata["_obsidian_backlinks"] == ["X", "Y"]
+
+    def test_multiple_fragments_deduped(self) -> None:
+        transform = FrontmatterTransform()
+        node = _make_node(
+            wikilinks=["A#One", "B", "A#Two", "C#Three", "B#Four"],
+            note_name="N",
+        )
+        [result] = transform([node])
+        assert result.metadata["_obsidian_wikilinks"] == ["A", "B", "C"]
+
 
 # --- Promote keys ---
 

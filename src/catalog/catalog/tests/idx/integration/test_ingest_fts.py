@@ -15,7 +15,7 @@ from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from catalog.core.settings import get_settings
-from catalog.ingest.pipelines import IngestPipeline
+from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.ingest.schemas import IngestDirectoryConfig
 from catalog.integrations.obsidian import IngestObsidianConfig
 from catalog.search.fts import FTSSearch
@@ -173,14 +173,14 @@ class TestIngestAndSearch:
     ) -> None:
         """Ingest directory and verify FTS search works."""
         # Ingest the directory
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
         config = IngestDirectoryConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
             patterns=["**/*.md"],
         )
 
-        result = pipeline.ingest(config)
+        result = pipeline.ingest_dataset(config)
 
         assert result.documents_created == 4
         assert result.documents_failed == 0
@@ -204,7 +204,7 @@ class TestIngestAndSearch:
         tmp_path: Path,
     ) -> None:
         """Search results can be filtered by dataset."""
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # Ingest first vault
         config1 = IngestDirectoryConfig(
@@ -212,7 +212,7 @@ class TestIngestAndSearch:
             dataset_name="vault1",
             patterns=["**/*.md"],
         )
-        pipeline.ingest(config1)
+        pipeline.ingest_dataset(config1)
 
         # Create and ingest second vault
         vault2 = tmp_path / "vault2"
@@ -225,7 +225,7 @@ class TestIngestAndSearch:
             dataset_name="vault2",
             patterns=["**/*.md"],
         )
-        pipeline.ingest(config2)
+        pipeline.ingest_dataset(config2)
 
         # Search all datasets
         with create_session(session_factory) as session:
@@ -264,14 +264,14 @@ class TestRefreshBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
-        result1 = pipeline.ingest(config)
+        result1 = pipeline.ingest_dataset(config)
         assert result1.documents_created == 4
 
         # Second ingest (no changes)
-        result2 = pipeline.ingest(config)
+        result2 = pipeline.ingest_dataset(config)
         assert result2.documents_created == 0
         assert result2.documents_skipped == 4
 
@@ -287,10 +287,10 @@ class TestRefreshBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
-        result1 = pipeline.ingest(config)
+        result1 = pipeline.ingest_dataset(config)
         assert result1.documents_created == 4
 
         # Modify a file
@@ -300,7 +300,7 @@ class TestRefreshBehavior:
         note1.write_text(note1.read_text() + "\n\nNew content added!")
 
         # Second ingest
-        result2 = pipeline.ingest(config)
+        result2 = pipeline.ingest_dataset(config)
         assert result2.documents_updated >= 1
         assert result2.documents_skipped == 3
 
@@ -316,17 +316,17 @@ class TestRefreshBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
-        result1 = pipeline.ingest(config)
+        result1 = pipeline.ingest_dataset(config)
         assert result1.documents_created == 4
 
         # Add a new file
         (sample_vault / "new_note.md").write_text("# New Note\n\nBrand new content.")
 
         # Second ingest
-        result2 = pipeline.ingest(config)
+        result2 = pipeline.ingest_dataset(config)
         assert result2.documents_created == 1
         assert result2.documents_skipped == 4
 
@@ -353,17 +353,17 @@ class TestSoftDeleteBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
-        result1 = pipeline.ingest(config)
+        result1 = pipeline.ingest_dataset(config)
         assert result1.documents_created == 4
 
         # Delete a file
         (sample_vault / "note2.md").unlink()
 
         # Second ingest (processes existing files)
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         # Run cleanup to remove stale documents
         with create_session(session_factory) as session:
@@ -398,10 +398,10 @@ class TestSoftDeleteBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # Ingest
-        result = pipeline.ingest(config)
+        result = pipeline.ingest_dataset(config)
 
         # Verify JavaScript file is searchable
         with create_session(session_factory) as session:
@@ -413,7 +413,7 @@ class TestSoftDeleteBehavior:
         (sample_vault / "note2.md").unlink()
 
         # Re-ingest and cleanup stale
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
         with create_session(session_factory) as session:
             cleanup_stale_documents(
                 session,
@@ -444,10 +444,10 @@ class TestSoftDeleteBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
-        result = pipeline.ingest(config)
+        result = pipeline.ingest_dataset(config)
 
         # Save content and delete
         note2_path = sample_vault / "note2.md"
@@ -455,7 +455,7 @@ class TestSoftDeleteBehavior:
         note2_path.unlink()
 
         # Ingest and cleanup to delete stale docs
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
         with create_session(session_factory) as session:
             stale_count = cleanup_stale_documents(
                 session,
@@ -469,7 +469,7 @@ class TestSoftDeleteBehavior:
         note2_path.write_text(original_content)
 
         # Ingest again - should create new document
-        result3 = pipeline.ingest(config)
+        result3 = pipeline.ingest_dataset(config)
         # Should be created (since it was hard-deleted and now reappears)
         assert result3.documents_created >= 1
 
@@ -495,8 +495,8 @@ class TestObsidianIngest:
             dataset_name="obsidian-vault",
         )
 
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         assert result.documents_created == 4
         assert result.documents_failed == 0
@@ -529,8 +529,8 @@ class TestObsidianIngest:
             dataset_name="obsidian-vault",
         )
 
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         # Should only have the 4 markdown files, not the config
         assert result.documents_created == 4

@@ -19,7 +19,7 @@ import pytest
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from catalog.ingest.pipelines import IngestPipeline
+from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.integrations.obsidian import IngestObsidianConfig
 from catalog.search.fts import FTSSearch
 from catalog.search.fts_chunk import FTSChunkRetriever
@@ -143,12 +143,12 @@ class TestSearchServiceModes:
     ) -> None:
         """FTS-only mode returns results matching exact keywords."""
         # Ingest documents
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
         config = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         # Search for specific keyword
         with create_session(session_factory) as session:
@@ -171,14 +171,14 @@ class TestSearchServiceModes:
         tmp_path: Path,
     ) -> None:
         """FTS mode respects dataset_name filter."""
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # Ingest first dataset
         config1 = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="vault1",
         )
-        pipeline.ingest(config1)
+        pipeline.ingest_dataset(config1)
 
         # Create and ingest second dataset with same content
         vault2 = tmp_path / "vault2"
@@ -190,7 +190,7 @@ class TestSearchServiceModes:
             source_path=vault2,
             dataset_name="vault2",
         )
-        pipeline.ingest(config2)
+        pipeline.ingest_dataset(config2)
 
         # Search with filter
         with create_session(session_factory) as session:
@@ -221,12 +221,12 @@ class TestHybridSearchRRF:
     ) -> None:
         """Hybrid search returns results from ingested documents."""
         # Ingest documents
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
         config = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         # Create mock vector search (to avoid requiring embedding model)
         mock_vector = MagicMock(spec=VectorSearch)
@@ -284,12 +284,12 @@ class TestHybridSearchRRF:
     ) -> None:
         """RRF fusion combines results from both FTS and vector search."""
         # Ingest documents
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
         config = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         # Setup mocks for hybrid search components
         with create_session(session_factory) as session:
@@ -343,12 +343,12 @@ class TestSearchResultShapes:
         sample_vault: Path,
     ) -> None:
         """FTS results have all required fields."""
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
         config = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         with create_session(session_factory) as session:
             fts = FTSSearch(session)
@@ -372,12 +372,12 @@ class TestSearchResultShapes:
         sample_vault: Path,
     ) -> None:
         """SearchResults wrapper has correct metadata."""
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
         config = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         with create_session(session_factory) as session:
             fts = FTSSearch(session)
@@ -401,12 +401,12 @@ class TestFTSChunkRetriever:
         sample_vault: Path,
     ) -> None:
         """FTSChunkRetriever returns NodeWithScore objects."""
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
         config = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         # Test chunk retriever
         from llama_index.core.schema import QueryBundle
@@ -432,14 +432,14 @@ class TestFTSChunkRetriever:
         tmp_path: Path,
     ) -> None:
         """FTSChunkRetriever filters by dataset name."""
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # Ingest first dataset
         config1 = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="vault1",
         )
-        pipeline.ingest(config1)
+        pipeline.ingest_dataset(config1)
 
         # Create and ingest second dataset
         vault2 = tmp_path / "vault2"
@@ -451,7 +451,7 @@ class TestFTSChunkRetriever:
             source_path=vault2,
             dataset_name="vault2",
         )
-        pipeline.ingest(config2)
+        pipeline.ingest_dataset(config2)
 
         from llama_index.core.schema import QueryBundle
 
@@ -480,12 +480,12 @@ class TestHybridSuperset:
         sample_vault: Path,
     ) -> None:
         """Hybrid search includes documents found by FTS."""
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
         config = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         # First, get FTS-only results
         with create_session(session_factory) as session:
@@ -538,12 +538,12 @@ class TestEmptyAndEdgeCases:
         sample_vault: Path,
     ) -> None:
         """Empty or whitespace query returns empty results."""
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
         config = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         with create_session(session_factory) as session:
             fts = FTSSearch(session)
@@ -566,12 +566,12 @@ class TestEmptyAndEdgeCases:
         sample_vault: Path,
     ) -> None:
         """Query with special characters doesn't crash."""
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
         config = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         with create_session(session_factory) as session:
             fts = FTSSearch(session)
@@ -594,12 +594,12 @@ class TestEmptyAndEdgeCases:
         sample_vault: Path,
     ) -> None:
         """Search respects the limit parameter."""
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
         config = IngestObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         with create_session(session_factory) as session:
             fts = FTSSearch(session)

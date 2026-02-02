@@ -17,7 +17,7 @@ from sqlalchemy import Engine
 from sqlalchemy import text as sql_text
 from sqlalchemy.orm import Session, sessionmaker
 
-from catalog.ingest.pipelines import IngestPipeline
+from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.integrations.obsidian import IngestObsidianConfig
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.fts import create_fts_table
@@ -134,10 +134,10 @@ class TestIdempotentIngestion:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
-        result1 = pipeline.ingest(config)
+        result1 = pipeline.ingest_dataset(config)
 
         # Get node IDs from chunks_fts
         with create_session(session_factory) as session:
@@ -152,7 +152,7 @@ class TestIdempotentIngestion:
             dataset_name="test-vault",
             force=True,
         )
-        result2 = pipeline.ingest(config_force)
+        result2 = pipeline.ingest_dataset(config_force)
 
         # Get node IDs again
         with create_session(session_factory) as session:
@@ -177,8 +177,8 @@ class TestIdempotentIngestion:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
-        pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        pipeline.ingest_dataset(config)
 
         # Check node ID format
         with create_session(session_factory) as session:
@@ -215,8 +215,8 @@ class TestNoDuplicates:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
-        pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        pipeline.ingest_dataset(config)
 
         # Check for duplicates
         with create_session(session_factory) as session:
@@ -245,10 +245,10 @@ class TestNoDuplicates:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # Ingest multiple times
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         # Force re-ingest
         config_force = IngestObsidianConfig(
@@ -256,7 +256,7 @@ class TestNoDuplicates:
             dataset_name="test-vault",
             force=True,
         )
-        pipeline.ingest(config_force)
+        pipeline.ingest_dataset(config_force)
 
         # Check for duplicates
         with create_session(session_factory) as session:
@@ -285,8 +285,8 @@ class TestNoDuplicates:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
-        pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        pipeline.ingest_dataset(config)
 
         # Get initial chunk count
         with create_session(session_factory) as session:
@@ -299,7 +299,7 @@ class TestNoDuplicates:
             dataset_name="test-vault",
             force=True,
         )
-        pipeline.ingest(config_force)
+        pipeline.ingest_dataset(config_force)
 
         # Get count after re-ingest
         with create_session(session_factory) as session:
@@ -328,8 +328,8 @@ class TestDeletePropagation:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         # Verify note2.md chunks exist in FTS
         with create_session(session_factory) as session:
@@ -347,7 +347,7 @@ class TestDeletePropagation:
         (sample_vault / "note2.md").unlink()
 
         # Re-ingest
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
 
         # Run cleanup for stale documents
         with create_session(session_factory) as session:
@@ -390,8 +390,8 @@ class TestDeletePropagation:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         # Verify document FTS entry exists
         with create_session(session_factory) as session:
@@ -409,7 +409,7 @@ class TestDeletePropagation:
         (sample_vault / "note2.md").unlink()
 
         # Re-ingest and cleanup
-        pipeline.ingest(config)
+        pipeline.ingest_dataset(config)
         with create_session(session_factory) as session:
             cleanup_stale_documents(
                 session,
@@ -447,8 +447,8 @@ class TestVectorIndexing:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         # Verify vector manager was called
         mock_manager = patched_embedding["vector_manager"]
@@ -475,8 +475,8 @@ class TestSourceDocIdFormat:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
-        pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        pipeline.ingest_dataset(config)
 
         # Check source_doc_id format
         with create_session(session_factory) as session:
@@ -506,8 +506,8 @@ class TestSourceDocIdFormat:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
-        pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        pipeline.ingest_dataset(config)
 
         # Get all source_doc_ids
         with create_session(session_factory) as session:
@@ -538,8 +538,8 @@ class TestChunkMetadata:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
-        pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        pipeline.ingest_dataset(config)
 
         # Check that all chunks have text
         with create_session(session_factory) as session:
@@ -563,8 +563,8 @@ class TestChunkMetadata:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         # Get documents
         doc_count = result.documents_created + result.documents_updated
@@ -596,8 +596,8 @@ class TestIngestionStats:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         # Verify chunks_created is populated
         assert result.chunks_created > 0
@@ -625,10 +625,10 @@ class TestIngestionStats:
             dataset_name="test-vault",
         )
 
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
-        result1 = pipeline.ingest(config)
+        result1 = pipeline.ingest_dataset(config)
         initial_chunks = result1.chunks_created
 
         # Force re-ingest
@@ -637,7 +637,7 @@ class TestIngestionStats:
             dataset_name="test-vault",
             force=True,
         )
-        result2 = pipeline.ingest(config_force)
+        result2 = pipeline.ingest_dataset(config_force)
 
         # Chunk count should be consistent (no duplicates)
         assert result2.chunks_created == initial_chunks, \

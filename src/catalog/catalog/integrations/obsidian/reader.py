@@ -22,6 +22,8 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from catalog.integrations.obsidian.transforms import LinkResolutionTransform
+from catalog.transform.frontmatter import FrontmatterTransform
 import yaml
 from agentlayer.logging import get_logger
 from fsspec import AbstractFileSystem
@@ -32,6 +34,95 @@ from llama_index.readers.file import MarkdownReader
 logger = get_logger(__name__)
 
 
+import re
+from typing import List, Any, Dict, Optional
+from llama_index.legacy.llms import MockLLM
+from llama_index.core.ingestion import IngestionPipeline
+from llama_index.core.schema import TransformComponent
+from llama_index.core.node_parser import (
+    MarkdownNodeParser,
+    MarkdownElementNodeParser,
+    SentenceSplitter,
+)
+# from llama_index.legacy.node_parser.relational.markdown_element import (
+#     MarkdownElementNodeParser,
+# )
+
+# ---------------------------
+# 1) Obsidian-aware cleanup
+# ---------------------------
+
+_WIKILINK_RE = re.compile(r"\[\[([^\]\|]+)(?:\|([^\]]+))?\]\]")
+_EMBED_RE = re.compile(r"!\[\[([^\]]+)\]\]")
+_CALLOUT_RE = re.compile(r"^>\s*\[!(\w+)\](?:\+|-)?\s*(.*)$", re.IGNORECASE | re.MULTILINE)
+_FRONTMATTER_RE = re.compile(r"^\s*---\s*\n.*?\n---\s*\n", re.DOTALL)
+
+
+def _strip_frontmatter(md: str) -> str:
+    # Generic: removes YAML frontmatter; optionally parse it into metadata in a richer version.
+    return re.sub(_FRONTMATTER_RE, "", md, count=1)
+
+
+def _replace_wikilinks(md: str) -> str:
+    # [[Note]] -> Note
+    # [[Note|Display]] -> Display
+    def repl(m: re.Match) -> str:
+        target = (m.group(1) or "").strip()
+        display = (m.group(2) or "").strip()
+        return display if display else target
+
+    return re.sub(_WIKILINK_RE, repl, md)
+
+
+def _replace_embeds(md: str) -> str:
+    # ![[Target]] -> (Embedded: Target)
+    # If you can resolve embeds at ingest time, inline them here instead of a placeholder.
+    def repl(m: re.Match) -> str:
+        target = (m.group(1) or "").strip()
+        return f"(Embedded: {target})"
+
+    return re.sub(_EMBED_RE, repl, md)
+
+
+def _normalize_callouts(md: str) -> str:
+    # > [!note] Title -> Callout (note): Title
+    # Leaves the quoted body lines intact, which is usually fine for embeddings.
+    def repl(m: re.Match) -> str:
+        kind = (m.group(1) or "").lower()
+        title = (m.group(2) or "").strip()
+        title_part = f" — {title}" if title else ""
+        return f"Callout ({kind}){title_part}"
+
+    return re.sub(_CALLOUT_RE, repl, md)
+
+
+def _collapse_blank_lines(md: str) -> str:
+    return re.sub(r"\n{3,}", "\n\n", md).strip()
+
+
+class ObsidianMarkdownNormalize(TransformComponent):
+    """
+    Generic Obsidian markdown normalizer.
+
+    This runs BEFORE node parsing so MarkdownNodeParser / MarkdownElementNodeParser
+    see cleaner markdown.
+    """
+
+    def __call__(self, nodes: List[Any], **kwargs: Any) -> List[Any]:
+        for node in nodes:
+            text = getattr(node, "text", None)
+            if not isinstance(text, str) or not text.strip():
+                continue
+
+            cleaned = text
+            cleaned = _strip_frontmatter(cleaned)
+            cleaned = _replace_embeds(cleaned)
+            cleaned = _replace_wikilinks(cleaned)
+            cleaned = _normalize_callouts(cleaned)
+            cleaned = _collapse_blank_lines(cleaned)
+
+            node.text = cleaned
+        return nodes
 
 # Compile once at module scope
 # - Allows optional BOM at start
@@ -525,8 +616,6 @@ class ObsidianVaultSource:
 
     def __init__(
             self, path: str | Path,
-            extract_tasks: bool = False,
-            remove_tasks: bool = False,
             vault_schema: type | None = None,
         ) -> None:
         """Initialize Obsidian vault source.
@@ -541,13 +630,36 @@ class ObsidianVaultSource:
         """
         self.path = Path(path).resolve()
         self.vault_schema = vault_schema
-        self.validate(self.path)
         self.reader = ObsidianVaultReader(
             input_dir=self.path,
-            extract_tasks=extract_tasks,
-            remove_tasks_from_text=remove_tasks,
         )
         logger.debug(f"Initialized ObsidianVaultSource for vault: {self.path}")
+
+    def get_transforms(self, dataset_id: int) -> list[type]:
+        """Get the list of transforms to apply for this source.
+
+        Returns:
+            Tuple of List of TransformComponent subclasses.
+            [0] is pre-persist, [1] is post-persist
+        """
+        parser = MarkdownNodeParser(
+            include_metadata=True,
+            include_prev_next_rel=True,
+            header_path_separator=" / ",
+        )
+        transforms = (
+            [
+                FrontmatterTransform(vault_schema_cls=self.vault_schema)
+            ],
+            [
+                LinkResolutionTransform(dataset_id=dataset_id),
+                ObsidianMarkdownNormalize(),
+                parser,
+
+            ]
+        )
+
+        return transforms
 
     @cached_property
     def documents(self) -> list[Document]:
@@ -555,18 +667,3 @@ class ObsidianVaultSource:
         logger.info(f"Loading documents from Obsidian vault at: {self.path}")
         docs = self.reader.load_data()
         return docs
-
-    @staticmethod
-    def validate(path: Path) -> None:
-        """Validate that the given path is a valid Obsidian vault."""
-        if not path.exists():
-            raise ValueError(f"Vault path does not exist: {path}")
-
-        if not path.is_dir():
-            raise ValueError(f"Vault path is not a directory: {path}")
-
-        obsidian_dir = path / ".obsidian"
-        if not obsidian_dir.is_dir():
-            raise ValueError(
-                f"Not a valid Obsidian vault (missing .obsidian directory): {path}"
-            )

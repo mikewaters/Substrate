@@ -1,4 +1,4 @@
-"""Tests for catalog.pipelines.ingest module."""
+"""Tests for catalog.ingest.pipelines module."""
 
 import shutil
 from contextlib import contextmanager
@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy.orm import sessionmaker
 
 from catalog.core.settings import get_settings
-from catalog.ingest.pipelines import IngestPipeline
+from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.ingest.schemas import IngestDirectoryConfig
 from catalog.integrations.obsidian import IngestObsidianConfig
 from catalog.store.database import Base, create_engine_for_path
@@ -36,7 +36,7 @@ def _clear_pipeline_cache(dataset_names: list[str]) -> None:
 
 
 class TestIngestPipeline:
-    """Tests for IngestPipeline class."""
+    """Tests for DatasetIngestPipeline class."""
 
     @pytest.fixture(autouse=True)
     def clear_cache(self) -> None:
@@ -118,8 +118,8 @@ class TestIngestPipeline:
             dataset_name="test-docs",
             patterns=["**/*.md"],
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         assert result.dataset_name == "test-docs"
         assert result.dataset_id > 0
@@ -139,8 +139,8 @@ class TestIngestPipeline:
             dataset_name="test-docs",
             patterns=["**/*.md"],
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         assert result.documents_created == 3  # readme.md, notes.md, subdir/deep.md
         assert result.documents_updated == 0
@@ -166,8 +166,8 @@ class TestIngestPipeline:
             dataset_name="test-docs",
             patterns=["**/*.md"],
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         # Verify FTS index
         fts = FTSManager(db_session)
@@ -187,14 +187,14 @@ class TestIngestPipeline:
             dataset_name="test-docs",
             patterns=["**/*.md"],
         )
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # First ingestion
-        result1 = pipeline.ingest(config)
+        result1 = pipeline.ingest_dataset(config)
         assert result1.documents_created == 3
 
         # Second ingestion - should skip all
-        result2 = pipeline.ingest(config)
+        result2 = pipeline.ingest_dataset(config)
         assert result2.documents_created == 0
         assert result2.documents_updated == 0
         assert result2.documents_skipped == 3
@@ -208,17 +208,17 @@ class TestIngestPipeline:
             dataset_name="test-docs",
             patterns=["**/*.md"],
         )
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # First ingestion
-        result1 = pipeline.ingest(config)
+        result1 = pipeline.ingest_dataset(config)
         assert result1.documents_created == 3
 
         # Modify a file
         (sample_directory / "readme.md").write_text("# Updated Readme\n\nNew content.")
 
         # Second ingestion - should update one
-        result2 = pipeline.ingest(config)
+        result2 = pipeline.ingest_dataset(config)
         assert result2.documents_created == 0
         assert result2.documents_updated == 1
         assert result2.documents_skipped == 2
@@ -232,10 +232,10 @@ class TestIngestPipeline:
             dataset_name="test-docs",
             patterns=["**/*.md"],
         )
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # First ingestion
-        result1 = pipeline.ingest(config)
+        result1 = pipeline.ingest_dataset(config)
         assert result1.documents_created == 3
 
         # Force ingestion - should update all
@@ -245,7 +245,7 @@ class TestIngestPipeline:
             patterns=["**/*.md"],
             force=True,
         )
-        result2 = pipeline.ingest(config_force)
+        result2 = pipeline.ingest_dataset(config_force)
         assert result2.documents_created == 0
         assert result2.documents_updated == 3
         assert result2.documents_skipped == 0
@@ -259,8 +259,8 @@ class TestIngestPipeline:
             dataset_name="test-docs",
             patterns=["**/*.md", "!**/subdir/**"],
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         # Should only include files not in subdir
         assert result.documents_created == 2
@@ -281,8 +281,8 @@ class TestIngestPipeline:
             dataset_name="My Test Docs!",
             patterns=["**/*.md"],
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         assert result.dataset_name == "my-test-docs"
 
@@ -295,10 +295,10 @@ class TestIngestPipeline:
             dataset_name="test-docs",
             patterns=["**/*.md"],
         )
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
-        result1 = pipeline.ingest(config)
-        result2 = pipeline.ingest(config)
+        result1 = pipeline.ingest_dataset(config)
+        result2 = pipeline.ingest_dataset(config)
 
         assert result1.dataset_id == result2.dataset_id
 
@@ -311,8 +311,8 @@ class TestIngestPipeline:
             dataset_name="test-docs",
             patterns=["**/*.md"],
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         assert result.total_processed == 3
         assert result.success is True
@@ -331,8 +331,8 @@ class TestIngestPipeline:
             dataset_name="empty-dataset",
             patterns=["**/*.md"],
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         assert result.documents_created == 0
         assert result.success is True
@@ -479,8 +479,8 @@ In a subfolder.
             source_path=obsidian_vault,
             dataset_name="my-vault",
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         assert result.dataset_name == "my-vault"
         assert result.dataset_id > 0
@@ -498,8 +498,8 @@ In a subfolder.
             source_path=obsidian_vault,
             dataset_name="my-vault",
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         assert result.documents_created == 4  # note1, note2, plain, nested
         assert result.documents_failed == 0
@@ -514,8 +514,8 @@ In a subfolder.
             source_path=obsidian_vault,
             dataset_name="my-vault",
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         doc_repo = DocumentRepository(db_session)
         doc1 = doc_repo.get_by_path(result.dataset_id, "note1.md")
@@ -542,8 +542,8 @@ In a subfolder.
             source_path=obsidian_vault,
             dataset_name="my-vault",
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         doc_repo = DocumentRepository(db_session)
         plain_doc = doc_repo.get_by_path(result.dataset_id, "plain.md")
@@ -563,8 +563,8 @@ In a subfolder.
             source_path=obsidian_vault,
             dataset_name="my-vault",
         )
-        pipeline = IngestPipeline()
-        result = pipeline.ingest(config)
+        pipeline = DatasetIngestPipeline()
+        result = pipeline.ingest_dataset(config)
 
         fts = FTSManager(db_session)
         assert fts.count() == 4
@@ -581,10 +581,10 @@ In a subfolder.
             source_path=obsidian_vault,
             dataset_name="my-vault",
         )
-        pipeline = IngestPipeline()
+        pipeline = DatasetIngestPipeline()
 
         # First ingestion
-        result1 = pipeline.ingest(config)
+        result1 = pipeline.ingest_dataset(config)
         assert result1.documents_created == 4
 
         # Force ingestion
@@ -593,7 +593,7 @@ In a subfolder.
             dataset_name="my-vault",
             force=True,
         )
-        result2 = pipeline.ingest(config_force)
+        result2 = pipeline.ingest_dataset(config_force)
         assert result2.documents_updated == 4
         assert result2.documents_skipped == 0
 

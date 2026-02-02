@@ -72,6 +72,8 @@ class DocumentCreate(BaseModel):
     path: str
     content_hash: str
     body: str
+    title: str | None = Field(None, description="Optional human-readable title")
+    description: str | None = Field(None, description="Optional longer description")
     doc_type: DocumentKind = Field(
         default=DocumentKind.OTHER,
         description="Classifies the document origin/format",
@@ -85,6 +87,8 @@ class DocumentCreate(BaseModel):
 class DocumentUpdate(BaseModel):
     """Partial update schema for an existing Document."""
 
+    title: str | None = None
+    description: str | None = None
     content_hash: str | None = None
     body: str | None = None
     doc_type: DocumentKind | None = None
@@ -101,6 +105,8 @@ class DocumentInfo(BaseModel):
     id: int
     parent_id: int
     path: str
+    title: str | None = None
+    description: str | None = None
     active: bool
     doc_type: DocumentKind
     content_hash: str
@@ -128,6 +134,8 @@ class DocumentInfo(BaseModel):
             id=doc.id,
             parent_id=doc.parent_id,
             path=doc.path,
+            title=doc.title,
+            description=doc.description,
             active=doc.active,
             doc_type=doc.doc_type,
             content_hash=doc.content_hash,

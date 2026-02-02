@@ -144,7 +144,7 @@ class FTSManager:
             """),
             {"rowid": doc_id, "path": path, "body": body},
         )
-        logger.debug(f"FTS indexed document {doc_id}: {path}")
+        #logger.debug(f"FTS indexed document {doc_id}: {path}")
 
     def delete(self, doc_id: int) -> None:
         """Delete a document from the FTS index.

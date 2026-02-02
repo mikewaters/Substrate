@@ -333,6 +333,8 @@ class DatasetService:
                 path=data.path,
                 content_hash=data.content_hash,
                 body=data.body,
+                title=data.title,
+                description=data.description,
                 etag=data.etag,
                 last_modified=data.last_modified,
                 metadata_json=metadata_json,
@@ -414,6 +416,8 @@ class DatasetService:
 
             repo.update(
                 doc,
+                title=data.title,
+                description=data.description,
                 content_hash=data.content_hash,
                 body=data.body,
                 etag=data.etag,

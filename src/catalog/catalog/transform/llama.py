@@ -561,7 +561,7 @@ class PersistenceTransform(TransformComponent):
             # Add to existing_docs cache for any future nodes with same path
             existing_docs[path] = doc
 
-            logger.debug(f"Created document: {path}")
+            #logger.debug(f"Created document: {path}")
             self.stats.created += 1
 
 

@@ -1,7 +1,7 @@
 """Integration tests for frontmatter → ontology metadata through the ingestion pipeline.
 
 Exercises FrontmatterTransform within a LlamaIndex IngestionPipeline (the same
-pipeline shape used by IngestPipeline.ingest_dataset()), verifying that raw
+pipeline shape used by DatasetIngestPipeline.ingest_dataset()), verifying that raw
 YAML frontmatter is validated, converted to DocumentMeta, and persisted as
 structured ontology metadata in the database.
 """
@@ -149,7 +149,7 @@ def _run_pipeline(
     dataset_name: str,
     vault_schema_cls: type[VaultSchema] | None = None,
 ) -> int:
-    """Run a pipeline identical to IngestPipeline.ingest_dataset().
+    """Run a pipeline identical to DatasetIngestPipeline.ingest_dataset().
 
     Reads documents with ObsidianVaultReader, transforms through
     FrontmatterTransform + PersistenceTransform, and returns the count

@@ -19,6 +19,17 @@ from catalog.integrations.obsidian.transforms import (
 )
 from catalog.integrations.obsidian.vault_schema import VaultSchema
 
+from catalog.ingest.sources import create_reader, create_source
+
+@create_source.register
+def _(config: IngestObsidianConfig):
+    return ObsidianVaultSource(config.source_path, vault_schema=config.vault_schema)
+
+@create_reader.register
+def _(config: IngestObsidianConfig):
+    return ObsidianVaultReader(config.source_path)
+
+
 __all__ = [
     "IngestObsidianConfig",
     "LinkResolutionStats",

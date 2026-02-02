@@ -108,16 +108,17 @@ class EmbeddingConfig(BaseModel):
 class PipelineConfig(BaseModel):
     """Pipeline caching configuration."""
 
-    cache_enabled: bool = True
-    docstore_strategy: Literal["upserts", "duplicates_only", "upserts_and_delete"] = "upserts"
-
+    #cache_enabled: bool = True
+    #docstore_strategy: Literal["upserts", "duplicates_only", "upserts_and_delete"] = "upserts"
+    splitter_chunk_size: int = 768
+    splitter_chunk_overlap: int = 96
 
 class DatasetJob(BaseModel):
     """Top-level configuration for an ingestion job.
 
     Loaded from a YAML file via :meth:`from_yaml`, validates into typed
     sub-models, and provides conversion methods to produce the objects
-    needed by :class:`IngestPipeline`.
+    needed by :class:`DatasetIngestPipeline`.
     """
 
     source: SourceConfig
@@ -165,7 +166,7 @@ class DatasetJob(BaseModel):
         explicitly set.
 
         Returns:
-            IngestObsidianConfig ready for use with IngestPipeline.
+            IngestObsidianConfig ready for use with DatasetIngestPipeline.
         """
         from catalog.integrations.obsidian import IngestObsidianConfig
 

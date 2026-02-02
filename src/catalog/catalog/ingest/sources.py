@@ -12,9 +12,6 @@ __all__ = ["create_source", "create_reader"]
 def create_source(config):
     raise TypeError(f"Unsupported config type: {type(config)}")
 
-@create_source.register
-def _(config: IngestObsidianConfig):
-    return ObsidianVaultSource(config.source_path, vault_schema=config.vault_schema)
 
 @create_source.register
 def _(config: IngestDirectoryConfig):
@@ -29,9 +26,6 @@ def _(config: IngestDirectoryConfig):
 def create_reader(config):
     raise TypeError(f"Unsupported config type: {type(config)}")
 
-@create_reader.register
-def _(config: IngestObsidianConfig):
-    return ObsidianVaultReader(config.source_path)
 
 @create_reader.register
 def _(config: IngestDirectoryConfig):

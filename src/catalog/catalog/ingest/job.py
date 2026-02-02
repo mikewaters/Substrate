@@ -121,7 +121,7 @@ class DatasetJob(BaseModel):
     """
 
     source: SourceConfig
-    embedding: EmbeddingConfig = Field(default_factory=EmbeddingConfig)
+    embedding: EmbeddingConfig | None = None
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
 
     @classmethod
@@ -182,12 +182,19 @@ class DatasetJob(BaseModel):
     def create_embed_model(self) -> BaseEmbedding:
         """Create an embedding model from this job's config.
 
-        Overrides the global ``EmbeddingSettings`` — the model is
-        determined entirely by this job's ``embedding`` section.
+        When the ``embedding`` section is omitted from the YAML config,
+        falls back to the application-level settings via
+        :func:`catalog.embedding.get_embed_model`.
 
         Returns:
             A LlamaIndex BaseEmbedding instance.
         """
+        if self.embedding is None:
+            from catalog.embedding import get_embed_model
+
+            logger.debug("No job-level embedding config; using application settings")
+            return get_embed_model()
+
         cfg = self.embedding
 
         if cfg.backend == "mlx":

@@ -132,7 +132,7 @@ class TestDatasetJob:
             "source": {"source_path": str(tmp_path)},
         })
         assert job.source.source_path == tmp_path
-        assert job.embedding.backend == "mlx"
+        assert job.embedding is None
         assert job.pipeline.cache_enabled is True
 
     def test_from_dict_full(self, tmp_path: Path):
@@ -209,6 +209,19 @@ class TestDatasetJob:
         config = job.to_ingest_config()
         assert config.vault_schema is Path
 
+    def test_create_embed_model_falls_back_to_app_settings(self, tmp_path: Path):
+        """create_embed_model delegates to get_embed_model() when embedding is omitted."""
+        job = DatasetJob.model_validate({
+            "source": {"source_path": str(tmp_path)},
+        })
+        assert job.embedding is None
+        with patch("catalog.embedding.get_embed_model") as mock_get:
+            mock_instance = MagicMock()
+            mock_get.return_value = mock_instance
+            result = job.create_embed_model()
+            mock_get.assert_called_once()
+            assert result is mock_instance
+
     def test_create_embed_model_mlx(self, tmp_path: Path):
         """create_embed_model with mlx backend returns MLXEmbedding."""
         job = DatasetJob.model_validate({
@@ -250,7 +263,7 @@ source:
 
         job = DatasetJob.from_yaml(config_file)
         assert job.source.source_path == tmp_path
-        assert job.embedding.backend == "mlx"
+        assert job.embedding is None
 
     def test_load_full_yaml(self, tmp_path: Path):
         """Load a full YAML config."""

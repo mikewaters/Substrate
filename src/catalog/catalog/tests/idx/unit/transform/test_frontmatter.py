@@ -211,6 +211,87 @@ class TestLinkNormalization:
         assert "_obsidian_backlinks" not in result.metadata
 
 
+# --- Promote keys ---
+
+class TestPromoteKeys:
+    """Selected ontology fields are promoted to top-level node.metadata."""
+
+    def test_default_promotes_tags_and_categories(self) -> None:
+        transform = FrontmatterTransform()
+        node = _make_node(
+            frontmatter={"tags": ["a", "b"], "type": "tutorial"},
+            note_name="N",
+        )
+        [result] = transform([node])
+        assert result.metadata["tags"] == ["a", "b"]
+        assert result.metadata["categories"] == ["tutorial"]
+
+    def test_default_does_not_promote_author(self) -> None:
+        transform = FrontmatterTransform()
+        node = _make_node(
+            frontmatter={"author": "Mike"},
+            note_name="N",
+        )
+        [result] = transform([node])
+        assert "author" not in result.metadata
+
+    def test_custom_promote_keys(self) -> None:
+        transform = FrontmatterTransform(promote_keys=["tags", "author"])
+        node = _make_node(
+            frontmatter={"tags": ["x"], "author": "Mike", "type": "note"},
+            note_name="N",
+        )
+        [result] = transform([node])
+        assert result.metadata["tags"] == ["x"]
+        assert result.metadata["author"] == "Mike"
+        # categories not promoted since not in promote_keys.
+        assert "categories" not in result.metadata
+
+    def test_empty_promote_keys(self) -> None:
+        transform = FrontmatterTransform(promote_keys=[])
+        node = _make_node(
+            frontmatter={"tags": ["a"]},
+            note_name="N",
+        )
+        [result] = transform([node])
+        # tags/categories should NOT be in top-level metadata.
+        assert "tags" not in result.metadata
+        assert "categories" not in result.metadata
+        # But should still be in _ontology_meta.
+        assert result.metadata["_ontology_meta"]["tags"] == ["a"]
+
+    def test_empty_values_not_promoted(self) -> None:
+        transform = FrontmatterTransform()
+        node = _make_node(frontmatter={}, note_name="N")
+        [result] = transform([node])
+        assert "tags" not in result.metadata
+        assert "categories" not in result.metadata
+
+    def test_invalid_promote_key_ignored(self) -> None:
+        transform = FrontmatterTransform(promote_keys=["tags", "extra", "bogus"])
+        node = _make_node(
+            frontmatter={"tags": ["a"]},
+            note_name="N",
+        )
+        [result] = transform([node])
+        assert result.metadata["tags"] == ["a"]
+        assert "extra" not in result.metadata
+        assert "bogus" not in result.metadata
+
+    def test_promote_with_vault_schema(self) -> None:
+        transform = FrontmatterTransform(
+            vault_schema_cls=SampleVaultSchema,
+            promote_keys=["tags", "categories"],
+        )
+        node = _make_node(
+            frontmatter={"tags": ["python"], "note_type": "tutorial"},
+            note_name="N",
+        )
+        [result] = transform([node])
+        assert result.metadata["tags"] == ["python"]
+        assert result.metadata["categories"] == ["tutorial"]
+
+
 # --- Best-effort mode (no schema) ---
 
 class TestBestEffortMode:

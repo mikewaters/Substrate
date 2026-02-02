@@ -37,13 +37,21 @@ class FrontmatterTransform(TransformComponent):
     4. Derives ``title`` (frontmatter → aliases[0] → note_name).
     5. Derives ``description`` (frontmatter → summary key → None).
     6. Writes ``title`` and ``description`` to ``node.metadata``.
-    7. Writes ``_ontology_meta`` = ``DocumentMeta.to_dict()`` to ``node.metadata``.
-    8. Normalizes wikilinks/backlinks into underscore-prefixed keys.
-    9. Removes the raw ``frontmatter`` key from ``node.metadata``.
+    7. Promotes ``promote_keys`` fields to top-level ``node.metadata``
+       so they are visible to embeddings and available as vector store
+       filter keys.
+    8. Writes ``_ontology_meta`` = ``DocumentMeta.to_dict()`` to ``node.metadata``.
+    9. Normalizes wikilinks/backlinks into underscore-prefixed keys.
+    10. Removes the raw ``frontmatter`` key from ``node.metadata``.
 
     Attributes:
         vault_schema_cls: Optional VaultSchema subclass for typed validation.
         frontmatter_key: Metadata key where raw frontmatter lives.
+        promote_keys: DocumentMeta field names to write as top-level
+            node.metadata keys for downstream embedding/vector use.
+            Defaults to ``["tags", "categories"]``. ``title`` and
+            ``description`` are always promoted regardless of this setting.
+            Set to ``[]`` to disable promotion beyond title/description.
         strict: If True, raise on validation errors instead of falling back.
     """
 
@@ -51,11 +59,16 @@ class FrontmatterTransform(TransformComponent):
     frontmatter_key: str = "frontmatter"
     strict: bool = False
 
+    # Valid promote targets (excludes title/description which are always
+    # promoted, and extra which is a dict unsuitable for flat metadata).
+    _PROMOTABLE_FIELDS: frozenset[str] = frozenset({"tags", "categories", "author"})
+
     def __init__(
         self,
         vault_schema_cls: type[VaultSchema] | None = None,
         *,
         frontmatter_key: str = "frontmatter",
+        promote_keys: list[str] | None = None,
         strict: bool = False,
         **kwargs: Any,
     ) -> None:
@@ -63,6 +76,13 @@ class FrontmatterTransform(TransformComponent):
         self.vault_schema_cls = vault_schema_cls
         self.frontmatter_key = frontmatter_key
         self.strict = strict
+
+        if promote_keys is None:
+            self._promote_keys = ["tags", "categories"]
+        else:
+            self._promote_keys = [
+                k for k in promote_keys if k in self._PROMOTABLE_FIELDS
+            ]
 
     def __call__(
         self,
@@ -107,6 +127,14 @@ class FrontmatterTransform(TransformComponent):
         # Write title and description to node metadata for PersistenceTransform.
         meta["title"] = doc_meta.title
         meta["description"] = doc_meta.description
+
+        # Promote selected ontology fields to top-level metadata so they
+        # are visible to embedding models and available as vector store
+        # filter keys downstream.
+        for key in self._promote_keys:
+            value = getattr(doc_meta, key, None)
+            if value is not None and value != [] and value != "":
+                meta[key] = value
 
         # Write structured ontology metadata.
         meta["_ontology_meta"] = doc_meta.to_dict()

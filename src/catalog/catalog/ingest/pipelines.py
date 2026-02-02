@@ -42,6 +42,7 @@ from llama_index.vector_stores.duckdb import DuckDBVectorStore
 
 from catalog.embedding import get_embed_model
 from catalog.ingest.cache import clear_cache, persist_documents
+from catalog.ingest.job import DatasetJob
 from catalog.ingest.schemas import IngestDirectoryConfig, IngestObsidianConfig, IngestResult, DatasetIngestConfig
 from catalog.ingest.sources import create_source, create_reader
 from catalog.store.database import get_session
@@ -212,6 +213,141 @@ class IngestPipeline:
                 result.vectors_inserted = len(nodes) if nodes else 0
 
                 # Persist vector store after successful pipeline run
+                vector_manager.persist_vector_store()
+
+        result.completed_at = datetime.now(tz=timezone.utc)
+
+        logger.info(
+            f"Ingestion complete: "
+            f"created={result.documents_created}, "
+            f"updated={result.documents_updated}, "
+            f"skipped={result.documents_skipped}, "
+            f"failed={result.documents_failed}, "
+            f"chunks={result.chunks_created}, "
+            f"vectors={result.vectors_inserted}"
+        )
+
+        return result
+
+    def ingest_from_config(self, config_path: Path) -> IngestResult:
+        """Run an ingestion job from a YAML configuration file.
+
+        Loads the YAML via Hydra, validates into a DatasetJob, then runs
+        the full ingestion pipeline with the configured source, embedding
+        model, and pipeline caching settings.
+
+        Args:
+            config_path: Path to the YAML configuration file.
+
+        Returns:
+            IngestResult with statistics about the operation.
+        """
+        job = DatasetJob.from_yaml(config_path)
+        ingest_config = job.to_ingest_config()
+        embed_model = job.create_embed_model()
+
+        started_at = datetime.now(tz=timezone.utc)
+        normalized_name = normalize_dataset_name(ingest_config.dataset_name)
+
+        logger.info(
+            f"Starting config-driven ingestion: {ingest_config.source_path} -> {normalized_name}"
+        )
+
+        source = create_source(ingest_config)
+
+        result = IngestResult(
+            dataset_id=0,
+            dataset_name=normalized_name,
+            started_at=started_at,
+        )
+
+        with get_session() as session:
+            with use_session(session):
+                engine = session.get_bind()
+                if engine is not None:
+                    create_fts_table(engine)  # type: ignore
+                    create_chunks_fts_table(engine)  # type: ignore
+
+                dataset_id = DatasetService.create_or_update(
+                    session,
+                    ingest_config.dataset_name,
+                    source_type=source.type_name,
+                    source_path=str(source.path),
+                )
+                result.dataset_id = dataset_id
+
+                persist = PersistenceTransform(
+                    dataset_id=dataset_id,
+                    force=ingest_config.force,
+                )
+                split = MarkdownNodeParser(
+                    include_metadata=True,
+                    include_prev_next_rel=True,
+                    header_path_separator=" / ",
+                )
+                chunk_persist = ChunkPersistenceTransform(
+                    dataset_name=normalized_name,
+                )
+                size_splitter = SizeAwareChunkSplitter(
+                    max_chars=2000,
+                    fallback_chunk_size=512,
+                    fallback_chunk_overlap=50,
+                )
+
+                from catalog.store.vector import VectorStoreManager
+                vector_manager = VectorStoreManager()
+
+                if ingest_config.force:
+                    logger.info(f"Force mode: clearing cache for dataset '{normalized_name}'")
+                    clear_cache(normalized_name)
+                    deleted = vector_manager.delete_by_dataset(normalized_name)
+                    if deleted > 0:
+                        logger.info(f"Cleared {deleted} vectors for dataset '{normalized_name}'")
+
+                vault_schema = getattr(source, "vault_schema", None)
+                frontmatter = FrontmatterTransform(vault_schema_cls=vault_schema)
+                link_resolve = LinkResolutionTransform(dataset_id=dataset_id)
+
+                # Build pipeline kwargs — caching is configurable via PipelineConfig
+                pipeline_kwargs: dict[str, Any] = {}
+                if job.pipeline.cache_enabled:
+                    vector_store = vector_manager.get_vector_store()
+                    pipeline_kwargs["docstore"] = SimpleDocumentStore()
+                    pipeline_kwargs["vector_store"] = vector_store
+
+                    strategy_map = {
+                        "upserts": DocstoreStrategy.UPSERTS,
+                        "duplicates_only": DocstoreStrategy.DUPLICATES_ONLY,
+                        "upserts_and_delete": DocstoreStrategy.UPSERTS_AND_DELETE,
+                    }
+                    pipeline_kwargs["docstore_strategy"] = strategy_map[job.pipeline.docstore_strategy]
+
+                pipeline = IngestionPipeline(
+                    transformations=[
+                        TextNormalizerTransform(),
+                        frontmatter,
+                        persist,
+                        link_resolve,
+                        split,
+                        chunk_persist,
+                        size_splitter,
+                        embed_model,
+                    ],
+                    **pipeline_kwargs,
+                )
+
+                logger.info(f"Running {len(source.documents)} documents through pipeline")
+                nodes = pipeline.run(documents=source.documents)
+
+                result.documents_created = persist.stats.created
+                result.documents_updated = persist.stats.updated
+                result.documents_skipped = persist.stats.skipped
+                result.documents_failed = persist.stats.failed
+                result.errors = list(persist.stats.errors)
+                result.chunks_created = chunk_persist.stats.created
+                result.documents_read = len(source.documents)
+                result.vectors_inserted = len(nodes) if nodes else 0
+
                 vector_manager.persist_vector_store()
 
         result.completed_at = datetime.now(tz=timezone.utc)
@@ -402,161 +538,6 @@ class IngestPipeline:
 
         return result
 
-    def ingest_test(self, config: IngestObsidianConfig) -> IngestResult:
-        """Ingest documents from a local directory.
-
-        """
-
-        started_at = datetime.now(tz=timezone.utc)
-        normalized_name = normalize_dataset_name(config.dataset_name)
-
-        logger.info(
-            f"Starting directory ingestion: {config.source_path} -> {normalized_name}"
-        )
-
-        #source = _get_source_instance(config)
-        source = create_source(config)
-
-        # Track results
-        result = IngestResult(
-            dataset_id=0,  # Will be set after dataset creation
-            dataset_name=normalized_name,
-            started_at=started_at,
-        )
-
-        with get_session() as session:
-            with use_session(session):
-
-                # Ensure FTS tables exist
-                #TODO: move to migration?
-                engine = session.get_bind()
-                if engine is not None:
-                    create_fts_table(engine)  # type: ignore
-                    create_chunks_fts_table(engine)  # type: ignore
-
-                # Create or get dataset
-                dataset_id = DatasetService.create_or_update(
-                    session,
-                    config.dataset_name,
-                    source_type=source.type_name,
-                    source_path=str(source.path),
-                )
-                result.dataset_id = dataset_id
-
-                # Create persistence transform (uses ambient session)
-                persist = PersistenceTransform(
-                    dataset_id=dataset_id,
-                    force=config.force,
-                )
-                split = MarkdownNodeParser(
-                    include_metadata=True,
-                    include_prev_next_rel=True,
-                    header_path_separator=" / ",
-                )
-                # Create chunk persistence transform (uses ambient session)
-                chunk_persist = ChunkPersistenceTransform(
-                    dataset_name=normalized_name,
-                )
-
-                # Create size-aware splitter for oversized chunks
-                size_splitter = SizeAwareChunkSplitter(
-                    max_chars=2000,
-                    fallback_chunk_size=512,
-                    fallback_chunk_overlap=50,
-                )
-
-                # Get vector store manager and embed model
-                #vector_manager = self._get_vector_store_manager()
-                embed_model = self._get_embed_model()
-                Settings.embed_model = embed_model
-
-                # Handle force=True: clear cache and dataset vectors
-                # if config.force:
-                #     logger.info(f"Force mode: clearing cache for dataset '{normalized_name}'")
-                #     clear_cache(normalized_name)
-                #     deleted = vector_manager.delete_by_dataset(normalized_name)
-                #     if deleted > 0:
-                #         logger.info(f"Cleared {deleted} vectors for dataset '{normalized_name}'")
-
-                # Get the vector store for native pipeline integration
-                from catalog.store.vector import VectorStoreManager
-                vector_manager = VectorStoreManager()
-                vector_store = vector_manager.get_vector_store()
-                # Create DuckDB vector store for downstream
-                vector_store = DuckDBVectorStore(
-                    database_name="downstream.duckdb",
-                    persist_dir="./downstream_persist",
-                    flat_metadata=False
-                )
-                # Build pipeline with native vector_store integration
-                # Using UPSERTS strategy for proper handling of document updates
-                pipeline = IngestionPipeline(
-                    transformations=[
-                        TextNormalizerTransform(),
-                        BronzeMetadataTransform(meta_version="1.0.0"),
-                        BronzeMetaHashTransform(),
-                        # Add composite hash for change detection
-                        CompositeHashTransform(include_metadata=True),
-                        persist,
-                        split,
-                        chunk_persist,
-                        size_splitter,  # get rid of this, add a real embedding splitter
-                        #StripMetadataTransform(keys_to_strip=["frontmatter", "wikilinks", "backlinks"]),
-                        embed_model,
-
-                    ],
-                    docstore=SimpleDocumentStore(),
-                    docstore_strategy=DocstoreStrategy.UPSERTS_AND_DELETE,
-                    vector_store=vector_store,
-                )
-
-                # Load persisted pipeline docstore if available
-                #if not config.force:
-                #    pipeline = load_pipeline(normalized_name, pipeline)
-
-                # Run pipeline - persistence happens inside using ambient session
-                logger.info(f"Running {len(source.documents)} documents through pipeline")
-                for doc in source.documents:
-                    print(f"Document: {doc.metadata}")
-                    print(doc.excluded_embed_metadata_keys)
-                nodes = pipeline.run(documents=source.documents)
-
-                # Update the cache
-                #persist_pipeline(normalized_name, pipeline)
-
-                # Copy stats from persistence transform
-                result.documents_created = persist.stats.created
-                result.documents_updated = persist.stats.updated
-                result.documents_skipped = persist.stats.skipped
-                result.documents_failed = persist.stats.failed
-                result.errors = list(persist.stats.errors)
-
-                # Copy stats from chunk persistence transform
-                result.chunks_created = chunk_persist.stats.created
-
-                # this only works because the reader doesn't split documents
-                result.documents_read = len(source.documents)
-
-                # Vectors are inserted by native vector_store integration during pipeline run
-                # Count is equal to the number of nodes returned by the pipeline
-                result.vectors_inserted = len(nodes) if nodes else 0
-
-                # Persist vector store after successful pipeline run
-                vector_manager.persist_vector_store()
-
-        result.completed_at = datetime.now(tz=timezone.utc)
-
-        logger.info(
-            f"Ingestion complete: "
-            f"created={result.documents_created}, "
-            f"updated={result.documents_updated}, "
-            f"skipped={result.documents_skipped}, "
-            f"failed={result.documents_failed}, "
-            f"chunks={result.chunks_created}, "
-            f"vectors={result.vectors_inserted}"
-        )
-
-        return result
 
 if __name__ == "__main__":
     import sys

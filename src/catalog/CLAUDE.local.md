@@ -14,5 +14,3 @@ You do NOT create stubs, TODOs, or FIXMEs. You do the work NOW.
 - **Use subagents whenever possible**
 - **NEVER bring deleted files back using git without approval**.
 - DO NOT CREATE DOCUMENTATION UNLESS YOU ARE ASKED TO DO SO. You do not need to create summaries for Mike. You do  not need to create voluminous STATUS documents, you just need to track your todos - which are only for you.
-- **Never tackle TODOs in the codebase without being instructed to do so.**
-- Do not remove commented-out code; this is important for the human developer to stage possible future changes. It is safe for you to ignore commented-out code blocks.

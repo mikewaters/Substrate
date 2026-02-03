@@ -77,4 +77,9 @@ apps/ontology-browser/coverage/
 
 .testmondata
 
-features/
+
+# Beads (issue tracking)
+.beads/*
+!.beads/issues.jsonl
+!.beads/config.yaml
+!.beads/metadata.json

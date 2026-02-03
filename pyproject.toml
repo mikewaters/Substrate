@@ -4,14 +4,18 @@ version = "0.1.0"
 description = "test"
 authors = [{ name = "Mike Waters", email = "mike@mikewaters.net" }]
 readme = "README.md"
-requires-python = "==3.11.*"
+requires-python = ">=3.11"
 dependencies = [
     "marimo==0.15.5",
     "pydantic-settings>=2.11.0",
     "loguru>=0.7.0",
-    "mw",
-    "bitsandbytes@{root:uri}/src/bitsandbytes",
+    "agentlayer@{root:uri}/src/agentlayer",
+    "catalog@{root:uri}/src/catalog",
+    #"agentlayer@{root:uri}/src/agentlayer",
+    #"bitsandbytes@{root:uri}/src/bitsandbytes",
+    #"advanced-alchemy"
     "advanced_alchemy@{root:uri}/src/advanced-alchemy",
+    "llama-index-legacy>=0.9.48.post4",
 ]
 
 [project.scripts]
@@ -24,6 +28,10 @@ package = true
 [tool.marimo.runtime]
 pythonpath = ["src"]
 
+[tool.uv.sources]
+catalog = { path = "src/catalog", editable = true }
+agentlayer = { path = "src/agentlayer", editable = true }
+advanced_alchemy = { path = "src/advanced-alchemy", editable = true }
 
 [build-system]
 requires = ["hatchling"]
@@ -35,48 +43,47 @@ allow-direct-references = true
 [tool.hatch.build.targets.wheel]
 packages = [
     "src/ontology",
-    "src/index",
-    "src/mw",
+    "src/agentlayer",
+    "src/catalog",
     "src/advanced_alchemy",
-    "src/bitsandbytes",
+    #"src/bitsandbytes",
     ]
 
 [dependency-groups]
-ontology = [
-    "polars>=1.33.1",
-    "pydantic>=2.11.9",
-    "owlready2>=0.48",
-    "dotenv>=0.9.9",
-    "linkml>=1.9.4",
-    "logzero>=1.7.0",
-    "cymple>=0.12.0",
-    "terminusdb-client>=10.2.6",
-    "sqlalchemy>=2.0.0",
-    "alembic>=1.13.0",
-    "fastapi[standard]>=0.119.1",
-    "httpx>=0.28.1",
-    #"typer>=0.20.0",
-    "rich>=14.2.0",
-    "pydantic-settings>=2.11.0",
-    "aiosqlite>=0.21.0",
-    "pydantic-ai>=1.9.1",
-    "uvicorn[standard]>=0.30.0",
-    "txtai[graph,pipeline]>=9.1.0",
-
-]
+#ontology = [
+#    "polars>=1.33.1",
+#    "pydantic>=2.11.9",
+#    "owlready2>=0.48",
+#    "dotenv>=0.9.9",
+#    "linkml>=1.9.4",
+#    "logzero>=1.7.0",
+#    "cymple>=0.12.0",
+#    "terminusdb-client>=10.2.6",
+#    "sqlalchemy>=2.0.0",
+#    "alembic>=1.13.0",
+#    "fastapi[standard]>=0.119.1",
+#    "httpx>=0.28.1",
+#    #"typer>=0.20.0",
+#    "rich>=14.2.0",
+#    "pydantic-settings>=2.11.0",
+#    "aiosqlite>=0.21.0",
+#    "pydantic-ai>=1.9.1",
+#    "uvicorn[standard]>=0.30.0",
+#    "txtai[graph,pipeline]>=9.1.0",
+#]
 index = [
-    "pydantic>=2.0",
-    "pydantic-settings>=2.0",
-    "llama-index>=0.12.0",
-    "loguru>=0.7.0",
-    "sqlalchemy>=2.0",
-    "llama-index-core>=0.11.0",
-    "llama-index-embeddings-huggingface>=0.6.1",
-    "llama-index-readers-obsidian",
-    "llama-index-embeddings-huggingface>=0.6.1",
-    "mlx-embeddings>=0.0.5",
-    "llama-index-vector-stores-duckdb>=0.5.1",
-    "llama-index-storage-docstore-duckdb>=0.2.1",
+#    "pydantic>=2.0",
+#    "pydantic-settings>=2.0",
+#    "llama-index>=0.12.0",
+#    "loguru>=0.7.0",
+#    "sqlalchemy>=2.0",
+#    "llama-index-core>=0.11.0",
+#    "llama-index-embeddings-huggingface>=0.6.1",
+#    "llama-index-readers-obsidian",
+#    "llama-index-embeddings-huggingface>=0.6.1",
+#    "mlx-embeddings>=0.0.5",
+#    "llama-index-vector-stores-duckdb>=0.5.1",
+#    "llama-index-storage-docstore-duckdb>=0.2.1",
 ]
 dev = [
     "basedpyright>=1.33.0",
@@ -111,11 +118,11 @@ addopts = [
     "--log-cli-level=INFO",
     #"--testmon",
     #"--cov=src/index --cov=src/ontology --cov-report=term-missing --cov-report=html",
-    "--ignore=src/index/tests/scenario"
+    #"--ignore=src/index/tests/scenario"
 ]
 testpaths = [
-    "src/ontology",
-    "src/index",
+    #"src/ontology",
+    "src/catalog",
     #"tools"  #FIXME
 ]
 norecursedirs = "src/advanced-alchemy src/aiosqlite"

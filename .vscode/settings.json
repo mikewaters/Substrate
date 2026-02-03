@@ -101,5 +101,6 @@
         "database": ".data/ontology.db"
     }
 ],
-"sqltools.useNodeRuntime": true
+"sqltools.useNodeRuntime": true,
+"cSpell.enabled": false
 }

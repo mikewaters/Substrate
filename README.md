@@ -30,9 +30,10 @@ Needs a hacked command line `uvx --from "browser-use[cli]==0.7.5" browser-use --
 Each component should have its own README as well as component-specific agent instructions.
 
 ### Python Modules
-- `src/ontology`
-- `src/index`
-- `src/mw`
+- `src/ontology` - lifeos ontology classification and entity store
+- `src/catalog` - data catalog for ingestion, storage, and search
+- `src/agentbase` - reusable agent components
+- `src/notes` - conversion of notes to indexable content
 
 ### Frontend Applications
 - `apps/ontology-browser` – React + Vite app scaffolded for FEAT-015. Use Node.js 24.x LTS (`.nvmrc`) and pnpm to install dependencies (`cd apps/ontology-browser && pnpm install`). Development commands: `pnpm dev` for the local server, `pnpm lint`, `pnpm test`, `pnpm typecheck`, and `pnpm build`.

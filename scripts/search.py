@@ -13,7 +13,7 @@ Usage:
 import argparse
 import sys
 
-from idx.search import search
+from catalog.search import search
 
 
 def main() -> int:

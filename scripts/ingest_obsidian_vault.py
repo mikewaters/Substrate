@@ -9,8 +9,8 @@
 Run from the project root:
     uv run python scripts/ingest_obsidian_vault.py /path/to/vault
 
-By default, the database path comes from `idx.core.settings` (env var
-`IDX_DATABASE_PATH`, or `~/.idx/idx.db`).
+By default, the database path comes from `catalog.core.settings` (env var
+`IDX_DATABASE_PATH`, or `~/.idx/catalog.db`).
 """
 
 from __future__ import annotations
@@ -18,10 +18,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from idx.core.logging import configure_logging, get_logger
-from idx.ingest.pipelines import IngestPipeline
-from idx.ingest.schemas import IngestObsidianConfig
+from agentlayer.logging import configure_logging, get_logger
 
+from catalog.ingest.pipelines import IngestPipeline
+from catalog.ingest.schemas import IngestObsidianConfig
 
 logger = get_logger(__name__)
 
@@ -29,7 +29,7 @@ logger = get_logger(__name__)
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="ingest_obsidian_vault",
-        description="Ingest an Obsidian vault using idx.pipelines.ingest.",
+        description="Ingest an Obsidian vault using catalog.pipelines.ingest.",
     )
     parser.add_argument(
         "vault_path",
@@ -77,7 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     logger.info(f"Vault: {vault_path}")
     logger.info(f"Dataset: {dataset_name}")
 
-    pipeline = IngestPipeline() 
+    pipeline = IngestPipeline()
     result = pipeline.ingest(
         IngestObsidianConfig(
             source_path=vault_path,

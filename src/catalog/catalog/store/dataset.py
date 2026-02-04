@@ -10,6 +10,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 
 from agentlayer.logging import get_logger
+from catalog.ingest.schemas import BaseModel
 from sqlalchemy.orm import Session
 
 from catalog.store.database import get_session
@@ -89,7 +90,6 @@ def normalize_dataset_name(name: str) -> str:
     # Strip leading/trailing hyphens
     normalized = normalized.strip("-")
     return normalized
-
 
 class DatasetService:
     """Service for managing datasets and documents.
@@ -261,12 +261,25 @@ class DatasetService:
         )
 
     @staticmethod
+    def _to_info(dataset: Dataset) -> DatasetInfo:
+        """Convert Dataset model to DatasetInfo."""
+        return DatasetInfo(
+            id=dataset.id,
+            name=dataset.name,
+            uri=dataset.uri,
+            source_type=dataset.source_type,
+            source_path=dataset.source_path,
+            created_at=dataset.created_at,
+            updated_at=dataset.updated_at,
+        )
+
+    @staticmethod
     def create_or_update(
         session: Session,
         name: str,
         source_type: str,
         source_path: str,
-    ) -> int:
+    ) -> DatasetInfo:
         """Ensure dataset exists, creating if necessary.
 
         Args:
@@ -276,7 +289,7 @@ class DatasetService:
             source_path: Path to the source.
 
         Returns:
-            Dataset ID.
+            DatasetInfo.
         """
         normalized_name = normalize_dataset_name(name)
         repo = DatasetRepository(session)
@@ -285,7 +298,7 @@ class DatasetService:
         dataset = repo.get_by_name(normalized_name)
         if dataset is not None:
             logger.debug(f"Using existing dataset: {normalized_name}")
-            return dataset.id
+            return DatasetService._to_info(dataset)
 
         # Create new dataset
         dataset = repo.create(
@@ -296,7 +309,7 @@ class DatasetService:
         )
         session.flush()
         logger.info(f"Created dataset: {normalized_name}")
-        return dataset.id
+        return DatasetService._to_info(dataset)
 
     # Document operations
 

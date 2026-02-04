@@ -12,11 +12,26 @@ from pathlib import Path
 from agentlayer.logging import get_logger
 from llama_index.core import Document, SimpleDirectoryReader
 
+from catalog.ingest.sources import BaseSource, create_reader, create_source
+from catalog.ingest.schemas import IngestDirectoryConfig
 
 logger = get_logger(__name__)
 
-
-class DirectorySource:
+@create_source.register
+def _(config: IngestDirectoryConfig):
+    return DirectorySource(
+        config.source_path,
+        patterns=config.patterns,
+        encoding=config.encoding,
+    )
+@create_reader.register
+def _(config: IngestDirectoryConfig):
+    return SimpleDirectoryReader(
+        config.source_path,
+        patterns=config.patterns,
+        encoding=config.encoding,
+    )
+class DirectorySource(BaseSource):
     """Source that reads files from a local directory via SimpleDirectoryReader.
 
     Wraps LlamaIndex's SimpleDirectoryReader, adding glob-pattern

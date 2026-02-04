@@ -24,6 +24,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from catalog.integrations.obsidian.transforms import LinkResolutionTransform
 from catalog.transform.frontmatter import FrontmatterTransform
+from catalog.ingest.sources import BaseSource
+
 import yaml
 from agentlayer.logging import get_logger
 from fsspec import AbstractFileSystem
@@ -610,7 +612,7 @@ class ObsidianVaultReader(SimpleDirectoryReader):
         return docs
 
 
-class ObsidianVaultSource:
+class ObsidianVaultSource(BaseSource):
     """Populates a Dataset from an Obsidian vault."""
     type_name = "obsidian"
 

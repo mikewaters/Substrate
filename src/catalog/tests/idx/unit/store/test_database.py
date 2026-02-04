@@ -156,14 +156,17 @@ class TestSettingsIntegration:
 
     def test_get_engine_uses_settings_path(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """get_engine uses database_path from settings."""
-        from catalog.store.database import get_engine
+        from catalog.store.database import get_engine, get_registry, get_session_factory
 
-        # Clear cached engine
-        get_engine.cache_clear()
+        # Clear cached registry (which caches engines)
+        get_registry.cache_clear()
+        get_session_factory.cache_clear()
 
-        # Set environment variable
+        # Set environment variable for catalog path
         db_path = tmp_path / "settings_test.db"
-        monkeypatch.setenv("IDX_DATABASE_PATH", str(db_path))
+        content_path = tmp_path / "content_test.db"
+        monkeypatch.setenv("IDX_DATABASES__CATALOG_PATH", str(db_path))
+        monkeypatch.setenv("IDX_DATABASES__CONTENT_PATH", str(content_path))
 
         # Clear settings cache too
         from catalog.core.settings import get_settings
@@ -174,5 +177,6 @@ class TestSettingsIntegration:
         assert str(db_path) in str(engine.url)
 
         # Cleanup
-        get_engine.cache_clear()
+        get_registry.cache_clear()
+        get_session_factory.cache_clear()
         get_settings.cache_clear()

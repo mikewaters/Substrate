@@ -27,7 +27,7 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-__all__ = ["Settings", "get_settings"]
+__all__ = ["DatabasesSettings", "Settings", "get_settings"]
 
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -125,6 +125,28 @@ class PerformanceSettings(BaseSettings):
     )
 
 
+class DatabasesSettings(BaseSettings):
+    """Multi-database configuration for separate catalog and content storage.
+
+    The catalog database stores metadata, FTS indexes, and resource hierarchy.
+    The content database stores document bodies and large text content.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="IDX_DATABASES_",
+        extra="ignore",
+    )
+
+    catalog_path: Path = Field(
+        default=Path("~/.idx/catalog.db").expanduser(),
+        description="Path to the catalog SQLite database (metadata, FTS, resources)",
+    )
+    content_path: Path = Field(
+        default=Path("~/.idx/content.db").expanduser(),
+        description="Path to the content SQLite database (document bodies)",
+    )
+
+
 class Settings(BaseSettings):
     """Main configuration settings for the idx library.
 
@@ -132,7 +154,8 @@ class Settings(BaseSettings):
     Config-file support is deferred for the MVP.
 
     Attributes:
-        database_path: Path to the SQLite database file.
+        database_path: Path to the SQLite database file (deprecated, use databases.catalog_path).
+        databases: Multi-database configuration (catalog and content paths).
         vector_store_path: Path to the LlamaIndex persist directory (rebuildable cache).
         embedding_model: Name or path of the embedding model (deprecated).
         transformers_model: Name or path of the transformers model for reranking.
@@ -149,10 +172,16 @@ class Settings(BaseSettings):
         validate_default=True,
     )
 
-    # Core paths
+    # Multi-database configuration
+    databases: DatabasesSettings = Field(
+        default_factory=DatabasesSettings,
+        description="Multi-database paths for catalog and content separation",
+    )
+
+    # Legacy single database path (deprecated, use databases.catalog_path)
     database_path: Path = Field(
         default=Path("~/.idx/catalog.db").expanduser(),
-        description="Path to the SQLite database file",
+        description="Path to the SQLite database file (deprecated: use databases.catalog_path)",
     )
     vector_store_path: Path = Field(
         default=Path("~/.idx/vector_store").expanduser(),
@@ -196,10 +225,11 @@ class Settings(BaseSettings):
     def ensure_directories(self) -> None:
         """Ensure that required directories exist.
 
-        Creates the parent directories for database_path and vector_store_path
+        Creates the parent directories for database paths and vector_store_path
         if they do not already exist.
         """
-        self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        self.databases.catalog_path.parent.mkdir(parents=True, exist_ok=True)
+        self.databases.content_path.parent.mkdir(parents=True, exist_ok=True)
         self.vector_store_path.mkdir(parents=True, exist_ok=True)
         self.cache_path.mkdir(parents=True, exist_ok=True)
 

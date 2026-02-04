@@ -13,8 +13,12 @@ from catalog.store.cleanup import (
 )
 from catalog.store.database import (
                                    Base,
+                                   CatalogBase,
+                                   ContentBase,
+                                   DatabaseRegistry,
                                    create_engine_for_path,
                                    get_engine,
+                                   get_registry,
                                    get_session,
                                    get_session_factory,
 )
@@ -79,8 +83,12 @@ from catalog.store.vector import VectorStoreManager
 __all__ = [
     # Database
     "Base",
+    "CatalogBase",
+    "ContentBase",
+    "DatabaseRegistry",
     "create_engine_for_path",
     "get_engine",
+    "get_registry",
     "get_session",
     "get_session_factory",
     # Models & Enums

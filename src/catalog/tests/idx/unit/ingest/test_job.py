@@ -52,7 +52,7 @@ class TestSourceConfig:
         assert cfg.type == "obsidian"
         assert cfg.source_path == tmp_path
         assert cfg.dataset_name is None
-        assert cfg.vault_schema is None
+        assert cfg.options == {}
         assert cfg.force is False
 
     def test_full(self, tmp_path: Path):
@@ -61,24 +61,22 @@ class TestSourceConfig:
             type="obsidian",
             source_path=tmp_path,
             dataset_name="my-vault",
-            vault_schema="catalog.integrations.obsidian.vault_schema.VaultSchema",
+            options={"vault_schema": "catalog.integrations.obsidian.vault_schema.VaultSchema"},
             force=True,
         )
         assert cfg.dataset_name == "my-vault"
         assert cfg.force is True
+        assert cfg.options["vault_schema"] == "catalog.integrations.obsidian.vault_schema.VaultSchema"
 
-    def test_resolve_vault_schema_none(self, tmp_path: Path):
-        """Resolving vault_schema when not set returns None."""
-        cfg = SourceConfig(source_path=tmp_path)
-        assert cfg.resolve_vault_schema() is None
-
-    def test_resolve_vault_schema(self, tmp_path: Path):
-        """Resolving vault_schema returns the imported class."""
+    def test_with_options(self, tmp_path: Path):
+        """Source config with integration-specific options."""
         cfg = SourceConfig(
+            type="directory",
             source_path=tmp_path,
-            vault_schema="pathlib.Path",
+            options={"patterns": ["**/*.txt"], "encoding": "latin-1"},
         )
-        assert cfg.resolve_vault_schema() is Path
+        assert cfg.options["patterns"] == ["**/*.txt"]
+        assert cfg.options["encoding"] == "latin-1"
 
 
 class TestEmbeddingConfig:
@@ -106,21 +104,16 @@ class TestPipelineConfig:
     """Tests for PipelineConfig model."""
 
     def test_defaults(self):
-        """Default pipeline config has caching enabled with upserts."""
+        """Default pipeline config has reasonable chunking defaults."""
         cfg = PipelineConfig()
-        assert cfg.cache_enabled is True
-        assert cfg.docstore_strategy == "upserts"
+        assert cfg.splitter_chunk_size == 768
+        assert cfg.splitter_chunk_overlap == 96
 
-    def test_disabled_cache(self):
-        """Cache can be disabled."""
-        cfg = PipelineConfig(cache_enabled=False)
-        assert cfg.cache_enabled is False
-
-    def test_strategy_options(self):
-        """All strategy options are accepted."""
-        for strategy in ("upserts", "duplicates_only", "upserts_and_delete"):
-            cfg = PipelineConfig(docstore_strategy=strategy)
-            assert cfg.docstore_strategy == strategy
+    def test_custom_chunking(self):
+        """Can specify custom chunking parameters."""
+        cfg = PipelineConfig(splitter_chunk_size=1024, splitter_chunk_overlap=128)
+        assert cfg.splitter_chunk_size == 1024
+        assert cfg.splitter_chunk_overlap == 128
 
 
 class TestDatasetJob:
@@ -133,7 +126,7 @@ class TestDatasetJob:
         })
         assert job.source.source_path == tmp_path
         assert job.embedding is None
-        assert job.pipeline.cache_enabled is True
+        assert job.pipeline.splitter_chunk_size == 768
 
     def test_from_dict_full(self, tmp_path: Path):
         """Create DatasetJob from a full dict."""
@@ -142,7 +135,7 @@ class TestDatasetJob:
                 "type": "obsidian",
                 "source_path": str(tmp_path),
                 "dataset_name": "test-vault",
-                "vault_schema": "pathlib.Path",
+                "options": {"vault_schema": "pathlib.Path"},
                 "force": True,
             },
             "embedding": {
@@ -151,15 +144,15 @@ class TestDatasetJob:
                 "batch_size": 64,
             },
             "pipeline": {
-                "cache_enabled": False,
-                "docstore_strategy": "upserts_and_delete",
+                "splitter_chunk_size": 512,
+                "splitter_chunk_overlap": 64,
             },
         })
         assert job.source.dataset_name == "test-vault"
         assert job.source.force is True
+        assert job.source.options["vault_schema"] == "pathlib.Path"
         assert job.embedding.backend == "huggingface"
-        assert job.pipeline.cache_enabled is False
-        assert job.pipeline.docstore_strategy == "upserts_and_delete"
+        assert job.pipeline.splitter_chunk_size == 512
 
     def test_to_ingest_config(self, tmp_path: Path):
         """to_ingest_config produces an IngestObsidianConfig."""
@@ -203,7 +196,7 @@ class TestDatasetJob:
         job = DatasetJob.model_validate({
             "source": {
                 "source_path": str(vault_dir),
-                "vault_schema": "pathlib.Path",
+                "options": {"vault_schema": "pathlib.Path"},
             },
         })
         config = job.to_ingest_config()
@@ -273,6 +266,8 @@ source:
   source_path: {tmp_path}
   dataset_name: test-vault
   force: true
+  options:
+    vault_schema: pathlib.Path
 
 embedding:
   backend: huggingface
@@ -280,8 +275,8 @@ embedding:
   batch_size: 64
 
 pipeline:
-  cache_enabled: false
-  docstore_strategy: upserts_and_delete
+  splitter_chunk_size: 512
+  splitter_chunk_overlap: 64
 """
         config_file = tmp_path / "job.yaml"
         config_file.write_text(yaml_content)
@@ -289,9 +284,10 @@ pipeline:
         job = DatasetJob.from_yaml(config_file)
         assert job.source.dataset_name == "test-vault"
         assert job.source.force is True
+        assert job.source.options["vault_schema"] == "pathlib.Path"
         assert job.embedding.backend == "huggingface"
         assert job.embedding.batch_size == 64
-        assert job.pipeline.cache_enabled is False
+        assert job.pipeline.splitter_chunk_size == 512
 
     def test_missing_file_raises(self, tmp_path: Path):
         """Missing YAML file raises FileNotFoundError."""
@@ -316,19 +312,31 @@ embedding:
         assert job.source.dataset_name == "obsidian-vault"
 
 
-class TestPipelineConfigToStrategy:
-    """Tests for PipelineConfig docstore_strategy mapping."""
+class TestCreateIngestConfig:
+    """Tests for create_ingest_config registry."""
 
-    def test_strategy_mapping(self):
-        """docstore_strategy strings map to DocstoreStrategy enums."""
-        from llama_index.core.ingestion import DocstoreStrategy
+    def test_unknown_source_type_raises(self, tmp_path: Path):
+        """Unknown source type raises TypeError with available types."""
+        from catalog.ingest.sources import create_ingest_config
 
-        strategy_map = {
-            "upserts": DocstoreStrategy.UPSERTS,
-            "duplicates_only": DocstoreStrategy.DUPLICATES_ONLY,
-            "upserts_and_delete": DocstoreStrategy.UPSERTS_AND_DELETE,
-        }
+        cfg = SourceConfig(type="nonexistent", source_path=tmp_path)
+        with pytest.raises(TypeError, match="Unknown source type"):
+            create_ingest_config(cfg)
 
-        for name, expected in strategy_map.items():
-            cfg = PipelineConfig(docstore_strategy=name)
-            assert strategy_map[cfg.docstore_strategy] == expected
+    def test_directory_source_type(self, tmp_path: Path):
+        """Directory source type creates IngestDirectoryConfig."""
+        from catalog.ingest.sources import create_ingest_config
+        from catalog.ingest.schemas import IngestDirectoryConfig
+
+        cfg = SourceConfig(
+            type="directory",
+            source_path=tmp_path,
+            dataset_name="test-dir",
+            options={"patterns": ["**/*.txt"]},
+        )
+        config = create_ingest_config(cfg)
+
+        assert isinstance(config, IngestDirectoryConfig)
+        assert config.source_path == tmp_path
+        assert config.dataset_name == "test-dir"
+        assert config.patterns == ["**/*.txt"]

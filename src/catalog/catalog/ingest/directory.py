@@ -12,10 +12,44 @@ from pathlib import Path
 from agentlayer.logging import get_logger
 from llama_index.core import Document, SimpleDirectoryReader
 
-from catalog.ingest.sources import BaseSource, create_reader, create_source
+from typing import TYPE_CHECKING
+
+from catalog.ingest.sources import (
+    BaseSource,
+    create_reader,
+    create_source,
+    register_ingest_config_factory,
+)
 from catalog.ingest.schemas import IngestDirectoryConfig
 
+if TYPE_CHECKING:
+    from catalog.ingest.job import SourceConfig
+
 logger = get_logger(__name__)
+
+
+@register_ingest_config_factory("directory")
+def create_directory_ingest_config(source_config: "SourceConfig") -> IngestDirectoryConfig:
+    """Create IngestDirectoryConfig from generic SourceConfig.
+
+    Interprets directory-specific options:
+        - patterns: List of glob patterns (default: ["**/*.md"]).
+        - encoding: File encoding (default: "utf-8").
+
+    Args:
+        source_config: Generic source configuration from YAML job file.
+
+    Returns:
+        IngestDirectoryConfig instance ready for create_source().
+    """
+    return IngestDirectoryConfig(
+        source_path=source_config.source_path,
+        dataset_name=source_config.dataset_name or source_config.source_path.name,
+        force=source_config.force,
+        patterns=source_config.options.get("patterns", ["**/*.md"]),
+        encoding=source_config.options.get("encoding", "utf-8"),
+    )
+
 
 @create_source.register
 def _(config: IngestDirectoryConfig):
@@ -24,6 +58,8 @@ def _(config: IngestDirectoryConfig):
         patterns=config.patterns,
         encoding=config.encoding,
     )
+
+
 @create_reader.register
 def _(config: IngestDirectoryConfig):
     return SimpleDirectoryReader(

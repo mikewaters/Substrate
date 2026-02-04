@@ -2,7 +2,7 @@
 
 Defines Pydantic models for parameterized ingestion jobs loaded from YAML
 files via Hydra. A DatasetJob captures source, embedding, and pipeline
-caching settings, and can produce the corresponding IngestObsidianConfig
+caching settings, and can produce the corresponding ingest config
 and embedding model.
 
 Example YAML::
@@ -10,7 +10,8 @@ Example YAML::
     source:
       type: obsidian
       source_path: /Users/mike/Obsidian/MyVault
-      vault_schema: catalog.integrations.obsidian.vault_schema.VaultSchema
+      options:
+        vault_schema: catalog.integrations.obsidian.vault_schema.VaultSchema
 
     embedding:
       backend: mlx
@@ -18,8 +19,8 @@ Example YAML::
       batch_size: 32
 
     pipeline:
-      cache_enabled: true
-      docstore_strategy: upserts
+      splitter_chunk_size: 768
+      splitter_chunk_overlap: 96
 
 Example usage::
 
@@ -32,7 +33,7 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -41,13 +42,14 @@ from agentlayer.logging import get_logger
 if TYPE_CHECKING:
     from llama_index.core.embeddings import BaseEmbedding
 
-    from catalog.integrations.obsidian import IngestObsidianConfig
+    from catalog.ingest.schemas import DatasetIngestConfig
 
 __all__ = [
     "DatasetJob",
     "EmbeddingConfig",
     "PipelineConfig",
     "SourceConfig",
+    "_import_class",
 ]
 
 logger = get_logger(__name__)
@@ -78,23 +80,25 @@ def _import_class(dotted_path: str) -> type:
 
 
 class SourceConfig(BaseModel):
-    """Source configuration for a dataset job."""
+    """Source configuration for a dataset job.
 
-    type: Literal["obsidian"] = "obsidian"
+    Generic configuration that captures source type and an options dict.
+    Integration-specific details (e.g., vault_schema for obsidian) are
+    stored in options and interpreted by the registered factory.
+
+    Attributes:
+        type: Source type identifier (e.g., "obsidian", "directory").
+        source_path: Path to the source data.
+        dataset_name: Optional name for the dataset.
+        force: If True, reprocess all documents even if unchanged.
+        options: Integration-specific options dict.
+    """
+
+    type: str = "obsidian"
     source_path: Path
     dataset_name: str | None = None
-    vault_schema: str | None = None
     force: bool = False
-
-    def resolve_vault_schema(self) -> type | None:
-        """Resolve the vault_schema dotted path to an actual class.
-
-        Returns:
-            The resolved class, or None if vault_schema is not set.
-        """
-        if self.vault_schema is None:
-            return None
-        return _import_class(self.vault_schema)
+    options: dict[str, Any] = Field(default_factory=dict)
 
 
 class EmbeddingConfig(BaseModel):
@@ -158,27 +162,18 @@ class DatasetJob(BaseModel):
         raw = OmegaConf.to_container(cfg, resolve=True)
         return cls.model_validate(raw)
 
-    def to_ingest_config(self) -> IngestObsidianConfig:
-        """Convert to an IngestObsidianConfig.
+    def to_ingest_config(self) -> DatasetIngestConfig:
+        """Convert to an integration-specific ingest config.
 
-        Resolves ``vault_schema`` from dotted path to the actual class
-        and derives ``dataset_name`` from the vault folder name if not
-        explicitly set.
+        Uses the factory registry in sources.py to dispatch to the
+        appropriate integration based on source.type.
 
         Returns:
-            IngestObsidianConfig ready for use with DatasetIngestPipeline.
+            DatasetIngestConfig subclass for the configured source type.
         """
-        from catalog.integrations.obsidian import IngestObsidianConfig
+        from catalog.ingest.sources import create_ingest_config
 
-        dataset_name = self.source.dataset_name or self.source.source_path.name
-        vault_schema_cls = self.source.resolve_vault_schema()
-
-        return IngestObsidianConfig(
-            source_path=self.source.source_path,
-            dataset_name=dataset_name,
-            force=self.source.force,
-            vault_schema=vault_schema_cls,
-        )
+        return create_ingest_config(self.source)
 
     def create_embed_model(self) -> BaseEmbedding:
         """Create an embedding model from this job's config.

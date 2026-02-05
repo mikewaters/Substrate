@@ -95,7 +95,7 @@ class SourceConfig(BaseModel):
         options: Integration-specific options dict.
     """
 
-    type: str = "obsidian"
+    type: str #= "obsidian"
     source_path: Path
     dataset_name: str | None = None
     catalog_name: str | None = None

@@ -8,5 +8,12 @@
       <jdbc-url>jdbc:sqlite:$USER_HOME$/.idx/catalog.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="idx driver - content.db" uuid="23c297d4-f85d-449f-9c5f-fa620963914d">
+      <driver-ref>e8cbe37f-15ae-4a64-9847-9794abe9b10c</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$USER_HOME$/.idx/content.db</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

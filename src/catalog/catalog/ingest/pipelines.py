@@ -265,7 +265,7 @@ if __name__ == "__main__":
     if target.suffix in (".yaml", ".yml"):
         pipeline = DatasetIngestPipeline.from_config(target)
     else:
-        config = IngestObsidianConfig(source_path=target, force=force)
+        config = IngestObsidianConfig(source_path=target, force=force, catalog_name='pkm')
         pipeline = DatasetIngestPipeline(ingest_config=config)
 
     result = pipeline.ingest()

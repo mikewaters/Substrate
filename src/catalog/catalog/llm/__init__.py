@@ -10,14 +10,21 @@ Example:
     results = await reranker.rerank(query, search_results)
 """
 
-from catalog.llm.prompts import RERANK_PROMPT, RERANK_SYSTEM, format_rerank_prompt
+from catalog.llm.prompts import (
+    QUERY_EXPANSION_PROMPT,
+    QUERY_EXPANSION_SYSTEM,
+    RERANK_PROMPT,
+    RERANK_SYSTEM,
+    format_rerank_prompt,
+)
 from catalog.llm.provider import LLMProviderError, MLXProvider
 from catalog.llm.reranker import (
-                                 RerankConfig,
-                                 Reranker,
-                                 RerankScore,
-                                 blend_scores,
-                                 get_position_weight,
+    CachedReranker,
+    RerankConfig,
+    Reranker,
+    RerankScore,
+    blend_scores,
+    get_position_weight,
 )
 
 __all__ = [
@@ -25,12 +32,15 @@ __all__ = [
     "LLMProviderError",
     "MLXProvider",
     # Reranker
+    "CachedReranker",
     "RerankConfig",
     "RerankScore",
     "Reranker",
     "blend_scores",
     "get_position_weight",
     # Prompts
+    "QUERY_EXPANSION_PROMPT",
+    "QUERY_EXPANSION_SYSTEM",
     "RERANK_PROMPT",
     "RERANK_SYSTEM",
     "format_rerank_prompt",

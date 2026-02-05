@@ -17,11 +17,21 @@ Example usage:
     results = service.search(SearchCriteria(query="...", mode="fts"))
 """
 
+from catalog.search.formatting import Snippet, extract_snippet
 from catalog.search.fts import FTSSearch
 from catalog.search.fts_chunk import FTSChunkRetriever
+from catalog.search.hybrid_v2 import HybridRetrieverV2, WeightedRRFRetriever
 from catalog.search.models import SearchCriteria, SearchResult, SearchResults
+from catalog.search.postprocessors import (
+    KeywordChunkSelector,
+    PerDocDedupePostprocessor,
+    ScoreNormalizerPostprocessor,
+    TopRankBonusPostprocessor,
+)
+from catalog.search.query_expansion import QueryExpansionResult, QueryExpansionTransform
 from catalog.search.rerank import Reranker
 from catalog.search.service import SearchService
+from catalog.search.service_v2 import SearchServiceV2, search_v2
 
 
 def search(
@@ -62,11 +72,23 @@ def search(
 
 __all__ = [
     "search",
+    "search_v2",
+    "extract_snippet",
     "FTSChunkRetriever",
     "FTSSearch",
+    "HybridRetrieverV2",
+    "KeywordChunkSelector",
+    "PerDocDedupePostprocessor",
+    "QueryExpansionResult",
+    "QueryExpansionTransform",
     "Reranker",
+    "ScoreNormalizerPostprocessor",
     "SearchCriteria",
     "SearchResult",
     "SearchResults",
     "SearchService",
+    "SearchServiceV2",
+    "Snippet",
+    "TopRankBonusPostprocessor",
+    "WeightedRRFRetriever",
 ]

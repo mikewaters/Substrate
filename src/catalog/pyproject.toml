@@ -15,6 +15,7 @@ dependencies = [
     "omegaconf>=2.3",
     "llama-index-vector-stores-qdrant>=0.9.1",
     "qdrant-client>=1.16.2",
+    "typer>=0.21.1",
 ]
 
 [build-system]
@@ -30,6 +31,9 @@ packages = [
 addopts = [
     "--ignore=catalog/tests/idx/scenario"
 ]
+
+[project.scripts]
+catalog = "catalog.cli:main"
 
 [dependency-groups]
 dev = [

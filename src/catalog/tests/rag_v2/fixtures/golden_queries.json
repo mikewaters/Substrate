@@ -1,0 +1,174 @@
+{
+  "version": "1.0",
+  "description": "Golden queries for RAG v2 evaluation across difficulty categories",
+  "queries": [
+    {
+      "query": "ChatGPT API documentation",
+      "expected_docs": ["LabelFiles/ChatGPT.md"],
+      "difficulty": "easy",
+      "retriever_types": ["bm25", "vector", "hybrid"],
+      "notes": "Direct keyword match on product name and documentation term"
+    },
+    {
+      "query": "iOS lockdown mode security",
+      "expected_docs": ["LabelFiles/iOS Security Posture.md"],
+      "difficulty": "easy",
+      "retriever_types": ["bm25", "vector", "hybrid"],
+      "notes": "Direct keyword match on platform and security feature"
+    },
+    {
+      "query": "ADHD task initiation factors",
+      "expected_docs": ["LabelFiles/ADHD & Task Initiation.md"],
+      "difficulty": "easy",
+      "retriever_types": ["bm25", "vector", "hybrid"],
+      "notes": "Direct keyword match on condition and behavior"
+    },
+    {
+      "query": "Home Assistant device support",
+      "expected_docs": ["LabelFiles/Home Assistant.md"],
+      "difficulty": "easy",
+      "retriever_types": ["bm25", "vector", "hybrid"],
+      "notes": "Direct keyword match on smart home platform name"
+    },
+    {
+      "query": "RAG retrieval augmented generation",
+      "expected_docs": ["LabelFiles/RAG.md"],
+      "difficulty": "easy",
+      "retriever_types": ["bm25", "vector", "hybrid"],
+      "notes": "Direct keyword match on technical acronym"
+    },
+    {
+      "query": "Autogen Microsoft framework",
+      "expected_docs": ["LabelFiles/Autogen framework.md"],
+      "difficulty": "easy",
+      "retriever_types": ["bm25", "vector", "hybrid"],
+      "notes": "Direct keyword match on framework name and organization"
+    },
+    {
+      "query": "how to organize personal information effectively",
+      "expected_docs": ["LabelFiles/Personal Knowledge Management.md"],
+      "difficulty": "medium",
+      "retriever_types": ["vector", "hybrid"],
+      "notes": "Semantic match - query describes concept without using PKM terminology"
+    },
+    {
+      "query": "strategies for losing weight with medication",
+      "expected_docs": ["LabelFiles/Weight Loss Strategy.md"],
+      "difficulty": "medium",
+      "retriever_types": ["vector", "hybrid"],
+      "notes": "Semantic match - query about health goals maps to strategy document"
+    },
+    {
+      "query": "protecting iPhone from hackers",
+      "expected_docs": ["LabelFiles/iOS Security Posture.md"],
+      "difficulty": "medium",
+      "retriever_types": ["vector", "hybrid"],
+      "notes": "Semantic match - informal security query maps to formal security document"
+    },
+    {
+      "query": "trouble starting tasks with attention issues",
+      "expected_docs": ["LabelFiles/ADHD & Task Initiation.md"],
+      "difficulty": "medium",
+      "retriever_types": ["vector", "hybrid"],
+      "notes": "Semantic match - describes symptoms without using clinical terminology"
+    },
+    {
+      "query": "connecting AI to external knowledge sources",
+      "expected_docs": ["LabelFiles/RAG.md"],
+      "difficulty": "medium",
+      "retriever_types": ["vector", "hybrid"],
+      "notes": "Semantic match - describes RAG concept without using the term"
+    },
+    {
+      "query": "building multi-agent AI systems",
+      "expected_docs": ["LabelFiles/Autogen framework.md"],
+      "difficulty": "medium",
+      "retriever_types": ["vector", "hybrid"],
+      "notes": "Semantic match - describes autogen use case without naming framework"
+    },
+    {
+      "query": "that document about categorizing things",
+      "expected_docs": ["LabelFiles/Ontology.md"],
+      "difficulty": "hard",
+      "retriever_types": ["hybrid"],
+      "notes": "Vague reference - requires understanding ontology is about classification"
+    },
+    {
+      "query": "my notes on the OpenAI chatbot",
+      "expected_docs": ["LabelFiles/ChatGPT.md"],
+      "difficulty": "hard",
+      "retriever_types": ["hybrid"],
+      "notes": "Vague reference - requires mapping chatbot to ChatGPT"
+    },
+    {
+      "query": "something about smart home automation",
+      "expected_docs": ["LabelFiles/Home Assistant.md"],
+      "difficulty": "hard",
+      "retriever_types": ["hybrid"],
+      "notes": "Vague reference - generic smart home query"
+    },
+    {
+      "query": "that health document about habits",
+      "expected_docs": ["LabelFiles/Weight Loss Strategy.md"],
+      "difficulty": "hard",
+      "retriever_types": ["hybrid"],
+      "notes": "Vague reference - requires connecting habits to weight loss document"
+    },
+    {
+      "query": "notes on machine learning models",
+      "expected_docs": ["LabelFiles/HuggingFace.md"],
+      "difficulty": "hard",
+      "retriever_types": ["hybrid"],
+      "notes": "Vague reference - requires mapping ML models to HuggingFace platform"
+    },
+    {
+      "query": "document about knowledge organization system",
+      "expected_docs": ["LabelFiles/Personal Knowledge Management.md"],
+      "difficulty": "hard",
+      "retriever_types": ["hybrid"],
+      "notes": "Vague reference - generic description of PKM concept"
+    },
+    {
+      "query": "ADHD executive function barriers",
+      "expected_docs": ["LabelFiles/ADHD & Task Initiation.md"],
+      "difficulty": "fusion",
+      "retriever_types": ["hybrid"],
+      "notes": "Requires both keyword ADHD and semantic understanding of executive function relation to task initiation"
+    },
+    {
+      "query": "PKM second brain methodology",
+      "expected_docs": ["LabelFiles/Personal Knowledge Management.md"],
+      "difficulty": "fusion",
+      "retriever_types": ["hybrid"],
+      "notes": "Requires keyword PKM and semantic understanding that second brain relates to knowledge management"
+    },
+    {
+      "query": "iOS privacy hardening configuration",
+      "expected_docs": ["LabelFiles/iOS Security Posture.md"],
+      "difficulty": "fusion",
+      "retriever_types": ["hybrid"],
+      "notes": "Requires keyword iOS and semantic mapping of hardening to lockdown mode"
+    },
+    {
+      "query": "ChatGPT integration API endpoints",
+      "expected_docs": ["LabelFiles/ChatGPT.md"],
+      "difficulty": "fusion",
+      "retriever_types": ["hybrid"],
+      "notes": "Requires keyword match on ChatGPT and semantic understanding of API documentation"
+    },
+    {
+      "query": "RAG vector database retrieval patterns",
+      "expected_docs": ["LabelFiles/RAG.md"],
+      "difficulty": "fusion",
+      "retriever_types": ["hybrid"],
+      "notes": "Requires keyword RAG and semantic understanding of retrieval architecture"
+    },
+    {
+      "query": "weight management behavioral change approach",
+      "expected_docs": ["LabelFiles/Weight Loss Strategy.md"],
+      "difficulty": "fusion",
+      "retriever_types": ["hybrid"],
+      "notes": "Requires partial keyword match on weight and semantic understanding of habit change"
+    }
+  ]
+}

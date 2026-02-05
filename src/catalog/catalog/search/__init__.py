@@ -17,6 +17,7 @@ Example usage:
     results = service.search(SearchCriteria(query="...", mode="fts"))
 """
 
+from catalog.search.comparison import ComparisonResult, SearchComparison
 from catalog.search.formatting import Snippet, extract_snippet
 from catalog.search.fts import FTSSearch
 from catalog.search.fts_chunk import FTSChunkRetriever
@@ -73,6 +74,7 @@ def search(
 __all__ = [
     "search",
     "search_v2",
+    "ComparisonResult",
     "extract_snippet",
     "FTSChunkRetriever",
     "FTSSearch",
@@ -83,6 +85,7 @@ __all__ = [
     "QueryExpansionTransform",
     "Reranker",
     "ScoreNormalizerPostprocessor",
+    "SearchComparison",
     "SearchCriteria",
     "SearchResult",
     "SearchResults",

@@ -12,8 +12,8 @@ Pipeline flow (via LlamaIndex IngestionPipeline):
 5. embed_model (generate embeddings)
 
 Change detection uses PersistenceTransform's SHA-256 content hash
-against the database. LlamaIndex's docstore provides a supplementary
-cache layer when loaded from disk.
+against the database. Unchanged documents are skipped but still passed
+through for vector embedding if needed.
 """
 
 from __future__ import annotations
@@ -31,8 +31,9 @@ from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.core.embeddings import BaseEmbedding
 from llama_index.core import Document
 
+from catalog.store.vector import VectorStoreManager
 from catalog.embedding import get_embed_model
-from catalog.ingest.cache import clear_cache, load_pipeline, persist_pipeline
+from catalog.ingest.cache import clear_cache
 from catalog.ingest.job import DatasetJob
 from catalog.ingest.schemas import IngestResult, DatasetIngestConfig
 from catalog.integrations.obsidian import IngestObsidianConfig
@@ -56,26 +57,50 @@ __all__ = [
 
 logger = get_logger(__name__)
 
-
-class IngestedDataset(BaseModel):
-    dataset: DatasetInfo
-    nodes: list[Document]
 class DatasetIngestPipeline(BaseModel):
     """Dataset ingestion pipeline.
-    Interface:
-        - documents
 
     Entry points:
-        - ingest_dataset
-        - ingest_from_config
+        - ingest_dataset(config) - Takes config as argument
+        - ingest() - Uses self.ingest_config
+
+    Attributes:
+        ingest_config: Optional configuration. Required for ingest(), not for ingest_dataset().
+        embed_model: Embedding model for generating vectors.
+        chunk_size: Size of text chunks for embedding.
+        chunk_overlap: Overlap between adjacent chunks.
     """
-    ingest_config: DatasetIngestConfig
+    ingest_config: Optional[DatasetIngestConfig] #= None
     embed_model: Optional[BaseEmbedding] = Field(default_factory=get_embed_model)
     chunk_size: Optional[int] = Field(default=768)
     chunk_overlap: Optional[int] = Field(default=96)
 
-    def create_dataset(self):
-        """Create a new dataset in the catalog and populate it with documents."""
+    @cached_property
+    def source(self) -> BaseSource:
+        """Create the source from self.ingest_config."""
+        #if self.ingest_config is None:
+        #    raise ValueError("ingest_config is required when using source property")
+        return create_source(self.ingest_config)
+
+    def _cache_key(self, dataset_name: str) -> str:
+        """Generate a cache key for a dataset."""
+        return f"{dataset_name}"
+
+    def ingest(self) -> IngestResult:
+        """Ingest documents from a local directory, and extracts metadata.
+
+        Requires self.ingest_config to be set. Use ingest_dataset(config) to
+        pass config as an argument.
+
+        Returns:
+            IngestResult with statistics about the operation.
+
+        Raises:
+            ValueError: If ingest_config is not set.
+        """
+        if self.ingest_config is None:
+            raise ValueError("ingest_config is required. Use ingest_dataset(config) instead.")
+
         started_at = datetime.now(tz=timezone.utc)
 
         logger.info(
@@ -95,13 +120,28 @@ class DatasetIngestPipeline(BaseModel):
                     create_fts_table(engine)  # type: ignore
                     create_chunks_fts_table(engine)  # type: ignore
 
+                # Get a reference to this source's dataset
+                non_normalized_source_name = self.ingest_config.dataset_name
                 dataset = DatasetService.create_or_update(
                     session,
-                    self.ingest_config.dataset_name,
+                    non_normalized_source_name,
                     source_type=self.source.type_name,
                     source_path=str(self.source.path),
                 )
 
+                # Handle "forced" ingestion, which will affect both ingestion passes
+                vector_manager = VectorStoreManager()
+
+                if self.ingest_config.force:
+                    deleted = vector_manager.delete_by_dataset(dataset.name)
+                    if deleted > 0:
+                        logger.info(f"Force mode: clearing cache for dataset '{dataset.name}'")
+                    clear_cache(self._cache_key(dataset.name))
+
+                if self.embed_model is None:
+                    self.embed_model = get_embed_model()
+
+                # Define the pipeline dependencies
                 persist = PersistenceTransform(
                     dataset_id=dataset.id,
                     force=self.ingest_config.force,
@@ -109,30 +149,36 @@ class DatasetIngestPipeline(BaseModel):
                 chunk_persist = ChunkPersistenceTransform(
                     dataset_name=dataset.name,
                 )
-                if self.ingest_config.force:
-                    logger.info(f"Force mode: clearing cache for dataset '{dataset.name}'")
-                    clear_cache(self.cache_key(dataset.name))
+                splitter = SentenceSplitter(
+                    chunk_size=self.chunk_size,
+                    chunk_overlap=self.chunk_overlap,
+                )
 
                 # Grab any source-specific transformations to apply pre- or post-persistence
+                # :returns: two-tuple of (pre-persist, post-persist) transformations
                 source_transforms = self.source.get_transforms(dataset_id=dataset.id)
+
                 transformations = [
                     *source_transforms[0],
                     persist,
                     *source_transforms[1],
-                    # chunk_persist,
+                    splitter,
+                    chunk_persist,
+                    self.embed_model,
                 ]
 
                 ingest_pipeline = IngestionPipeline(
                     transformations=transformations,
-                    docstore=self.docstore,
-                    docstore_strategy=DocstoreStrategy.UPSERTS_AND_DELETE,
+                    docstore=SimpleDocumentStore(),
+                    # Use DUPLICATES_ONLY to prevent docstore from filtering documents.
+                    # PersistenceTransform handles dedup via database hash comparison.
+                    # We don't load cached docstore, so all docs flow through transforms.
+                    docstore_strategy=DocstoreStrategy.DUPLICATES_ONLY,
+                    vector_store=vector_manager.get_vector_store()
                 )
-                load_pipeline(self.cache_key(dataset.name), ingest_pipeline)
 
                 logger.info(f"Running {len(self.source.documents)} documents through pipeline")
                 nodes = ingest_pipeline.run(documents=self.source.documents)
-
-                persist_pipeline(self.cache_key(dataset.name), ingest_pipeline)
 
                 result.documents_created = persist.stats.created
                 result.documents_updated = persist.stats.updated
@@ -144,81 +190,23 @@ class DatasetIngestPipeline(BaseModel):
                 result.dataset_id = dataset.id
                 result.dataset_name = dataset.name
 
-                return result, dataset, nodes
+                result.vectors_inserted = len(nodes) if nodes else 0
 
-    def cache_key(self, dataset_name) -> str:
-        return f"{dataset_name}"
+                vector_manager.persist_vector_store()
 
-    @cached_property
-    def docstore(self) -> SimpleDocumentStore:
-        """Create the document store from the ingest configuration."""
-        return SimpleDocumentStore()
+                result.completed_at = datetime.now(tz=timezone.utc)
 
-    @cached_property
-    def source(self) -> BaseSource:
-        """Create the source from the ingest configuration."""
-        return create_source(self.ingest_config)
+                logger.info(
+                    f"Ingestion complete: "
+                    f"created={result.documents_created}, "
+                    f"updated={result.documents_updated}, "
+                    f"skipped={result.documents_skipped}, "
+                    f"failed={result.documents_failed}, "
+                    f"chunks={result.chunks_created}, "
+                    f"vectors={result.vectors_inserted}"
+                )
 
-    def ingest(self) -> IngestResult:
-        """Ingest documents from a local directory, and extracts metadata."""
-
-        result, dataset, documents = self.create_dataset()
-        breakpoint()
-        splitter = SentenceSplitter(
-            chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap,
-        )
-        # Handle "forced" ingestion, which will affect both ingestion passes
-        from catalog.store.vector import VectorStoreManager
-        vector_manager = VectorStoreManager()
-
-        if self.ingest_config.force:
-            deleted = vector_manager.delete_by_dataset(dataset.name)
-            if deleted > 0:
-                logger.info(f"Cleared {deleted} vectors for dataset '{dataset.name}'")
-
-        if self.embed_model is None:
-            self.embed_model = get_embed_model()
-
-        # Grab any source-specific transformations to apply pre- or post-persistence
-        transformations = [
-            splitter,
-            self.embed_model,
-        ]
-
-        ingest_pipeline = IngestionPipeline(
-            transformations=transformations,
-            docstore=self.docstore,
-            docstore_strategy=DocstoreStrategy.UPSERTS_AND_DELETE,
-            vector_store=vector_manager.get_vector_store()
-        )
-
-        # Reload previous docstore state so LlamaIndex can skip
-        # unchanged documents before they reach any transforms.
-        load_pipeline(self.cache_key(dataset.name), ingest_pipeline)
-
-        logger.info(f"Running {len(documents)} documents through pipeline")
-        nodes = ingest_pipeline.run(documents=documents)
-
-        persist_pipeline(self.cache_key(dataset.name), ingest_pipeline)
-
-        result.vectors_inserted = len(nodes) if nodes else 0
-
-        vector_manager.persist_vector_store()
-
-        result.completed_at = datetime.now(tz=timezone.utc)
-
-        logger.info(
-            f"Ingestion complete: "
-            f"created={result.documents_created}, "
-            f"updated={result.documents_updated}, "
-            f"skipped={result.documents_skipped}, "
-            f"failed={result.documents_failed}, "
-            f"chunks={result.chunks_created}, "
-            f"vectors={result.vectors_inserted}"
-        )
-
-        return result
+                return result
 
     @classmethod
     def from_config(cls, config_path: Path) -> DatasetIngestPipeline:
@@ -251,19 +239,19 @@ if __name__ == "__main__":
     import sys
     configure_logging(level="DEBUG")
     if len(sys.argv) < 2:
-        print("Usage: python -m catalog.ingest.pipelines <source_dir_or_yaml>")
+        print("Usage: python -m catalog.ingest.pipelines <source_dir_or_yaml> [--force]")
         sys.exit(1)
 
     from pathlib import Path
 
-    target = Path(sys.argv[1])
-
+    force = "--force" in sys.argv
+    args = [a for a in sys.argv[1:] if a != "--force"]
+    target = Path(args[0])
 
     if target.suffix in (".yaml", ".yml"):
         pipeline = DatasetIngestPipeline.from_config(target)
     else:
-
-        config = IngestObsidianConfig(source_path=target)
+        config = IngestObsidianConfig(source_path=target, force=force)
         pipeline = DatasetIngestPipeline(ingest_config=config)
 
     result = pipeline.ingest()

@@ -413,31 +413,24 @@ class VectorStoreManager:
         prefix = f"{dataset_name}:"
         deleted_count = 0
 
-        # Get all node IDs that match the dataset prefix
-        # SimpleVectorStore stores data in embedding_dict keyed by node_id
-        # We need to find nodes by examining the docstore or metadata
-        if self._index is None:
-            # Try to load the index to access the docstore
-            try:
-                self.load_or_create()
-            except Exception as e:
-                logger.warning(f"Could not load index for deletion: {e}")
-                return 0
-
-        if self._index is not None:
-            # Get ref_doc_info which maps ref_doc_id to node_ids
-            ref_doc_info = self._index.ref_doc_info
-            node_ids_to_delete = []
-
-            for ref_doc_id, info in ref_doc_info.items():
-                if ref_doc_id.startswith(prefix):
-                    node_ids_to_delete.extend(info.node_ids)
+        # SimpleVectorStore with stores_text=True uses text_id_to_ref_doc_id mapping
+        # We can iterate this to find nodes by dataset prefix
+        if hasattr(vector_store, "text_id_to_ref_doc_id"):
+            text_id_to_ref = vector_store.text_id_to_ref_doc_id
+            node_ids_to_delete = [
+                text_id for text_id, ref_doc_id in text_id_to_ref.items()
+                if ref_doc_id.startswith(prefix)
+            ]
 
             if node_ids_to_delete:
                 logger.debug(
                     f"Deleting {len(node_ids_to_delete)} nodes for dataset '{dataset_name}'"
                 )
-                self._index.delete_nodes(node_ids_to_delete)
+                # Delete from embedding_dict and text_id_to_ref_doc_id
+                for node_id in node_ids_to_delete:
+                    vector_store.embedding_dict.pop(node_id, None)
+                    vector_store.text_id_to_ref_doc_id.pop(node_id, None)
+
                 deleted_count = len(node_ids_to_delete)
                 logger.info(
                     f"Deleted {deleted_count} vectors for dataset '{dataset_name}'"

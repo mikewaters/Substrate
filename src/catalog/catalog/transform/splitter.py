@@ -1,17 +1,19 @@
-"""catalog.transform.splitter - Size-aware chunk splitting transform.
+"""catalog.transform.splitter - Chunk splitting transforms for RAG pipelines.
 
-Provides a LlamaIndex TransformComponent that conditionally splits oversized
-nodes using SentenceSplitter as a fallback mechanism.
+Provides LlamaIndex TransformComponent classes for text chunking:
+- SizeAwareChunkSplitter: Conditionally splits oversized nodes
+- ResilientSplitter: Token-based primary with char-based fallback
 
 Example usage:
     from llama_index.core.ingestion import IngestionPipeline
     from llama_index.core.node_parser import MarkdownNodeParser
-    from catalog.transform.splitter import SizeAwareChunkSplitter
+    from catalog.transform.splitter import ResilientSplitter, SizeAwareChunkSplitter
 
+    # ResilientSplitter for token-based chunking with fallback
     pipeline = IngestionPipeline(
         transformations=[
             MarkdownNodeParser(),
-            SizeAwareChunkSplitter(max_chars=2000),
+            ResilientSplitter(),  # Uses RAGv2Settings defaults
         ]
     )
     nodes = pipeline.run(documents=documents)
@@ -20,12 +22,147 @@ Example usage:
 from typing import Any
 
 from agentlayer.logging import get_logger
-from llama_index.core.node_parser import SentenceSplitter
+from llama_index.core.node_parser import SentenceSplitter, TokenTextSplitter
 from llama_index.core.schema import BaseNode, TransformComponent
 
-__all__ = ["SizeAwareChunkSplitter"]
+from catalog.core.settings import get_settings
+
+__all__ = ["ResilientSplitter", "SizeAwareChunkSplitter"]
 
 logger = get_logger(__name__)
+
+
+class ResilientSplitter(TransformComponent):
+    """Token-based text splitter with character-based fallback.
+
+    This TransformComponent uses TokenTextSplitter as the primary chunking
+    strategy, with SentenceSplitter as a fallback when tokenization fails.
+    This provides resilient chunking that handles edge cases like malformed
+    text or tokenizer errors gracefully.
+
+    The splitter reads defaults from RAGv2Settings and logs fallback events
+    for monitoring purposes.
+
+    Attributes:
+        chunk_size_tokens: Target chunk size in tokens for primary splitter.
+        chunk_overlap_tokens: Token overlap between chunks.
+        chars_per_token: Estimated characters per token for fallback calculation.
+        fallback_enabled: Whether to use char-based fallback on tokenizer errors.
+    """
+
+    chunk_size_tokens: int = 800
+    chunk_overlap_tokens: int = 120
+    chars_per_token: int = 4
+    fallback_enabled: bool = True
+
+    def __init__(
+        self,
+        chunk_size_tokens: int | None = None,
+        chunk_overlap_tokens: int | None = None,
+        chars_per_token: int | None = None,
+        fallback_enabled: bool | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """Initialize the resilient splitter.
+
+        Args:
+            chunk_size_tokens: Target chunk size in tokens. If None, reads from
+                settings.rag_v2.chunk_size.
+            chunk_overlap_tokens: Token overlap between chunks. If None, reads
+                from settings.rag_v2.chunk_overlap.
+            chars_per_token: Estimated characters per token for fallback
+                calculation. If None, reads from settings.rag_v2.chunk_chars_per_token.
+            fallback_enabled: Whether to use char-based fallback on tokenizer
+                errors. If None, reads from settings.rag_v2.chunk_fallback_enabled.
+            **kwargs: Additional arguments passed to TransformComponent.
+        """
+        super().__init__(**kwargs)
+
+        # Load defaults from settings if not provided
+        settings = get_settings()
+        rag_v2 = settings.rag_v2
+
+        self.chunk_size_tokens = (
+            chunk_size_tokens if chunk_size_tokens is not None else rag_v2.chunk_size
+        )
+        self.chunk_overlap_tokens = (
+            chunk_overlap_tokens
+            if chunk_overlap_tokens is not None
+            else rag_v2.chunk_overlap
+        )
+        self.chars_per_token = (
+            chars_per_token
+            if chars_per_token is not None
+            else rag_v2.chunk_chars_per_token
+        )
+        self.fallback_enabled = (
+            fallback_enabled
+            if fallback_enabled is not None
+            else rag_v2.chunk_fallback_enabled
+        )
+
+        # Initialize primary token-based splitter
+        self._token_splitter = TokenTextSplitter(
+            chunk_size=self.chunk_size_tokens,
+            chunk_overlap=self.chunk_overlap_tokens,
+        )
+
+        # Initialize fallback char-based splitter
+        fallback_chunk_size = self.chunk_size_tokens * self.chars_per_token
+        fallback_overlap = self.chunk_overlap_tokens * self.chars_per_token
+        self._char_splitter = SentenceSplitter(
+            chunk_size=fallback_chunk_size,
+            chunk_overlap=fallback_overlap,
+        )
+
+    def __call__(
+        self,
+        nodes: list[BaseNode],
+        **kwargs: Any,
+    ) -> list[BaseNode]:
+        """Process nodes through token-based splitting with fallback.
+
+        Attempts to split nodes using TokenTextSplitter. If tokenization fails
+        and fallback is enabled, uses SentenceSplitter as a character-based
+        fallback. Logs all fallback events for monitoring.
+
+        Args:
+            nodes: List of nodes to split.
+            **kwargs: Additional arguments (unused).
+
+        Returns:
+            List of split nodes.
+
+        Raises:
+            Exception: Re-raises tokenizer exceptions if fallback is disabled.
+        """
+        logger.info(f"ResilientSplitter: processing {len(nodes)} nodes")
+
+        try:
+            result = self._token_splitter(nodes, **kwargs)
+            logger.debug(
+                f"ResilientSplitter: token splitting succeeded, "
+                f"produced {len(result)} chunks"
+            )
+            return result
+        except Exception as e:
+            if not self.fallback_enabled:
+                logger.error(
+                    f"ResilientSplitter: token splitting failed and fallback disabled: {e}"
+                )
+                raise
+
+            logger.warning(
+                f"ResilientSplitter: token splitting failed, using char-based fallback. "
+                f"Error: {type(e).__name__}: {e}"
+            )
+
+            result = self._char_splitter(nodes, **kwargs)
+            logger.info(
+                f"ResilientSplitter: char-based fallback succeeded, "
+                f"produced {len(result)} chunks"
+            )
+            return result
 
 
 class SizeAwareChunkSplitter(TransformComponent):

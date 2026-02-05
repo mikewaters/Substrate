@@ -27,7 +27,13 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-__all__ = ["DatabasesSettings", "QdrantSettings", "Settings", "get_settings"]
+__all__ = [
+    "DatabasesSettings",
+    "QdrantSettings",
+    "RAGv2Settings",
+    "Settings",
+    "get_settings",
+]
 
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -170,6 +176,165 @@ class DatabasesSettings(BaseSettings):
     )
 
 
+class RAGv2Settings(BaseSettings):
+    """RAG v2 configuration with environment variable support.
+
+    Controls all v2 RAG behavior including chunking, embedding, query expansion,
+    RRF fusion, reranking, and caching. All settings can be overridden via
+    environment variables with the IDX_RAG_V2__ prefix.
+
+    Example:
+        IDX_RAG_V2__CHUNK_SIZE=1000
+        IDX_RAG_V2__RRF_K=80
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="IDX_RAG_V2__",
+        extra="ignore",
+    )
+
+    # Chunking
+    chunk_size: int = Field(
+        default=800,
+        ge=100,
+        description="Target chunk size in tokens",
+    )
+    chunk_overlap: int = Field(
+        default=120,
+        ge=0,
+        description="Token overlap between chunks",
+    )
+    chunk_fallback_enabled: bool = Field(
+        default=True,
+        description="Enable char-based fallback when tokenizer fails",
+    )
+    chunk_chars_per_token: int = Field(
+        default=4,
+        ge=1,
+        description="Estimated chars per token for fallback calculation",
+    )
+
+    # Embedding
+    embed_batch_size: int = Field(
+        default=32,
+        ge=1,
+        description="Batch size for embedding generation",
+    )
+    embed_fallback_enabled: bool = Field(
+        default=True,
+        description="Enable single-item fallback on batch embedding failure",
+    )
+    embed_prefix_query: str = Field(
+        default="task: search result | query: ",
+        description="Prefix for query embeddings (Nomic-style)",
+    )
+    embed_prefix_doc: str = Field(
+        default="title: {title} | text: ",
+        description="Prefix template for document embeddings (Nomic-style)",
+    )
+
+    # Query expansion
+    expansion_enabled: bool = Field(
+        default=True,
+        description="Enable LLM-powered query expansion",
+    )
+    expansion_max_lex: int = Field(
+        default=3,
+        ge=0,
+        le=5,
+        description="Maximum lexical (BM25) query expansions",
+    )
+    expansion_max_vec: int = Field(
+        default=3,
+        ge=0,
+        le=5,
+        description="Maximum semantic (vector) query expansions",
+    )
+    expansion_include_hyde: bool = Field(
+        default=True,
+        description="Include HyDE (hypothetical document) in expansion",
+    )
+
+    # RRF fusion
+    rrf_k: int = Field(
+        default=60,
+        ge=1,
+        description="RRF constant k (higher = more weight to lower ranks)",
+    )
+    rrf_original_weight: float = Field(
+        default=2.0,
+        ge=0.0,
+        description="Weight multiplier for original query results",
+    )
+    rrf_expansion_weight: float = Field(
+        default=1.0,
+        ge=0.0,
+        description="Weight multiplier for expansion query results",
+    )
+    rrf_rank1_bonus: float = Field(
+        default=0.05,
+        ge=0.0,
+        description="Score bonus for rank 1 results",
+    )
+    rrf_rank23_bonus: float = Field(
+        default=0.02,
+        ge=0.0,
+        description="Score bonus for rank 2-3 results",
+    )
+
+    # Reranking
+    rerank_top_n: int = Field(
+        default=10,
+        ge=1,
+        description="Number of results to return after reranking",
+    )
+    rerank_candidates: int = Field(
+        default=40,
+        ge=1,
+        description="Number of candidates to consider for reranking",
+    )
+    rerank_cache_enabled: bool = Field(
+        default=True,
+        description="Enable caching of rerank scores",
+    )
+
+    # Caching
+    cache_ttl_hours: int = Field(
+        default=168,
+        ge=1,
+        description="Cache TTL in hours (default 1 week)",
+    )
+
+    # Retrieval
+    vector_top_k: int = Field(
+        default=20,
+        ge=1,
+        description="Number of results from vector retriever",
+    )
+    fts_top_k: int = Field(
+        default=20,
+        ge=1,
+        description="Number of results from FTS retriever",
+    )
+    fusion_top_k: int = Field(
+        default=30,
+        ge=1,
+        description="Number of results after RRF fusion",
+    )
+
+    # Snippets
+    snippet_max_lines: int = Field(
+        default=10,
+        ge=1,
+        description="Maximum lines in snippet output",
+    )
+    snippet_context_lines: int = Field(
+        default=2,
+        ge=0,
+        description="Context lines around snippet",
+    )
+
+
 class Settings(BaseSettings):
     """Main configuration settings for the idx library.
 
@@ -247,6 +412,10 @@ class Settings(BaseSettings):
     qdrant: QdrantSettings = Field(
         default_factory=QdrantSettings,
         description="Qdrant vector store settings",
+    )
+    rag_v2: RAGv2Settings = Field(
+        default_factory=RAGv2Settings,
+        description="RAG v2 configuration (chunking, expansion, reranking, caching)",
     )
 
     def ensure_directories(self) -> None:

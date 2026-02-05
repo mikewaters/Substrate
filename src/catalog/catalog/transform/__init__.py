@@ -5,6 +5,7 @@ for persistence and indexing.
 """
 
 from catalog.transform.chunker import Chunk, ChunkerTransform, LineChunker
+from catalog.transform.embedding import EmbeddingPrefixTransform
 from catalog.transform.frontmatter import FrontmatterTransform
 from catalog.transform.llama import FTSIndexerTransform, TextNormalizerTransform
 from catalog.transform.normalize import (
@@ -15,15 +16,17 @@ from catalog.transform.normalize import (
                                      is_text_file,
                                      is_text_mime,
 )
-from catalog.transform.splitter import SizeAwareChunkSplitter
+from catalog.transform.splitter import ResilientSplitter, SizeAwareChunkSplitter
 
 __all__ = [
     "Chunk",
     "ChunkerTransform",
+    "EmbeddingPrefixTransform",
     "FTSIndexerTransform",
     "FrontmatterTransform",
     "LineChunker",
     "MimeDetector",
+    "ResilientSplitter",
     "SizeAwareChunkSplitter",
     "TextNormalizer",
     "TextNormalizerTransform",

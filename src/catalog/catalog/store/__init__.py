@@ -37,6 +37,7 @@ from catalog.store.fts_chunk import (
                                    create_chunks_fts_table,
                                    drop_chunks_fts_table,
 )
+from catalog.store.llm_cache import LLMCache, LLMCacheEntry
 from catalog.store.models import (
     Bookmark,
     BookmarkLink,
@@ -139,6 +140,9 @@ __all__ = [
     "FTSChunkResult",
     "create_chunks_fts_table",
     "drop_chunks_fts_table",
+    # LLM Cache
+    "LLMCache",
+    "LLMCacheEntry",
     # Cleanup
     "IndexCleanup",
     "cleanup_fts_for_document",

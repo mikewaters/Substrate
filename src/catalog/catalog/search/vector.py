@@ -1,6 +1,6 @@
 """catalog.search.vector - Vector similarity search implementation.
 
-Provides vector search using direct SimpleVectorStore queries with text
+Provides vector search using direct QdrantVectorStore queries with text
 lookup from SQLite. Supports optional dataset filtering via metadata.
 
 Example usage:
@@ -26,7 +26,7 @@ from catalog.search.models import SearchResult
 from catalog.store.vector import VectorStoreManager
 
 if TYPE_CHECKING:
-    from llama_index.core.vector_stores import SimpleVectorStore
+    from llama_index.vector_stores.qdrant import QdrantVectorStore
 
 __all__ = ["VectorSearch"]
 
@@ -34,14 +34,14 @@ logger = get_logger(__name__)
 
 
 class VectorSearch:
-    """Vector similarity search using direct SimpleVectorStore queries.
+    """Vector similarity search using direct QdrantVectorStore queries.
 
     Queries the vector store directly and looks up chunk text from SQLite.
     This approach works regardless of LlamaIndex's docstore state.
 
     Attributes:
         _vector_manager: VectorStoreManager instance for vector store access.
-        _vector_store: Cached SimpleVectorStore, loaded lazily.
+        _vector_store: Cached QdrantVectorStore, loaded lazily.
         _embed_model: Embedding model for query vectorization.
 
     Example:
@@ -69,14 +69,14 @@ class VectorSearch:
                 If None, creates a new VectorStoreManager with default settings.
         """
         self._vector_manager = vector_manager or VectorStoreManager()
-        self._vector_store: "SimpleVectorStore | None" = None
+        self._vector_store: "QdrantVectorStore | None" = None
         self._embed_model = None
 
-    def _ensure_vector_store(self) -> "SimpleVectorStore":
+    def _ensure_vector_store(self) -> "QdrantVectorStore":
         """Ensure the vector store is loaded.
 
         Returns:
-            SimpleVectorStore ready for queries.
+            QdrantVectorStore ready for queries.
         """
         if self._vector_store is None:
             logger.debug("Lazy-loading vector store")
@@ -148,6 +148,7 @@ class VectorSearch:
             - scores: Dict with "vector" key containing similarity score
         """
         from llama_index.core.vector_stores import VectorStoreQuery
+        from llama_index.core.vector_stores.types import FilterCondition, MetadataFilter, MetadataFilters
 
         vector_store = self._ensure_vector_store()
         embed_model = self._ensure_embed_model()
@@ -155,12 +156,24 @@ class VectorSearch:
         # Generate query embedding
         query_embedding = embed_model.get_query_embedding(query)
 
+        # Build filters for Qdrant if dataset_name is specified
+        filters = None
+        if dataset_name:
+            filters = MetadataFilters(
+                filters=[
+                    MetadataFilter(
+                        key="dataset_name",
+                        value=dataset_name,
+                    )
+                ],
+                condition=FilterCondition.AND,
+            )
+
         # Query vector store directly
-        # Request more results than needed if filtering, to account for filtered-out items
-        fetch_k = top_k * 3 if dataset_name else top_k
         vs_query = VectorStoreQuery(
             query_embedding=query_embedding,
-            similarity_top_k=fetch_k,
+            similarity_top_k=top_k,
+            filters=filters,
         )
         result = vector_store.query(vs_query)
 
@@ -171,23 +184,24 @@ class VectorSearch:
         # Look up chunk text from SQLite
         chunk_texts = self._lookup_chunk_text(result.ids)
 
-        # Build results from vector store metadata and SQLite text
+        # Build results from query result nodes
         results = []
         for i, node_id in enumerate(result.ids):
             score = result.similarities[i] if result.similarities else 0.0
-            metadata = vector_store.data.metadata_dict.get(node_id, {})
+
+            # Get metadata from the result nodes
+            metadata = {}
+            if result.nodes and i < len(result.nodes):
+                node = result.nodes[i]
+                metadata = node.metadata if hasattr(node, "metadata") and node.metadata else {}
 
             # Extract source_doc_id and parse dataset_name and path
             source_doc_id = metadata.get("source_doc_id", "")
             if ":" in source_doc_id:
                 ds_name, path = source_doc_id.split(":", 1)
             else:
-                ds_name = ""
+                ds_name = metadata.get("dataset_name", "")
                 path = metadata.get("relative_path", "")
-
-            # Apply dataset filter if specified
-            if dataset_name and ds_name != dataset_name:
-                continue
 
             # Get chunk text from SQLite lookup
             chunk_text = chunk_texts.get(node_id, "")
@@ -201,7 +215,7 @@ class VectorSearch:
                 k: v
                 for k, v in metadata.items()
                 if k not in ("source_doc_id", "chunk_seq", "chunk_pos", "doc_id",
-                           "_node_type", "document_id", "ref_doc_id")
+                           "_node_type", "document_id", "ref_doc_id", "dataset_name")
             }
 
             results.append(
@@ -216,10 +230,6 @@ class VectorSearch:
                     scores={"vector": score},
                 )
             )
-
-            # Stop if we have enough results
-            if len(results) >= top_k:
-                break
 
         logger.debug(
             f"Vector search '{query[:50]}...' returned {len(results)} results"

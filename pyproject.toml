@@ -16,6 +16,8 @@ dependencies = [
     #"advanced-alchemy"
     "advanced_alchemy@{root:uri}/src/advanced-alchemy",
     "llama-index-legacy>=0.9.48.post4",
+    "qdrant-client>=1.16.2",
+    "llama-index-vector-stores-qdrant>=0.9.1",
 ]
 
 [project.scripts]

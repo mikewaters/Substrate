@@ -843,6 +843,7 @@ class ChunkPersistenceTransform(TransformComponent):
 
         # Set metadata fields
         node.metadata["source_doc_id"] = source_doc_id
+        node.metadata["dataset_name"] = self._dataset_name
         node.metadata["chunk_seq"] = chunk_seq
         if doc_id is not None:
             node.metadata["doc_id"] = doc_id

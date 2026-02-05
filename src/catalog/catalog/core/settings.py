@@ -27,7 +27,7 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-__all__ = ["DatabasesSettings", "Settings", "get_settings"]
+__all__ = ["DatabasesSettings", "QdrantSettings", "Settings", "get_settings"]
 
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -88,6 +88,11 @@ class EmbeddingSettings(BaseSettings):
         ge=1,
         description="Batch size for embedding generation",
     )
+    embedding_dim: int = Field(
+        default=384,
+        ge=1,
+        description="Embedding vector dimension (384 for MiniLM-L6-v2)",
+    )
 
 
 class PerformanceSettings(BaseSettings):
@@ -122,6 +127,24 @@ class PerformanceSettings(BaseSettings):
         default=128,
         ge=1,
         description="Minimum bytes per chunk (fragments smaller than this are merged)",
+    )
+
+
+class QdrantSettings(BaseSettings):
+    """Qdrant vector store configuration.
+
+    Controls the Qdrant collection settings for vector storage.
+    Uses local persistent mode by default (path from Settings.vector_store_path).
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="IDX_QDRANT_",
+        extra="ignore",
+    )
+
+    collection_name: str = Field(
+        default="catalog_vectors",
+        description="Qdrant collection name for vector storage",
     )
 
 
@@ -220,6 +243,10 @@ class Settings(BaseSettings):
     performance: PerformanceSettings = Field(
         default_factory=PerformanceSettings,
         description="Default performance settings",
+    )
+    qdrant: QdrantSettings = Field(
+        default_factory=QdrantSettings,
+        description="Qdrant vector store settings",
     )
 
     def ensure_directories(self) -> None:

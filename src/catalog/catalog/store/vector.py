@@ -1,8 +1,7 @@
-"""catalog.store.vector - Vector store management using LlamaIndex.
+"""catalog.store.vector - Vector store management using Qdrant.
 
-Provides vector storage and retrieval capabilities using LlamaIndex's
-SimpleVectorStore with StorageContext for persistence. Embeddings are
-generated using HuggingFace models.
+Provides vector storage and retrieval capabilities using Qdrant in local
+persistent mode via LlamaIndex's QdrantVectorStore integration.
 
 Example usage:
     from catalog.store.vector import VectorStoreManager
@@ -10,14 +9,16 @@ Example usage:
     manager = VectorStoreManager()
     index = manager.load_or_create()
     manager.insert_nodes([node1, node2])
-    manager.persist()
     retriever = manager.get_retriever(similarity_top_k=10)
 """
 
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import qdrant_client
+from qdrant_client.models import Distance, FieldCondition, Filter, MatchValue, VectorParams
 from agentlayer.logging import get_logger
+from llama_index.vector_stores.qdrant import QdrantVectorStore
 
 from catalog.core.settings import get_settings
 
@@ -26,45 +27,44 @@ if TYPE_CHECKING:
     from llama_index.core.embeddings import BaseEmbedding
     from llama_index.core.retrievers import VectorIndexRetriever
     from llama_index.core.schema import TextNode
-    from llama_index.core.vector_stores import SimpleVectorStore
 
 __all__ = ["VectorStoreManager"]
 
 logger = get_logger(__name__)
 
 
-
 class VectorStoreManager:
-    """Manages vector storage using LlamaIndex SimpleVectorStore.
+    """Manages vector storage using Qdrant in local persistent mode.
 
-    Provides lazy initialization of the vector index and embedding model.
-    Uses StorageContext for persistence to disk.
+    Provides lazy initialization of the Qdrant client, vector store, and index.
+    Uses local file-based persistence for the vector database.
 
-    The manager supports:
-    - Loading an existing index or creating a new one
-    - Inserting nodes with automatic embedding generation
-    - Deleting nodes by ID or by reference document ID
-    - Getting a retriever for similarity search
+    Key features:
+    - Auto-creates collection with correct dimensions on first use
+    - Qdrant auto-persists data (no manual persist needed)
+    - delete_by_dataset uses Qdrant's filter-based deletion
 
     Attributes:
-        persist_dir: Directory path for persisting the vector store.
+        persist_dir: Directory path for Qdrant's local storage.
     """
 
     def __init__(self, persist_dir: Path | None = None) -> None:
         """Initialize the VectorStoreManager.
 
         Args:
-            persist_dir: Directory for persisting the vector store.
+            persist_dir: Directory for Qdrant's local storage.
                 If None, uses settings.vector_store_path.
         """
         settings = get_settings()
         self._persist_dir = persist_dir or settings.vector_store_path
         self._embed_settings = settings.embedding
+        self._qdrant_settings = settings.qdrant
 
         # Lazy-initialized components
+        self._client: qdrant_client.QdrantClient | None = None
         self._index: "VectorStoreIndex | None" = None
         self._embed_model: "BaseEmbedding | None" = None
-        self._vector_store: "SimpleVectorStore | None" = None
+        self._vector_store: QdrantVectorStore | None = None
 
         logger.debug(
             f"VectorStoreManager initialized with persist_dir={self._persist_dir}"
@@ -74,6 +74,56 @@ class VectorStoreManager:
     def persist_dir(self) -> Path:
         """Get the persistence directory path."""
         return self._persist_dir
+
+    def _get_client(self) -> qdrant_client.QdrantClient:
+        """Get or create the Qdrant client (lazy initialization).
+
+        Returns:
+            QdrantClient configured for local persistent storage.
+        """
+        if self._client is None:
+            self._persist_dir.mkdir(parents=True, exist_ok=True)
+            self._client = qdrant_client.QdrantClient(
+                path=str(self._persist_dir)
+            )
+            logger.debug(f"Qdrant client initialized at {self._persist_dir}")
+
+        return self._client
+
+    def _ensure_collection(self) -> None:
+        """Ensure the collection exists with correct configuration.
+
+        Creates the collection if it doesn't exist, with:
+        - Vector size from embedding settings
+        - Cosine distance metric
+        - Keyword index on dataset_name for efficient filtering
+        """
+        client = self._get_client()
+        collection_name = self._qdrant_settings.collection_name
+
+        collections = client.get_collections().collections
+        exists = any(c.name == collection_name for c in collections)
+
+        if not exists:
+            client.create_collection(
+                collection_name=collection_name,
+                vectors_config=VectorParams(
+                    size=self._embed_settings.embedding_dim,
+                    distance=Distance.COSINE,
+                ),
+            )
+            logger.info(
+                f"Created Qdrant collection: {collection_name} "
+                f"(dim={self._embed_settings.embedding_dim})"
+            )
+
+            # Create payload index for efficient dataset filtering
+            client.create_payload_index(
+                collection_name=collection_name,
+                field_name="dataset_name",
+                field_schema="keyword",
+            )
+            logger.debug(f"Created payload index on 'dataset_name'")
 
     def _get_embed_model(self) -> "BaseEmbedding":
         """Get or create the embedding model (lazy initialization).
@@ -107,95 +157,11 @@ class VectorStoreManager:
 
         return self._embed_model
 
-    def _create_new_index(self) -> "VectorStoreIndex":
-        """Create a new empty vector store index.
-
-        Returns:
-            New VectorStoreIndex with SimpleVectorStore backend.
-        """
-        from llama_index.core import StorageContext, VectorStoreIndex
-        from llama_index.core.vector_stores import SimpleVectorStore
-
-        logger.debug("Creating new vector store index")
-
-        # stores_text must be set after construction (not accepted in __init__)
-        vector_store = SimpleVectorStore()
-        vector_store.stores_text = True
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)
-
-        # Create empty index
-        index = VectorStoreIndex.from_documents(
-            documents=[],
-            storage_context=storage_context,
-            embed_model=self._get_embed_model(),
-            show_progress=False,
-        )
-
-        logger.info("New vector store index created")
-        return index
-
-    def _load_existing_index(self) -> "VectorStoreIndex":
-        """Load an existing index from disk.
-
-        Returns:
-            VectorStoreIndex loaded from persist_dir.
-
-        Raises:
-            FileNotFoundError: If the persist_dir doesn't exist.
-        """
-        from llama_index.core import StorageContext, load_index_from_storage
-
-        logger.debug(f"Loading vector store index from {self._persist_dir}")
-
-        storage_context = StorageContext.from_defaults(
-            persist_dir=str(self._persist_dir)
-        )
-        index = load_index_from_storage(
-            storage_context,
-            embed_model=self._get_embed_model(),
-        )
-
-        logger.info(f"Vector store index loaded from {self._persist_dir}")
-        return index
-
-    def _create_index_from_vector_store(self) -> "VectorStoreIndex":
-        """Create an index from a persisted vector store file.
-
-        Used when only the vector store was persisted (not the full index).
-        This happens when persist_vector_store() was called instead of persist().
-
-        Returns:
-            VectorStoreIndex created from the loaded vector store.
-        """
-        from llama_index.core import StorageContext, VectorStoreIndex
-
-        logger.debug(f"Creating index from vector store at {self._persist_dir}")
-
-        # Load the vector store
-        vector_store = self.get_vector_store()
-
-        # Create storage context with the loaded vector store
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)
-
-        # Create index from the vector store
-        index = VectorStoreIndex.from_vector_store(
-            vector_store=vector_store,
-            storage_context=storage_context,
-            embed_model=self._get_embed_model(),
-        )
-
-        logger.info(f"Index created from vector store at {self._persist_dir}")
-        return index
-
     def load_or_create(self) -> "VectorStoreIndex":
-        """Load an existing index or create a new one.
+        """Load or create a VectorStoreIndex backed by Qdrant.
 
-        If the persist directory exists and contains a valid index,
-        loads it. Otherwise, creates a new empty index.
-
-        Handles two persistence scenarios:
-        1. Full index (docstore.json exists): Load via StorageContext
-        2. Vector store only (default__vector_store.json exists): Create index from vector store
+        Creates the collection if it doesn't exist, then returns
+        a VectorStoreIndex that uses the Qdrant vector store.
 
         Returns:
             VectorStoreIndex ready for use.
@@ -203,50 +169,61 @@ class VectorStoreManager:
         if self._index is not None:
             return self._index
 
-        persist_path = self._persist_dir
-        vector_store_path = persist_path / "default__vector_store.json"
-        docstore_path = persist_path / "docstore.json"
+        from llama_index.core import StorageContext, VectorStoreIndex
 
-        if persist_path.exists() and docstore_path.exists():
-            # Full index exists (from StorageContext.persist)
-            try:
-                self._index = self._load_existing_index()
-            except Exception as e:
-                logger.warning(f"Failed to load existing index: {e}")
-                self._index = self._create_new_index()
-        elif persist_path.exists() and vector_store_path.exists():
-            # Vector store only (from persist_vector_store)
-            # Create index from the persisted vector store
-            try:
-                self._index = self._create_index_from_vector_store()
-            except Exception as e:
-                logger.warning(f"Failed to create index from vector store: {e}")
-                self._index = self._create_new_index()
-        else:
-            persist_path.mkdir(parents=True, exist_ok=True)
-            self._index = self._create_new_index()
+        vector_store = self.get_vector_store()
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
+        self._index = VectorStoreIndex.from_vector_store(
+            vector_store=vector_store,
+            storage_context=storage_context,
+            embed_model=self._get_embed_model(),
+        )
+
+        logger.info("VectorStoreIndex created from Qdrant")
         return self._index
 
-    def persist(self) -> None:
-        """Save the index to disk.
+    def get_vector_store(self) -> QdrantVectorStore:
+        """Get or create the QdrantVectorStore for pipeline integration.
 
-        Persists the vector store, docstore, and index metadata
-        to the configured persist_dir.
+        Returns the underlying QdrantVectorStore instance, creating it if needed.
+        This is used to pass the vector store to IngestionPipeline's vector_store
+        parameter for native integration.
 
-        Raises:
-            RuntimeError: If the index hasn't been loaded or created yet.
+        Returns:
+            QdrantVectorStore instance for pipeline use.
         """
-        if self._index is None:
-            raise RuntimeError(
-                "No index to persist. Call load_or_create() first."
-            )
+        if self._vector_store is not None:
+            return self._vector_store
 
-        # Ensure directory exists
-        self._persist_dir.mkdir(parents=True, exist_ok=True)
+        self._ensure_collection()
+        client = self._get_client()
 
-        self._index.storage_context.persist(persist_dir=str(self._persist_dir))
-        logger.info(f"Vector store persisted to {self._persist_dir}")
+        self._vector_store = QdrantVectorStore(
+            client=client,
+            collection_name=self._qdrant_settings.collection_name,
+        )
+        logger.info("QdrantVectorStore initialized")
+        return self._vector_store
+
+    def persist(self) -> None:
+        """Persist is a no-op for Qdrant (auto-persisted).
+
+        Qdrant in local mode automatically persists all changes to disk.
+        This method exists for API compatibility with the previous SimpleVectorStore.
+        """
+        logger.debug("Qdrant auto-persists; explicit persist() is no-op")
+
+    def persist_vector_store(self, persist_dir: Path | None = None) -> None:
+        """Persist is a no-op for Qdrant (auto-persisted).
+
+        Qdrant in local mode automatically persists all changes to disk.
+        This method exists for API compatibility with the previous SimpleVectorStore.
+
+        Args:
+            persist_dir: Ignored (Qdrant uses the path from initialization).
+        """
+        logger.debug("Qdrant auto-persists; explicit persist_vector_store() is no-op")
 
     def insert_nodes(self, nodes: list["TextNode"]) -> None:
         """Add nodes to the index with automatic embedding generation.
@@ -316,6 +293,58 @@ class VectorStoreManager:
         self._index.delete_ref_doc(ref_doc_id)
         logger.info(f"Deleted nodes for ref_doc_id: {ref_doc_id}")
 
+    def delete_by_dataset(self, dataset_name: str) -> int:
+        """Delete all vectors associated with a dataset.
+
+        Uses Qdrant's filter-based deletion to remove all points
+        whose dataset_name payload field matches the given value.
+
+        Args:
+            dataset_name: Name of the dataset to clear vectors for.
+
+        Returns:
+            Number of points deleted.
+        """
+        client = self._get_client()
+        collection_name = self._qdrant_settings.collection_name
+
+        # Check if collection exists
+        collections = client.get_collections().collections
+        if not any(c.name == collection_name for c in collections):
+            logger.debug(f"Collection {collection_name} does not exist, nothing to delete")
+            return 0
+
+        # Count points before deletion
+        count_filter = Filter(
+            must=[
+                FieldCondition(
+                    key="dataset_name",
+                    match=MatchValue(value=dataset_name),
+                )
+            ]
+        )
+
+        count_result = client.count(
+            collection_name=collection_name,
+            count_filter=count_filter,
+            exact=True,
+        )
+        count = count_result.count
+
+        if count > 0:
+            # Delete using filter
+            from qdrant_client.models import FilterSelector
+
+            client.delete(
+                collection_name=collection_name,
+                points_selector=FilterSelector(filter=count_filter),
+            )
+            logger.info(f"Deleted {count} vectors for dataset '{dataset_name}'")
+        else:
+            logger.debug(f"No vectors found for dataset '{dataset_name}'")
+
+        return count
+
     def get_retriever(
         self,
         similarity_top_k: int = 10,
@@ -340,10 +369,11 @@ class VectorStoreManager:
         return self._index.as_retriever(similarity_top_k=similarity_top_k)
 
     def clear(self) -> None:
-        """Clear the in-memory index cache.
+        """Clear the in-memory caches.
 
-        This forces the index to be reloaded on next access.
-        Does not delete persisted data.
+        This forces the index and vector store to be reloaded on next access.
+        Does not delete persisted data from Qdrant.
+        Note: The client connection is preserved for reuse.
         """
         self._index = None
         self._vector_store = None
@@ -353,107 +383,3 @@ class VectorStoreManager:
     def is_loaded(self) -> bool:
         """Check if an index is currently loaded in memory."""
         return self._index is not None
-
-    def get_vector_store(self) -> "SimpleVectorStore":
-        """Get or create the raw SimpleVectorStore for pipeline integration.
-
-        Returns the underlying SimpleVectorStore instance, creating it if needed.
-        This is used to pass the vector store to IngestionPipeline's vector_store
-        parameter for native integration.
-
-        If an index already exists (from load_or_create), returns its vector store.
-        Otherwise creates a new empty SimpleVectorStore.
-
-        Returns:
-            SimpleVectorStore instance for pipeline use.
-        """
-        from llama_index.core.vector_stores import SimpleVectorStore
-
-        if self._vector_store is not None:
-            return self._vector_store
-
-        # If we have an index, get its vector store
-        if self._index is not None:
-            self._vector_store = self._index.storage_context.vector_store
-            return self._vector_store
-
-        # Check if we can load from disk
-        persist_path = self._persist_dir
-        vector_store_path = persist_path / "default__vector_store.json"
-
-        if vector_store_path.exists():
-            logger.debug(f"Loading vector store from {vector_store_path}")
-            self._vector_store = SimpleVectorStore.from_persist_path(
-                str(vector_store_path)
-            )
-            # stores_text isn't persisted, must set after load for from_vector_store() support
-            self._vector_store.stores_text = True
-            logger.info(f"Vector store loaded from {vector_store_path}")
-        else:
-            logger.debug("Creating new empty vector store")
-            # stores_text must be set after construction (not accepted in __init__)
-            self._vector_store = SimpleVectorStore()
-            self._vector_store.stores_text = True
-
-        return self._vector_store
-
-    def delete_by_dataset(self, dataset_name: str) -> int:
-        """Delete all vectors associated with a dataset.
-
-        Removes all nodes whose ref_doc_id starts with '{dataset_name}:'.
-        This is used by force=True to clear dataset vectors before re-indexing.
-
-        Args:
-            dataset_name: Name of the dataset to clear vectors for.
-
-        Returns:
-            Number of nodes deleted.
-        """
-        vector_store = self.get_vector_store()
-        prefix = f"{dataset_name}:"
-        deleted_count = 0
-
-        # SimpleVectorStore with stores_text=True uses text_id_to_ref_doc_id mapping
-        # We can iterate this to find nodes by dataset prefix
-        if hasattr(vector_store, "text_id_to_ref_doc_id"):
-            text_id_to_ref = vector_store.text_id_to_ref_doc_id
-            node_ids_to_delete = [
-                text_id for text_id, ref_doc_id in text_id_to_ref.items()
-                if ref_doc_id.startswith(prefix)
-            ]
-
-            if node_ids_to_delete:
-                logger.debug(
-                    f"Deleting {len(node_ids_to_delete)} nodes for dataset '{dataset_name}'"
-                )
-                # Delete from embedding_dict and text_id_to_ref_doc_id
-                for node_id in node_ids_to_delete:
-                    vector_store.embedding_dict.pop(node_id, None)
-                    vector_store.text_id_to_ref_doc_id.pop(node_id, None)
-
-                deleted_count = len(node_ids_to_delete)
-                logger.info(
-                    f"Deleted {deleted_count} vectors for dataset '{dataset_name}'"
-                )
-
-        return deleted_count
-
-    def persist_vector_store(self, persist_dir: Path | None = None) -> None:
-        """Persist just the vector store to disk.
-
-        Used for persisting after pipeline.run() when using native
-        vector_store integration.
-
-        Args:
-            persist_dir: Directory to persist to. Defaults to self._persist_dir.
-        """
-        if self._vector_store is None:
-            logger.debug("No vector store to persist")
-            return
-
-        target_dir = persist_dir or self._persist_dir
-        target_dir.mkdir(parents=True, exist_ok=True)
-
-        vector_store_path = target_dir / "default__vector_store.json"
-        self._vector_store.persist(str(vector_store_path))
-        logger.info(f"Vector store persisted to {vector_store_path}")

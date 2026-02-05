@@ -56,21 +56,52 @@ def mock_embed_model():
 
 
 @pytest.fixture
-def mock_vector_store():
-    """Create a mock SimpleVectorStore."""
-    from llama_index.core.vector_stores import SimpleVectorStore
-    return SimpleVectorStore()
+def in_memory_qdrant_vector_store(tmp_path):
+    """Create a real QdrantVectorStore with in-memory storage.
+
+    This satisfies Pydantic validation in LlamaIndex's IngestionPipeline.
+    """
+    import qdrant_client
+    from llama_index.vector_stores.qdrant import QdrantVectorStore
+
+    # Use in-memory mode for fast tests
+    client = qdrant_client.QdrantClient(location=":memory:")
+
+    # Create collection with correct dimensions
+    from qdrant_client.models import Distance, VectorParams
+    client.create_collection(
+        collection_name="test_collection",
+        vectors_config=VectorParams(size=384, distance=Distance.COSINE),
+    )
+
+    return QdrantVectorStore(
+        client=client,
+        collection_name="test_collection",
+    )
 
 
 @pytest.fixture
-def mock_vector_manager(mock_vector_store):
-    """Create a mock VectorStoreManager."""
+def mock_vector_store(in_memory_qdrant_vector_store):
+    """Provide a real in-memory QdrantVectorStore for tests.
+
+    This is needed because LlamaIndex's IngestionPipeline validates
+    that vector_store is an instance of BasePydanticVectorStore.
+    """
+    return in_memory_qdrant_vector_store
+
+
+@pytest.fixture
+def mock_vector_manager(mock_vector_store, tmp_path):
+    """Create a mock VectorStoreManager with real in-memory vector store."""
     mock = MagicMock()
     mock_index = MagicMock()
     mock.load_or_create.return_value = mock_index
     mock.get_vector_store.return_value = mock_vector_store
     mock.delete_by_dataset.return_value = 0
     mock.persist_vector_store.return_value = None
+    mock.persist.return_value = None
+    mock._persist_dir = tmp_path / "vector_store"
+    mock._persist_dir.mkdir(parents=True, exist_ok=True)
     return mock
 
 
@@ -89,3 +120,20 @@ def patched_embedding(mock_embed_model, mock_vector_manager):
                 "embed_model": mock_embed_model,
                 "vector_manager": mock_vector_manager,
             }
+
+
+@pytest.fixture
+def in_memory_qdrant_manager(tmp_path):
+    """Create a VectorStoreManager with temporary local Qdrant for integration tests.
+
+    Uses a temporary directory that simulates local storage but is
+    cleaned up after the test.
+    """
+    from catalog.store.vector import VectorStoreManager
+
+    # Use tmp_path to create an isolated Qdrant instance
+    vector_dir = tmp_path / "vector_store"
+    vector_dir.mkdir(parents=True, exist_ok=True)
+
+    manager = VectorStoreManager(persist_dir=vector_dir)
+    return manager

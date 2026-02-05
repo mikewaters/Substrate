@@ -20,6 +20,7 @@ Example usage:
 
 import hashlib
 import json
+import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -837,8 +838,11 @@ class ChunkPersistenceTransform(TransformComponent):
         # Build source_doc_id in format {dataset_name}:{path}
         source_doc_id = f"{self._dataset_name}:{path}"
 
-        # Assign stable node ID: {content_hash}:{chunk_seq}
-        node_id = f"{content_hash}:{chunk_seq}"
+        # Generate a deterministic UUID from content_hash and chunk_seq
+        # This is required because Qdrant only accepts UUID-formatted point IDs
+        # Using UUID5 ensures the same content always produces the same UUID
+        id_input = f"{content_hash}:{chunk_seq}"
+        node_id = str(uuid.uuid5(uuid.NAMESPACE_OID, id_input))
         node.id_ = node_id
 
         # Set metadata fields

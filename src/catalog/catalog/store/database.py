@@ -26,6 +26,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from catalog.store.models.catalog import CatalogBase
 from catalog.store.models.content import ContentBase
+from catalog.store.fts import create_fts_table
+from catalog.store.fts_chunk import create_chunks_fts_table
 
 if TYPE_CHECKING:
     from catalog.core.settings import Settings
@@ -124,11 +126,15 @@ class DatabaseRegistry:
             "content": create_engine_for_path(settings.databases.content_path),
         }
 
-        # 2. Create all tables
+        # 2. Create all tables (ORM)
         CatalogBase.metadata.create_all(self._engines["catalog"])
         ContentBase.metadata.create_all(self._engines["content"])
 
-        # 3. Register ATTACH listener on catalog engine
+        # 3. Create FTS virtual tables (not managed by SQLAlchemy metadata)
+        create_fts_table(self._engines["catalog"])
+        create_chunks_fts_table(self._engines["catalog"])
+
+        # 4. Register ATTACH listener on catalog engine
         # This ensures every connection from the pool has content attached
         event.listen(
             self._engines["catalog"],

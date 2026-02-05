@@ -40,8 +40,6 @@ from catalog.integrations.obsidian import IngestObsidianConfig
 from catalog.ingest.sources import BaseSource, create_source
 from catalog.store.database import get_session
 from catalog.store.dataset import DatasetInfo, DatasetService, normalize_dataset_name
-from catalog.store.fts import create_fts_table
-from catalog.store.fts_chunk import create_chunks_fts_table
 from catalog.store.session_context import use_session
 from catalog.transform.llama import (
     ChunkPersistenceTransform,
@@ -115,11 +113,6 @@ class DatasetIngestPipeline(BaseModel):
 
         with get_session() as session:
             with use_session(session):
-                engine = session.get_bind()
-                if engine is not None:
-                    create_fts_table(engine)  # type: ignore
-                    create_chunks_fts_table(engine)  # type: ignore
-
                 # Get a reference to this source's dataset
                 non_normalized_source_name = self.ingest_config.dataset_name
                 dataset = DatasetService.create_or_update(
@@ -132,7 +125,6 @@ class DatasetIngestPipeline(BaseModel):
 
                 # Handle "forced" ingestion, which will affect both ingestion passes
                 vector_manager = VectorStoreManager()
-
                 if self.ingest_config.force:
                     deleted = vector_manager.delete_by_dataset(dataset.name)
                     if deleted > 0:

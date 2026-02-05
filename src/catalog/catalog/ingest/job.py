@@ -90,6 +90,7 @@ class SourceConfig(BaseModel):
         type: Source type identifier (e.g., "obsidian", "directory").
         source_path: Path to the source data.
         dataset_name: Optional name for the dataset.
+        catalog_name: Optional catalog name. If set, creates/links catalog to dataset.
         force: If True, reprocess all documents even if unchanged.
         options: Integration-specific options dict.
     """
@@ -97,6 +98,7 @@ class SourceConfig(BaseModel):
     type: str = "obsidian"
     source_path: Path
     dataset_name: str | None = None
+    catalog_name: str | None = None
     force: bool = False
     options: dict[str, Any] = Field(default_factory=dict)
 

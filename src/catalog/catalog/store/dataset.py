@@ -15,7 +15,8 @@ from sqlalchemy.orm import Session
 
 from catalog.store.database import get_session
 from catalog.store.models import Dataset
-from catalog.store.repositories import DatasetRepository, DocumentRepository
+from catalog.store.models import CatalogEntryRelationKind
+from catalog.store.repositories import CatalogRepository, DatasetRepository, DocumentRepository
 from catalog.store.schemas import (
     DatasetCreate,
     DatasetInfo,
@@ -279,14 +280,19 @@ class DatasetService:
         name: str,
         source_type: str,
         source_path: str,
+        catalog_name: str | None = None,
     ) -> DatasetInfo:
         """Ensure dataset exists, creating if necessary.
+
+        If catalog_name is provided, the dataset will be linked to the catalog
+        via a CatalogEntry. The catalog is created if it doesn't exist.
 
         Args:
             session: SQLAlchemy session.
             name: Dataset name.
             source_type: Type of source (e.g., "directory", "obsidian").
             source_path: Path to the source.
+            catalog_name: Optional catalog name. If set, creates/links catalog.
 
         Returns:
             DatasetInfo.
@@ -296,19 +302,46 @@ class DatasetService:
 
         # Check if dataset exists
         dataset = repo.get_by_name(normalized_name)
-        if dataset is not None:
+        created = False
+        if dataset is None:
+            # Create new dataset
+            dataset = repo.create(
+                name=normalized_name,
+                uri=f"dataset:{normalized_name}",
+                source_type=source_type,
+                source_path=source_path,
+            )
+            session.flush()
+            created = True
+            logger.info(f"Created dataset: {normalized_name}")
+        else:
             logger.debug(f"Using existing dataset: {normalized_name}")
-            return DatasetService._to_info(dataset)
 
-        # Create new dataset
-        dataset = repo.create(
-            name=normalized_name,
-            uri=f"dataset:{normalized_name}",
-            source_type=source_type,
-            source_path=source_path,
-        )
-        session.flush()
-        logger.info(f"Created dataset: {normalized_name}")
+        # Handle catalog association if catalog_name provided
+        if catalog_name is not None:
+            normalized_catalog = normalize_dataset_name(catalog_name)
+            catalog_uri = f"catalog:{normalized_catalog}"
+            catalog_repo = CatalogRepository(session)
+
+            catalog, catalog_created = catalog_repo.get_or_create(
+                uri=catalog_uri,
+                title=catalog_name,
+            )
+            session.flush()
+
+            if catalog_created:
+                logger.info(f"Created catalog: {normalized_catalog}")
+
+            # Link dataset to catalog if not already linked
+            if not catalog_repo.entry_exists(catalog.id, dataset.id):
+                catalog_repo.add_entry(
+                    catalog_id=catalog.id,
+                    resource_id=dataset.id,
+                    relation=CatalogEntryRelationKind.DATASET,
+                )
+                session.flush()
+                logger.info(f"Linked dataset '{normalized_name}' to catalog '{normalized_catalog}'")
+
         return DatasetService._to_info(dataset)
 
     # Document operations

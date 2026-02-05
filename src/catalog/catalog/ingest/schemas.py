@@ -15,11 +15,13 @@ class DatasetIngestConfig(BaseModel):
     Attributes:
         source_path: Path to the source data.
         dataset_name: Name for the dataset (will be normalized).
+        catalog_name: Optional catalog name. If set, creates/links catalog to dataset.
         force: If True, reprocess all documents even if unchanged.
     """
     type_name: str
     source_path: Path
     dataset_name: str
+    catalog_name: str | None = None
     force: bool = False
 
     model_config = {"arbitrary_types_allowed": True}

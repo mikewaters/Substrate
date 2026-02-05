@@ -70,7 +70,7 @@ class DatasetIngestPipeline(BaseModel):
         chunk_size: Size of text chunks for embedding.
         chunk_overlap: Overlap between adjacent chunks.
     """
-    ingest_config: Optional[DatasetIngestConfig] #= None
+    ingest_config: Optional[DatasetIngestConfig] = None
     embed_model: Optional[BaseEmbedding] = Field(default_factory=get_embed_model)
     chunk_size: Optional[int] = Field(default=768)
     chunk_overlap: Optional[int] = Field(default=96)
@@ -127,6 +127,7 @@ class DatasetIngestPipeline(BaseModel):
                     non_normalized_source_name,
                     source_type=self.source.type_name,
                     source_path=str(self.source.path),
+                    catalog_name=self.ingest_config.catalog_name,
                 )
 
                 # Handle "forced" ingestion, which will affect both ingestion passes
@@ -207,6 +208,27 @@ class DatasetIngestPipeline(BaseModel):
                 )
 
                 return result
+
+    def ingest_dataset(self, config: DatasetIngestConfig) -> IngestResult:
+        """Ingest documents using the provided config.
+
+        Creates a new pipeline instance with the given config and runs ingestion.
+        This is a convenience method for one-off ingestion without setting
+        ingest_config on construction.
+
+        Args:
+            config: Dataset ingestion configuration.
+
+        Returns:
+            IngestResult with statistics about the operation.
+        """
+        pipeline = DatasetIngestPipeline(
+            ingest_config=config,
+            embed_model=self.embed_model,
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
+        )
+        return pipeline.ingest()
 
     @classmethod
     def from_config(cls, config_path: Path) -> DatasetIngestPipeline:

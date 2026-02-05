@@ -47,16 +47,6 @@ class TestIngestPipeline:
         _clear_pipeline_cache(["test-docs", "test-vault", "my-dataset"])
 
     @pytest.fixture(autouse=True)
-    def disable_pipeline_cache(self) -> None:
-        """Disable pipeline cache loading to ensure documents reach transforms.
-
-        Without this, LlamaIndex's docstore would filter duplicates before
-        they reach PersistenceTransform, causing skipped count to be 0.
-        """
-        with patch("catalog.ingest.pipelines.load_pipeline", lambda name, pipeline: pipeline):
-            yield
-
-    @pytest.fixture(autouse=True)
     def use_mock_embedding(self, patched_embedding) -> None:
         """Use mock embedding model for all tests."""
         yield
@@ -368,12 +358,6 @@ class TestObsidianIngest:
         yield
         # Also clear after test
         _clear_pipeline_cache(["my-vault", "test-vault"])
-
-    @pytest.fixture(autouse=True)
-    def disable_pipeline_cache(self) -> None:
-        """Disable pipeline cache loading to ensure documents reach transforms."""
-        with patch("catalog.ingest.pipelines.load_pipeline", lambda name, pipeline: pipeline):
-            yield
 
     @pytest.fixture(autouse=True)
     def use_mock_embedding(self, patched_embedding) -> None:

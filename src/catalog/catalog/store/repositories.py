@@ -587,6 +587,59 @@ class CatalogRepository(_BaseRepository):
         """Get a catalog by ID."""
         return self._session.get(Catalog, catalog_id)
 
+    def get_by_uri(self, uri: str) -> Catalog | None:
+        """Get a catalog by URI.
+
+        Args:
+            uri: The catalog's unique URI.
+
+        Returns:
+            The Catalog if found, None otherwise.
+        """
+        stmt = select(Catalog).where(Catalog.uri == uri)
+        return self._session.execute(stmt).scalar_one_or_none()
+
+    def get_or_create(
+        self,
+        uri: str,
+        *,
+        title: str | None = None,
+        description: str | None = None,
+        homepage: str | None = None,
+    ) -> tuple[Catalog, bool]:
+        """Get an existing catalog or create a new one.
+
+        Args:
+            uri: Unique URI for the catalog.
+            title: Optional title (used only on create).
+            description: Optional description (used only on create).
+            homepage: Optional homepage URL (used only on create).
+
+        Returns:
+            Tuple of (Catalog instance, created flag).
+        """
+        existing = self.get_by_uri(uri)
+        if existing is not None:
+            return existing, False
+        return self.create(uri, title=title, description=description, homepage=homepage), True
+
+    def entry_exists(self, catalog_id: int, resource_id: int) -> bool:
+        """Check if a catalog entry exists.
+
+        Args:
+            catalog_id: The catalog's ID.
+            resource_id: The resource's ID.
+
+        Returns:
+            True if entry exists.
+        """
+        stmt = select(func.count()).select_from(CatalogEntry).where(
+            CatalogEntry.catalog_id == catalog_id,
+            CatalogEntry.resource_id == resource_id,
+        )
+        count = self._session.execute(stmt).scalar()
+        return count is not None and count > 0
+
     def list_all(self) -> list[Catalog]:
         """List all catalogs."""
         stmt = select(Catalog).order_by(Catalog.uri)

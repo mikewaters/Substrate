@@ -53,6 +53,7 @@ def create_obsidian_ingest_config(source_config: "SourceConfig") -> IngestObsidi
     return IngestObsidianConfig(
         source_path=source_config.source_path,
         dataset_name=dataset_name,
+        catalog_name=source_config.catalog_name,
         force=source_config.force,
         vault_schema=vault_schema_cls,
     )

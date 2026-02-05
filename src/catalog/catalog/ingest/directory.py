@@ -45,6 +45,7 @@ def create_directory_ingest_config(source_config: "SourceConfig") -> IngestDirec
     return IngestDirectoryConfig(
         source_path=source_config.source_path,
         dataset_name=source_config.dataset_name or source_config.source_path.name,
+        catalog_name=source_config.catalog_name,
         force=source_config.force,
         patterns=source_config.options.get("patterns", ["**/*.md"]),
         encoding=source_config.options.get("encoding", "utf-8"),

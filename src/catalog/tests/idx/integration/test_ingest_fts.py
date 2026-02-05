@@ -73,15 +73,6 @@ def clear_cache() -> None:
     _clear_pipeline_cache(dataset_names)
 
 
-@pytest.fixture(autouse=True)
-def disable_pipeline_cache() -> None:
-    """Disable pipeline cache loading to ensure documents reach transforms.
-
-    Without this, LlamaIndex's docstore would filter duplicates before
-    they reach PersistenceTransform, causing skipped count to be 0.
-    """
-    with patch("catalog.ingest.pipelines.load_pipeline", lambda name, pipeline: pipeline):
-        yield
 
 
 @pytest.fixture(autouse=True)

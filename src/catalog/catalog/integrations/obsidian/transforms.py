@@ -79,6 +79,7 @@ class LinkResolutionTransform(TransformComponent):
 
     _dataset_id: int = 0
     _wikilinks_key: str = "wikilinks"
+    _link_kind: DocumentLinkKind = DocumentLinkKind.WIKILINK
     _stats: LinkResolutionStats | None = None
 
     def __init__(
@@ -86,6 +87,7 @@ class LinkResolutionTransform(TransformComponent):
         dataset_id: int,
         *,
         wikilinks_key: str = "wikilinks",
+        link_kind: DocumentLinkKind = DocumentLinkKind.WIKILINK,
         **kwargs: Any,
     ) -> None:
         """Initialize the link resolution transform.
@@ -93,11 +95,13 @@ class LinkResolutionTransform(TransformComponent):
         Args:
             dataset_id: ID of the dataset whose documents to resolve against.
             wikilinks_key: Metadata key containing wikilink target names.
+            link_kind: Kind of link to create (default: WIKILINK).
             **kwargs: Additional arguments passed to TransformComponent.
         """
         super().__init__(**kwargs)
         self._dataset_id = dataset_id
         self._wikilinks_key = wikilinks_key
+        self._link_kind = link_kind
         self._stats = LinkResolutionStats()
 
     @property
@@ -141,6 +145,7 @@ class LinkResolutionTransform(TransformComponent):
                 stem_to_path[stem] = doc.path
 
         for node in nodes:
+            #breakpoint()
             if not node.metadata:
                 continue
             raw_wikilinks = node.metadata.get(self._wikilinks_key)
@@ -172,6 +177,7 @@ class LinkResolutionTransform(TransformComponent):
     ) -> None:
         """Resolve wikilinks for a single node and create DocumentLink rows."""
         doc_id = node.metadata.get("doc_id")
+        name = node.metadata.get("note_name")
         if doc_id is None:
             return
 
@@ -185,7 +191,7 @@ class LinkResolutionTransform(TransformComponent):
         for target_name in wikilinks:
             target_id = stem_to_id.get(target_name)
             if target_id is None:
-                logger.debug(f"Unresolved wikilink: '{target_name}' from doc {doc_id}")
+                logger.debug(f"Unresolved wikilink: '{target_name}' from doc {doc_id} '{name}'")
                 self.stats.unresolved += 1
                 continue
 
@@ -193,5 +199,5 @@ class LinkResolutionTransform(TransformComponent):
                 self.stats.self_links += 1
                 continue
 
-            link_repo.upsert(doc_id, target_id, DocumentLinkKind.WIKILINK)
+            link_repo.upsert(doc_id, target_id, self._link_kind)
             self.stats.resolved += 1

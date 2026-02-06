@@ -85,6 +85,7 @@ class DocumentLinkKind(str, enum.Enum):
     """Describes the type of link between two documents."""
 
     WIKILINK = "wikilink"
+    MARKDOWN_LINK = "markdown_link"
 
 
 # ---------------------------------------------------------------------------

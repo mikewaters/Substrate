@@ -348,7 +348,7 @@ class ObsidianVaultReader(SimpleDirectoryReader):
         extract_frontmatter: bool = True, # pull Document metadata from YAML frontmatter
         remove_frontmatter_from_text: bool = True, # strip frontmatter out of doc content if it was extracted
         extract_wikilinks: bool = True, # whether to extract wikilinks and backlinks
-        remove_dead_wikilinks: bool = True,
+        remove_dead_wikilinks: bool = False, # you do not want this if using `LinkResolutionTransform`
         vault_metadata: dict[str, Any] | None = None, # extra metadata to add to each doc
         # for compat with upstream `ObsidianReader`
         extract_tasks: bool = False,
@@ -520,6 +520,20 @@ class ObsidianVaultReader(SimpleDirectoryReader):
 
         return True
 
+    def _extract_links(self, text: str) -> List[str]:
+        """Extract link targets from document text.
+
+        Override in subclasses to support different link formats
+        (e.g. Heptabase markdown links instead of wikilinks).
+
+        Args:
+            text: Document text to extract links from.
+
+        Returns:
+            List of unique link target names.
+        """
+        return extract_wikilinks(text)
+
     def load_data(
         self,
         show_progress: bool = False,
@@ -575,7 +589,7 @@ class ObsidianVaultReader(SimpleDirectoryReader):
 
             # Optionally extract wikilinks and build backlinks map
             if self._should_extract_links:
-                raw_wikilinks = extract_wikilinks(doc.text)
+                raw_wikilinks = self._extract_links(doc.text)
 
                 final_wikilinks = raw_wikilinks
                 if self._remove_dead_wikilinks:

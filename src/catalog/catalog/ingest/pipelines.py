@@ -36,7 +36,6 @@ from catalog.embedding import get_embed_model
 from catalog.ingest.cache import clear_cache
 from catalog.ingest.job import DatasetJob
 from catalog.ingest.schemas import IngestResult, DatasetIngestConfig
-from catalog.integrations.obsidian import IngestObsidianConfig
 from catalog.ingest.sources import BaseSource, create_source
 from catalog.store.database import get_session
 from catalog.store.dataset import DatasetInfo, DatasetService, normalize_dataset_name
@@ -68,7 +67,7 @@ class DatasetIngestPipeline(BaseModel):
         chunk_size: Size of text chunks for embedding.
         chunk_overlap: Overlap between adjacent chunks.
     """
-    ingest_config: Optional[DatasetIngestConfig] = None
+    ingest_config: DatasetIngestConfig
     embed_model: Optional[BaseEmbedding] = Field(default_factory=get_embed_model)
     chunk_size: Optional[int] = Field(default=768)
     chunk_overlap: Optional[int] = Field(default=96)
@@ -201,29 +200,8 @@ class DatasetIngestPipeline(BaseModel):
 
                 return result
 
-    def ingest_dataset(self, config: DatasetIngestConfig) -> IngestResult:
-        """Ingest documents using the provided config.
-
-        Creates a new pipeline instance with the given config and runs ingestion.
-        This is a convenience method for one-off ingestion without setting
-        ingest_config on construction.
-
-        Args:
-            config: Dataset ingestion configuration.
-
-        Returns:
-            IngestResult with statistics about the operation.
-        """
-        pipeline = DatasetIngestPipeline(
-            ingest_config=config,
-            embed_model=self.embed_model,
-            chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap,
-        )
-        return pipeline.ingest()
-
     @classmethod
-    def from_config(cls, config_path: Path) -> DatasetIngestPipeline:
+    def from_job_config(cls, config_path: Path) -> DatasetIngestPipeline:
         """Create an ingestion job from a YAML configuration file.
 
         Loads the YAML via Hydra, validates into a DatasetJob, then runs
@@ -263,8 +241,9 @@ if __name__ == "__main__":
     target = Path(args[0])
 
     if target.suffix in (".yaml", ".yml"):
-        pipeline = DatasetIngestPipeline.from_config(target)
+        pipeline = DatasetIngestPipeline.from_job_config(target)
     else:
+        from catalog.integrations.obsidian import IngestObsidianConfig
         config = IngestObsidianConfig(source_path=target, force=force, catalog_name='pkm')
         pipeline = DatasetIngestPipeline(ingest_config=config)
 

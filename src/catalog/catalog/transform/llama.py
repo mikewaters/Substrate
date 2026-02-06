@@ -417,15 +417,18 @@ class PersistenceTransform(TransformComponent):
             for path in existing_paths
         }
 
+        output_nodes: list[BaseNode] = []
         for node in nodes:
             try:
-                self._process_node(
+                changed = self._process_node(
                     session=session,
                     doc_repo=doc_repo,
                     fts=fts,
                     node=node,
                     existing_docs=existing_docs,
                 )
+                if changed:
+                    output_nodes.append(node)
             except Exception as e:
                 path = self._get_path(node)
                 logger.error(f"Failed to persist {path}: {e}")
@@ -437,10 +440,11 @@ class PersistenceTransform(TransformComponent):
         logger.info(
             f"PersistenceTransform complete: "
             f"created={self.stats.created}, updated={self.stats.updated}, "
-            f"skipped={self.stats.skipped}, failed={self.stats.failed}"
+            f"skipped={self.stats.skipped}, failed={self.stats.failed}, "
+            f"passing {len(output_nodes)}/{len(nodes)} nodes downstream"
         )
 
-        return nodes
+        return output_nodes
 
     def _get_path(self, node: BaseNode) -> str:
         """Extract document path from node metadata."""
@@ -477,8 +481,13 @@ class PersistenceTransform(TransformComponent):
         fts: FTSManager,
         node: BaseNode,
         existing_docs: dict[str, Document | None],
-    ) -> None:
-        """Process a single node for persistence."""
+    ) -> bool:
+        """Process a single node for persistence.
+
+        Returns:
+            True if the node was created or updated (should continue downstream),
+            False if skipped (unchanged, no downstream processing needed).
+        """
         path = self._get_path(node)
         body = node.get_content()
         content_hash = _compute_content_hash(body)
@@ -520,7 +529,8 @@ class PersistenceTransform(TransformComponent):
                 else:
                     self.stats.skipped += 1
                     node.metadata["doc_id"] = existing.id
-                return
+                    return False
+                return True
 
             # Changed or force - update
             existing.content_hash = content_hash
@@ -540,6 +550,7 @@ class PersistenceTransform(TransformComponent):
 
             logger.debug(f"Updated document: {path}")
             self.stats.updated += 1
+            return True
         else:
             # New document - create
             doc = doc_repo.create(
@@ -564,6 +575,7 @@ class PersistenceTransform(TransformComponent):
 
             #logger.debug(f"Created document: {path}")
             self.stats.created += 1
+            return True
 
 
 @dataclass
@@ -873,8 +885,8 @@ class ChunkPersistenceTransform(TransformComponent):
         # A more sophisticated implementation could query first to check existence
         self.stats.created += 1
 
-        logger.debug(
-            f"Persisted chunk {node_id} (seq={chunk_seq}) from {source_doc_id}"
-        )
+        #logger.debug(
+        #    f"Persisted chunk {node_id} (seq={chunk_seq}) from {source_doc_id}"
+        #)
 
 

@@ -4,8 +4,12 @@ Provides registration mechanisms for integrations to define their own
 source types and config factories.
 """
 
+from datetime import datetime
 from functools import singledispatch
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
+
+from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from catalog.ingest.job import SourceConfig
@@ -25,8 +29,8 @@ class BaseSource:
     def documents(self):
         pass
 
-    def transforms(self):
-        pass
+    def transforms(self, *args, **kwargs):
+        return ([], [])
 
 
 # Registry: source_type string -> factory function
@@ -95,8 +99,21 @@ def create_reader(config):
     raise TypeError(f"Unsupported config type: {type(config)}")
 
 
+class DatasetSourceConfig(BaseModel):
+    """Base configuration for dataset ingestion.
 
+    Attributes:
+        source_path: Path to the source data.
+        dataset_name: Name for the dataset (will be normalized).
+        catalog_name: Optional catalog name. If set, creates/links catalog to dataset.
+        force: If True, reprocess all documents even if unchanged.
+    """
+    type_name: str
+    source_path: Path
+    dataset_name: str
+    catalog_name: str | None = None
+    force: bool = False
+    incremental: bool = False
+    if_modified_since: datetime | None = None
 
-
-
-
+    model_config = {"arbitrary_types_allowed": True}

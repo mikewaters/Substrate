@@ -9,6 +9,8 @@ from __future__ import annotations
 from functools import cached_property
 from pathlib import Path
 
+from pydantic import Field, model_validator
+
 from agentlayer.logging import get_logger
 from llama_index.core import Document, SimpleDirectoryReader
 
@@ -18,9 +20,8 @@ from catalog.ingest.sources import (
     BaseSource,
     create_reader,
     create_source,
-    register_ingest_config_factory,
+    register_ingest_config_factory, DatasetSourceConfig,
 )
-from catalog.ingest.schemas import IngestDirectoryConfig
 
 if TYPE_CHECKING:
     from catalog.ingest.job import SourceConfig
@@ -28,8 +29,30 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+class SourceDirectoryConfig(DatasetSourceConfig):
+    """Configuration for directory ingestion.
+
+    Attributes:
+        source_path: Path to the directory to ingest.
+        dataset_name: Name for the dataset (will be normalized).
+        patterns: Glob patterns for matching files (default: ["**/*.md"]).
+        encoding: File encoding to use (default: utf-8).
+        force: If True, reprocess all documents even if unchanged.
+    """
+    type_name: str = "directory"
+    patterns: list[str] = Field(default_factory=lambda: ["**/*.md"])
+    encoding: str = "utf-8"
+
+    @model_validator(mode="after")
+    def validate_source_path(self) -> "SourceDirectoryConfig":
+        """Validate that the source path exists and is a directory."""
+        from catalog.ingest.directory import DirectorySource
+        DirectorySource.validate(self.source_path)
+        return self
+
+
 @register_ingest_config_factory("directory")
-def create_directory_ingest_config(source_config: "SourceConfig") -> IngestDirectoryConfig:
+def create_directory_ingest_config(source_config: "SourceConfig") -> SourceDirectoryConfig:
     """Create IngestDirectoryConfig from generic SourceConfig.
 
     Interprets directory-specific options:
@@ -42,7 +65,7 @@ def create_directory_ingest_config(source_config: "SourceConfig") -> IngestDirec
     Returns:
         IngestDirectoryConfig instance ready for create_source().
     """
-    return IngestDirectoryConfig(
+    return SourceDirectoryConfig(
         source_path=source_config.source_path,
         dataset_name=source_config.dataset_name or source_config.source_path.name,
         catalog_name=source_config.catalog_name,
@@ -53,7 +76,7 @@ def create_directory_ingest_config(source_config: "SourceConfig") -> IngestDirec
 
 
 @create_source.register
-def _(config: IngestDirectoryConfig):
+def _(config: SourceDirectoryConfig):
     return DirectorySource(
         config.source_path,
         patterns=config.patterns,
@@ -62,7 +85,7 @@ def _(config: IngestDirectoryConfig):
 
 
 @create_reader.register
-def _(config: IngestDirectoryConfig):
+def _(config: SourceDirectoryConfig):
     return SimpleDirectoryReader(
         config.source_path,
         patterns=config.patterns,
@@ -150,7 +173,7 @@ class DirectorySource(BaseSource):
         logger.info(f"DirectorySource loaded {len(all_docs)} documents from {self.path}")
         return all_docs
 
-    def get_transforms(self, dataset_id: int):
+    def transforms(self, dataset_id: int):
         """Return (pre_persist, post_persist) transform lists.
 
         Directory sources have no source-specific transforms.

@@ -166,9 +166,10 @@ class TestEndToEndStatusIntegration:
         from unittest.mock import MagicMock, patch
 
         from catalog.core.status import check_health
-        from catalog.ingest.pipelines import DatasetIngestPipeline
-        from catalog.ingest.schemas import IngestDirectoryConfig
+        from catalog.ingest.pipelines_v2 import DatasetIngestPipelineV2
+        from catalog.ingest.directory import SourceDirectoryConfig
         from catalog.store.fts import create_fts_table
+        from catalog.store.fts_chunk import create_chunks_fts_table
 
         # Create test documents
         docs_dir = tmp_path / "docs"
@@ -183,6 +184,7 @@ class TestEndToEndStatusIntegration:
         engine = create_engine_for_path(db_path)
         Base.metadata.create_all(engine)
         create_fts_table(engine)
+        create_chunks_fts_table(engine)
 
         # Create session factory
         factory = sessionmaker(bind=engine, expire_on_commit=False)
@@ -200,9 +202,9 @@ class TestEndToEndStatusIntegration:
                 session.close()
 
         # Ingest documents using patched session
-        with patch("catalog.ingest.pipelines.get_session", get_test_session):
-            pipeline = DatasetIngestPipeline()
-            config = IngestDirectoryConfig(
+        with patch("catalog.ingest.pipelines_v2.get_session", get_test_session):
+            pipeline = DatasetIngestPipelineV2()
+            config = SourceDirectoryConfig(
                 source_path=docs_dir,
                 dataset_name="test",
                 patterns=["**/*.md"],

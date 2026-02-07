@@ -22,7 +22,7 @@ from catalog.store.fts import create_fts_table
 from catalog.store.models import DocumentLink, DocumentLinkKind
 from catalog.store.repositories import DocumentLinkRepository
 from catalog.store.session_context import use_session
-from catalog.transform.frontmatter import FrontmatterTransform
+from catalog.integrations.obsidian.transforms import FrontmatterTransform
 from catalog.integrations.obsidian import LinkResolutionTransform
 from catalog.transform.llama import PersistenceTransform
 
@@ -121,16 +121,16 @@ def _run_pipeline(
     dataset_name: str,
 ) -> tuple[int, LinkResolutionTransform]:
     """Run the pipeline and return (dataset_id, link_transform)."""
-    dataset_id = DatasetService.create_or_update(
+    dataset = DatasetService.create_or_update(
         session,
         dataset_name,
         source_type="obsidian",
         source_path=str(vault_path),
     )
 
-    persist = PersistenceTransform(dataset_id=dataset_id)
+    persist = PersistenceTransform(dataset_id=dataset.id)
     frontmatter = FrontmatterTransform()
-    link_resolve = LinkResolutionTransform(dataset_id=dataset_id)
+    link_resolve = LinkResolutionTransform(dataset_id=dataset.id)
 
     pipeline = IngestionPipeline(
         transformations=[frontmatter, persist, link_resolve],
@@ -139,7 +139,7 @@ def _run_pipeline(
     reader = ObsidianVaultReader(vault_path)
     documents = reader.load_data()
     pipeline.run(documents=documents)
-    return dataset_id, link_resolve
+    return dataset.id, link_resolve
 
 
 # ---------------------------------------------------------------------------
@@ -211,11 +211,11 @@ class TestObsidianLinkIntegration:
 
             assert len(incoming) == 2
 
-    def test_dead_links_filtered_by_reader(self, session_factory, linked_vault: Path) -> None:
-        """ObsidianVaultReader filters dead wikilinks before they reach the transform.
+    def test_dead_links_counted_as_unresolved(self, session_factory, linked_vault: Path) -> None:
+        """Wikilinks to non-existent notes are counted as unresolved.
 
-        D.md contains [[NonExistent]] but the reader removes it, so D only
-        has the resolved [[A]] link.
+        D.md contains [[NonExistent]] which cannot resolve to any document,
+        so it is counted as unresolved. D's [[A]] link resolves normally.
         """
         with create_session(session_factory) as session:
             with use_session(session):
@@ -223,10 +223,10 @@ class TestObsidianLinkIntegration:
                     session, linked_vault, "link-test-vault"
                 )
 
-        # All links that survived reader filtering should resolve.
-        assert link_transform.stats.unresolved == 0
+        # NonExistent is unresolvable.
+        assert link_transform.stats.unresolved == 1
 
-        # D only has the link to A (NonExistent was stripped by the reader).
+        # D has only the resolved link to A.
         with create_session(session_factory) as session:
             row_d = session.execute(
                 text("SELECT d.id FROM documents d WHERE d.path LIKE '%D.md'")

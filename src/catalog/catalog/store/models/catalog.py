@@ -160,6 +160,7 @@ class Dataset(Resource):
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     source_type: Mapped[str] = mapped_column(String(50), nullable=False)
     source_path: Mapped[str] = mapped_column(String(1024), nullable=False)
+    last_ingested_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": ResourceKind.DATASET,

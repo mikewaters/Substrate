@@ -17,8 +17,8 @@ from sqlalchemy import Engine
 from sqlalchemy import text as sql_text
 from sqlalchemy.orm import Session, sessionmaker
 
-from catalog.ingest.pipelines import DatasetIngestPipeline
-from catalog.integrations.obsidian import IngestObsidianConfig
+from catalog.ingest.pipelines_v2 import DatasetIngestPipelineV2
+from catalog.integrations.obsidian import SourceObsidianConfig
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.fts import create_fts_table
 from catalog.store.fts_chunk import create_chunks_fts_table
@@ -63,7 +63,7 @@ def patched_get_session(session_factory):
         with create_session(session_factory) as session:
             yield session
 
-    with patch("catalog.ingest.pipelines.get_session", get_test_session):
+    with patch("catalog.ingest.pipelines_v2.get_session", get_test_session):
         yield get_test_session
 
 
@@ -129,12 +129,12 @@ class TestIdempotentIngestion:
         sample_vault: Path,
     ) -> None:
         """Re-ingesting the same content produces identical node IDs."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
 
         # First ingest
         result1 = pipeline.ingest_dataset(config)
@@ -147,7 +147,7 @@ class TestIdempotentIngestion:
             first_node_ids = {row.node_id: row.source_doc_id for row in result}
 
         # Force re-ingest
-        config_force = IngestObsidianConfig(
+        config_force = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
             force=True,
@@ -172,12 +172,12 @@ class TestIdempotentIngestion:
         sample_vault: Path,
     ) -> None:
         """Node IDs follow the format {content_hash}:{chunk_seq}."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
         pipeline.ingest_dataset(config)
 
         # Check node ID format
@@ -210,12 +210,12 @@ class TestNoDuplicates:
         sample_vault: Path,
     ) -> None:
         """FTS index has no duplicate node IDs after ingestion."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
         pipeline.ingest_dataset(config)
 
         # Check for duplicates
@@ -240,18 +240,18 @@ class TestNoDuplicates:
         sample_vault: Path,
     ) -> None:
         """Re-ingestion doesn't create duplicates in FTS."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
 
         # Ingest multiple times
         pipeline.ingest_dataset(config)
 
         # Force re-ingest
-        config_force = IngestObsidianConfig(
+        config_force = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
             force=True,
@@ -280,12 +280,12 @@ class TestNoDuplicates:
         sample_vault: Path,
     ) -> None:
         """Chunk count remains stable across re-ingestion."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
         pipeline.ingest_dataset(config)
 
         # Get initial chunk count
@@ -294,7 +294,7 @@ class TestNoDuplicates:
             initial_count = result.scalar()
 
         # Force re-ingest
-        config_force = IngestObsidianConfig(
+        config_force = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
             force=True,
@@ -323,12 +323,12 @@ class TestDeletePropagation:
         """Deleted files are removed from FTS index after cleanup."""
         from catalog.store.cleanup import cleanup_stale_documents
 
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
         result = pipeline.ingest_dataset(config)
 
         # Verify note2.md chunks exist in FTS
@@ -385,12 +385,12 @@ class TestDeletePropagation:
         """Document-level FTS entries are removed when document deleted."""
         from catalog.store.cleanup import cleanup_stale_documents
 
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
         result = pipeline.ingest_dataset(config)
 
         # Verify document FTS entry exists
@@ -442,12 +442,12 @@ class TestVectorIndexing:
         sample_vault: Path,
     ) -> None:
         """Vector indexing always inserts vectors during ingestion."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
         result = pipeline.ingest_dataset(config)
 
         # Verify vector manager was called
@@ -470,12 +470,12 @@ class TestSourceDocIdFormat:
         sample_vault: Path,
     ) -> None:
         """source_doc_id follows the format {dataset_name}:{path}."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
         pipeline.ingest_dataset(config)
 
         # Check source_doc_id format
@@ -501,12 +501,12 @@ class TestSourceDocIdFormat:
         sample_vault: Path,
     ) -> None:
         """Each document has a unique source_doc_id prefix."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
         pipeline.ingest_dataset(config)
 
         # Get all source_doc_ids
@@ -533,12 +533,12 @@ class TestChunkMetadata:
         sample_vault: Path,
     ) -> None:
         """Chunks have non-empty text content."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
         pipeline.ingest_dataset(config)
 
         # Check that all chunks have text
@@ -558,12 +558,12 @@ class TestChunkMetadata:
         sample_vault: Path,
     ) -> None:
         """All ingested documents have at least one chunk in FTS."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
         result = pipeline.ingest_dataset(config)
 
         # Get documents
@@ -591,12 +591,12 @@ class TestIngestionStats:
         sample_vault: Path,
     ) -> None:
         """IngestResult correctly tracks chunks_created."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
         result = pipeline.ingest_dataset(config)
 
         # Verify chunks_created is populated
@@ -620,19 +620,19 @@ class TestIngestionStats:
         sample_vault: Path,
     ) -> None:
         """Re-ingestion with force=True updates stats correctly."""
-        config = IngestObsidianConfig(
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
 
         # First ingest
         result1 = pipeline.ingest_dataset(config)
         initial_chunks = result1.chunks_created
 
         # Force re-ingest
-        config_force = IngestObsidianConfig(
+        config_force = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
             force=True,

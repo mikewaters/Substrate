@@ -258,6 +258,7 @@ class DatasetService:
             source_path=dataset.source_path,
             created_at=dataset.created_at,
             updated_at=dataset.updated_at,
+            last_ingested_at=dataset.last_ingested_at,
             document_count=doc_count,
         )
 
@@ -272,6 +273,7 @@ class DatasetService:
             source_path=dataset.source_path,
             created_at=dataset.created_at,
             updated_at=dataset.updated_at,
+            last_ingested_at=dataset.last_ingested_at,
         )
 
     @staticmethod

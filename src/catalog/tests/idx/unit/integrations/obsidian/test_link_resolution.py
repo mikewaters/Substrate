@@ -33,11 +33,11 @@ def db_session(tmp_path: Path):
 def dataset_id(db_session) -> int:
     """Create a test dataset and return its ID."""
     with use_session(db_session):
-        ds_id = DatasetService.create_or_update(
+        dataset = DatasetService.create_or_update(
             db_session, "test-vault", source_type="obsidian", source_path="/test"
         )
         db_session.commit()
-    return ds_id
+    return dataset.id
 
 
 def _make_node(path: str, wikilinks: list[str] | None = None, **extra_meta) -> LlamaDocument:

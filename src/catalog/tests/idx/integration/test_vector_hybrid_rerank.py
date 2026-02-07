@@ -16,13 +16,14 @@ import pytest
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from catalog.ingest.pipelines import DatasetIngestPipeline
-from catalog.ingest.schemas import IngestDirectoryConfig
+from catalog.ingest.pipelines_v2 import DatasetIngestPipelineV2
+from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.search.fts import FTSSearch
 from catalog.search.hybrid import HybridSearch
 from catalog.search.models import SearchCriteria, SearchResult, SearchResults
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.fts import create_fts_table
+from catalog.store.fts_chunk import create_chunks_fts_table
 from catalog.store.session_context import use_session
 
 
@@ -33,6 +34,7 @@ def test_engine(tmp_path: Path) -> Engine:
     engine = create_engine_for_path(db_path)
     Base.metadata.create_all(engine)
     create_fts_table(engine)
+    create_chunks_fts_table(engine)
     return engine
 
 
@@ -64,7 +66,7 @@ def patched_get_session(session_factory):
         with create_session(session_factory) as session:
             yield session
 
-    with patch("catalog.ingest.pipelines.get_session", get_test_session):
+    with patch("catalog.ingest.pipelines_v2.get_session", get_test_session):
         yield get_test_session
 
 
@@ -178,8 +180,8 @@ class TestHybridSearchIntegration:
         from llama_index.core.schema import NodeWithScore, TextNode
 
         # Ingest documents (FTS only for this test)
-        pipeline = DatasetIngestPipeline()
-        config = IngestDirectoryConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceDirectoryConfig(
             source_path=sample_docs,
             dataset_name="test-vault",
             patterns=["**/*.md"],
@@ -231,8 +233,8 @@ class TestHybridSearchIntegration:
         from llama_index.core.schema import NodeWithScore, TextNode
 
         # Ingest documents
-        pipeline = DatasetIngestPipeline()
-        config = IngestDirectoryConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceDirectoryConfig(
             source_path=sample_docs,
             dataset_name="test-vault",
             patterns=["**/*.md"],
@@ -276,7 +278,7 @@ class TestHybridSearchIntegration:
         """Hybrid search filters by dataset name."""
         from llama_index.core.schema import NodeWithScore, TextNode
 
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
 
         # Create two datasets
         docs2 = tmp_path / "docs2"
@@ -285,14 +287,14 @@ class TestHybridSearchIntegration:
 
         # Ingest both
         pipeline.ingest_dataset(
-            IngestDirectoryConfig(
+            SourceDirectoryConfig(
                 source_path=sample_docs,
                 dataset_name="vault1",
                 patterns=["**/*.md"],
             )
         )
         pipeline.ingest_dataset(
-            IngestDirectoryConfig(
+            SourceDirectoryConfig(
                 source_path=docs2,
                 dataset_name="vault2",
                 patterns=["**/*.md"],
@@ -452,8 +454,8 @@ class TestEndToEndFlow:
         from catalog.llm.reranker import Reranker
 
         # 1. Ingest documents
-        pipeline = DatasetIngestPipeline()
-        config = IngestDirectoryConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceDirectoryConfig(
             source_path=sample_docs,
             dataset_name="test-vault",
             patterns=["**/*.md"],
@@ -530,8 +532,8 @@ class TestEndToEndFlow:
     ) -> None:
         """FTS search works independently of vector search."""
         # Ingest
-        pipeline = DatasetIngestPipeline()
-        config = IngestDirectoryConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceDirectoryConfig(
             source_path=sample_docs,
             dataset_name="test-vault",
             patterns=["**/*.md"],

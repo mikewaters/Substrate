@@ -9,17 +9,16 @@ from typing import TYPE_CHECKING
 from catalog.integrations.obsidian.reader import (
     ObsidianMarkdownReader,
     ObsidianVaultReader,
-    ObsidianVaultSource,
     extract_tasks,
     extract_wikilinks,
     parse_frontmatter,
 )
-from catalog.integrations.obsidian.schemas import IngestObsidianConfig
+from catalog.integrations.obsidian.source import ObsidianVaultSource, SourceObsidianConfig
 from catalog.integrations.obsidian.transforms import (
     LinkResolutionStats,
     LinkResolutionTransform,
 )
-from catalog.integrations.obsidian.vault_schema import VaultSchema
+from catalog.integrations.obsidian.ontology import VaultSchema
 
 from catalog.ingest.sources import (
     create_reader,
@@ -32,7 +31,7 @@ if TYPE_CHECKING:
 
 
 @register_ingest_config_factory("obsidian")
-def create_obsidian_ingest_config(source_config: "SourceConfig") -> IngestObsidianConfig:
+def create_obsidian_ingest_config(source_config: "SourceConfig") -> SourceObsidianConfig:
     """Create IngestObsidianConfig from generic SourceConfig.
 
     Interprets obsidian-specific options:
@@ -50,27 +49,33 @@ def create_obsidian_ingest_config(source_config: "SourceConfig") -> IngestObsidi
     vault_schema_cls = _import_class(vault_schema_path) if vault_schema_path else None
     dataset_name = source_config.dataset_name or source_config.source_path.name
 
-    return IngestObsidianConfig(
+    return SourceObsidianConfig(
         source_path=source_config.source_path,
         dataset_name=dataset_name,
         catalog_name=source_config.catalog_name,
         force=source_config.force,
+        incremental=source_config.incremental,
+        if_modified_since=source_config.if_modified_since,
         vault_schema=vault_schema_cls,
     )
 
 
 @create_source.register
-def _(config: IngestObsidianConfig):
-    return ObsidianVaultSource(config.source_path, vault_schema=config.vault_schema)
+def _(config: SourceObsidianConfig):
+    return ObsidianVaultSource(
+        config.source_path,
+        vault_schema=config.vault_schema,
+        if_modified_since=config.if_modified_since,
+    )
 
 
 @create_reader.register
-def _(config: IngestObsidianConfig):
+def _(config: SourceObsidianConfig):
     return ObsidianVaultReader(config.source_path)
 
 
 __all__ = [
-    "IngestObsidianConfig",
+    "SourceObsidianConfig",
     "LinkResolutionStats",
     "LinkResolutionTransform",
     "ObsidianMarkdownReader",

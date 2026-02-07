@@ -11,7 +11,7 @@ from catalog.integrations.heptabase.reader import (
     HeptabaseVaultReader,
     HeptabaseVaultSource,
 )
-from catalog.integrations.heptabase.schemas import IngestHeptabaseConfig
+from catalog.integrations.heptabase.source import SourceHeptabaseConfig
 from catalog.integrations.heptabase.vault_schema import HeptabaseVaultSchema
 
 from catalog.ingest.sources import (
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 @register_ingest_config_factory("heptabase")
-def create_heptabase_ingest_config(source_config: "SourceConfig") -> IngestHeptabaseConfig:
+def create_heptabase_ingest_config(source_config: "SourceConfig") -> SourceHeptabaseConfig:
     """Create IngestHeptabaseConfig from generic SourceConfig.
 
     Interprets heptabase-specific options:
@@ -43,22 +43,28 @@ def create_heptabase_ingest_config(source_config: "SourceConfig") -> IngestHepta
     vault_schema_cls = _import_class(vault_schema_path) if vault_schema_path else None
     dataset_name = source_config.dataset_name or source_config.source_path.name
 
-    return IngestHeptabaseConfig(
+    return SourceHeptabaseConfig(
         source_path=source_config.source_path,
         dataset_name=dataset_name,
         catalog_name=source_config.catalog_name,
         force=source_config.force,
+        incremental=source_config.incremental,
+        if_modified_since=source_config.if_modified_since,
         vault_schema=vault_schema_cls,
     )
 
 
 @create_source.register
-def _(config: IngestHeptabaseConfig):
-    return HeptabaseVaultSource(config.source_path, vault_schema=config.vault_schema)
+def _(config: SourceHeptabaseConfig):
+    return HeptabaseVaultSource(
+        config.source_path,
+        vault_schema=config.vault_schema,
+        if_modified_since=config.if_modified_since,
+    )
 
 
 @create_reader.register
-def _(config: IngestHeptabaseConfig):
+def _(config: SourceHeptabaseConfig):
     return HeptabaseVaultReader(config.source_path)
 
 
@@ -66,6 +72,6 @@ __all__ = [
     "HeptabaseVaultReader",
     "HeptabaseVaultSchema",
     "HeptabaseVaultSource",
-    "IngestHeptabaseConfig",
+    "SourceHeptabaseConfig",
     "extract_heptabase_links",
 ]

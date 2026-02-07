@@ -7,9 +7,10 @@ where the ``./`` prefix distinguishes internal links from external URLs.
 
 from __future__ import annotations
 
+from datetime import datetime
 from functools import cached_property
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 from agentlayer.logging import get_logger
 from llama_index.core import Document
@@ -20,10 +21,9 @@ from catalog.integrations.obsidian.reader import (
     ObsidianMarkdownNormalize,
     ObsidianVaultReader,
 )
-from catalog.integrations.obsidian.transforms import LinkResolutionTransform
+from catalog.integrations.obsidian.transforms import LinkResolutionTransform, FrontmatterTransform
 from catalog.ingest.sources import BaseSource
 from catalog.store.models import DocumentLinkKind
-from catalog.transform.frontmatter import FrontmatterTransform
 
 __all__ = [
     "HeptabaseVaultReader",
@@ -70,19 +70,34 @@ class HeptabaseVaultSource(BaseSource):
         self,
         path: str | Path,
         vault_schema: type | None = None,
+        if_modified_since: datetime | None = None,
     ) -> None:
         """Initialize Heptabase source.
 
         Args:
             path: Path to the Heptabase export root directory.
             vault_schema: Optional VaultSchema subclass for frontmatter mapping.
+            if_modified_since: If set, only ingest files modified at or after
+                this timestamp.
         """
         self.path = Path(path).resolve()
         self.vault_schema = vault_schema
         self.reader = HeptabaseVaultReader(input_dir=self.path)
+
+        if if_modified_since is not None:
+            ts = if_modified_since.timestamp()
+            self.reader.input_files = [
+                p for p in self.path.rglob("*.md")
+                if p.stat().st_mtime >= ts
+            ]
+            logger.info(
+                f"Filtered to {len(self.reader.input_files)} files "
+                f"modified since {if_modified_since}"
+            )
+
         logger.debug(f"Initialized HeptabaseVaultSource for path: {self.path}")
 
-    def get_transforms(self, dataset_id: int) -> tuple[list, list]:
+    def transforms(self, dataset_id: int) -> tuple[list, list]:
         """Get the list of transforms to apply for this source.
 
         Returns:

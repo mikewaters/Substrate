@@ -32,6 +32,7 @@ Example usage::
 from __future__ import annotations
 
 import importlib
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -42,7 +43,7 @@ from agentlayer.logging import get_logger
 if TYPE_CHECKING:
     from llama_index.core.embeddings import BaseEmbedding
 
-    from catalog.ingest.schemas import DatasetIngestConfig
+    from catalog.ingest.sources import DatasetSourceConfig
 
 __all__ = [
     "DatasetJob",
@@ -95,11 +96,13 @@ class SourceConfig(BaseModel):
         options: Integration-specific options dict.
     """
 
-    type: str #= "obsidian"
+    type: str = "obsidian"
     source_path: Path
     dataset_name: str | None = None
     catalog_name: str | None = None
     force: bool = False
+    incremental: bool = False
+    if_modified_since: datetime | None = None
     options: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -164,7 +167,7 @@ class DatasetJob(BaseModel):
         raw = OmegaConf.to_container(cfg, resolve=True)
         return cls.model_validate(raw)
 
-    def to_ingest_config(self) -> DatasetIngestConfig:
+    def to_ingest_config(self) -> DatasetSourceConfig:
         """Convert to an integration-specific ingest config.
 
         Uses the factory registry in sources.py to dispatch to the

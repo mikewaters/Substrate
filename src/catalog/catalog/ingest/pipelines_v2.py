@@ -42,12 +42,12 @@ from catalog.ingest.cache import (
     load_pipeline,
     persist_pipeline,
 )
-from catalog.ingest.schemas import DatasetIngestConfig, IngestResult
-from catalog.ingest.sources import BaseSource, create_source
+from catalog.ingest.schemas import IngestResult
+from catalog.ingest.sources import BaseSource, create_source, DatasetSourceConfig
 from catalog.store.database import get_session
 from catalog.store.dataset import DatasetService
 from catalog.store.fts import FTSManager
-from catalog.store.repositories import DocumentRepository
+from catalog.store.repositories import DatasetRepository, DocumentRepository
 from catalog.store.session_context import use_session
 from catalog.store.vector import VectorStoreManager
 from catalog.transform import EmbeddingPrefixTransform, ResilientSplitter
@@ -78,7 +78,7 @@ class DatasetIngestPipelineV2(BaseModel):
         resilient_embedding: Whether to use fallback on embedding errors.
     """
 
-    ingest_config: Optional[DatasetIngestConfig] = None
+    ingest_config: Optional[DatasetSourceConfig] = None
     embed_model: Optional[Any] = None  # BaseEmbedding, but Any for Pydantic compat
     resilient_embedding: bool = Field(default=True)
 
@@ -110,6 +110,7 @@ class DatasetIngestPipelineV2(BaseModel):
         dataset_name: str,
         vector_manager: VectorStoreManager,
         source_transforms: tuple[list, list],
+        incremental: bool = False,
     ) -> IngestionPipeline:
         """Build the v2 ingestion pipeline.
 
@@ -118,6 +119,9 @@ class DatasetIngestPipelineV2(BaseModel):
             dataset_name: Name of the dataset.
             vector_manager: Vector store manager for embeddings.
             source_transforms: Tuple of (pre-persist, post-persist) transforms.
+            incremental: If True, use UPSERTS strategy instead of
+                UPSERTS_AND_DELETE to avoid deleting unchanged documents
+                that are absent from the partial batch.
 
         Returns:
             Configured IngestionPipeline ready to run.
@@ -167,9 +171,16 @@ class DatasetIngestPipelineV2(BaseModel):
         docstore = SimpleDocumentStore()
         vector_store = vector_manager.get_vector_store()
 
+        # In incremental mode, use UPSERTS to avoid deleting docstore/vector
+        # entries for documents not in the partial batch.
+        if incremental:
+            strategy = DocstoreStrategy.UPSERTS
+        else:
+            strategy = DocstoreStrategy.UPSERTS_AND_DELETE
+
         # Guard: UPSERTS_AND_DELETE silently downgrades to DUPLICATES_ONLY
         # without a vector store, losing upsert and deletion semantics.
-        if vector_store is None:
+        if vector_store is None and strategy == DocstoreStrategy.UPSERTS_AND_DELETE:
             raise ValueError(
                 "Vector store is required for DocstoreStrategy.UPSERTS_AND_DELETE. "
                 "Without it, LlamaIndex silently downgrades to DUPLICATES_ONLY."
@@ -178,7 +189,7 @@ class DatasetIngestPipelineV2(BaseModel):
         pipeline = IngestionPipeline(
             transformations=transformations,
             docstore=docstore,
-            docstore_strategy=DocstoreStrategy.UPSERTS_AND_DELETE,
+            docstore_strategy=strategy,
             vector_store=vector_store,
         )
 
@@ -216,14 +227,32 @@ class DatasetIngestPipelineV2(BaseModel):
 
         with get_session() as session:
             with use_session(session):
-                # Get or create dataset
+                # Get or create dataset — use config fields (not self.source)
+                # so source creation is deferred until after incremental
+                # resolution below.
                 dataset = DatasetService.create_or_update(
                     session,
                     self.ingest_config.dataset_name,
-                    source_type=self.source.type_name,
-                    source_path=str(self.source.path),
+                    source_type=self.ingest_config.type_name,
+                    source_path=str(self.ingest_config.source_path),
                     catalog_name=self.ingest_config.catalog_name,
                 )
+
+                # Resolve incremental flag to if_modified_since before
+                # accessing self.source (which triggers file filtering).
+                is_incremental = self.ingest_config.if_modified_since is not None
+                if self.ingest_config.incremental and not is_incremental:
+                    if dataset.last_ingested_at is not None:
+                        self.ingest_config.if_modified_since = dataset.last_ingested_at
+                        is_incremental = True
+                        logger.info(
+                            f"Incremental mode: filtering files modified since "
+                            f"{dataset.last_ingested_at}"
+                        )
+                    else:
+                        logger.info(
+                            "Incremental mode: new dataset, running full ingestion"
+                        )
 
                 # Handle forced ingestion
                 vector_manager = VectorStoreManager()
@@ -237,7 +266,7 @@ class DatasetIngestPipelineV2(BaseModel):
                     clear_cache(self._cache_key(dataset.name))
 
                 # Get source-specific transforms
-                source_transforms = self.source.get_transforms(dataset_id=dataset.id)
+                source_transforms = self.source.transforms(dataset_id=dataset.id)
 
                 # Build and run pipeline
                 pipeline = self.build_pipeline(
@@ -245,6 +274,7 @@ class DatasetIngestPipelineV2(BaseModel):
                     dataset_name=dataset.name,
                     vector_manager=vector_manager,
                     source_transforms=source_transforms,
+                    incremental=is_incremental,
                 )
 
                 source_docs = self.source.documents
@@ -266,33 +296,45 @@ class DatasetIngestPipelineV2(BaseModel):
                 # as inactive in our SQLite DB. LlamaIndex already handled
                 # deletion in the docstore and vector store via
                 # UPSERTS_AND_DELETE; this mirrors that to our DB.
-                batch_paths = {
-                    doc.metadata.get("relative_path", doc.id_)
-                    for doc in source_docs
-                }
-                doc_repo = DocumentRepository()
-                deactivated = doc_repo.deactivate_missing(
-                    dataset.id, batch_paths
-                )
-                if deactivated > 0:
-                    # Clean up FTS entries for deactivated documents
-                    fts = FTSManager()
-                    active_paths = doc_repo.list_paths_by_parent(
-                        dataset.id, active_only=True
+                #
+                # Skip in incremental mode: only a subset of files were
+                # loaded, so missing docs are simply not-yet-modified,
+                # not deleted.
+                deactivated = 0
+                if not is_incremental:
+                    batch_paths = {
+                        doc.metadata.get("relative_path", doc.id_)
+                        for doc in source_docs
+                    }
+                    doc_repo = DocumentRepository()
+                    deactivated = doc_repo.deactivate_missing(
+                        dataset.id, batch_paths
                     )
-                    all_paths = doc_repo.list_paths_by_parent(
-                        dataset.id, active_only=False
-                    )
-                    removed_paths = all_paths - active_paths - batch_paths
-                    for rpath in removed_paths:
-                        removed_doc = doc_repo.get_by_path(dataset.id, rpath)
-                        if removed_doc:
-                            fts.delete(removed_doc.id)
+                    if deactivated > 0:
+                        # Clean up FTS entries for deactivated documents
+                        fts = FTSManager()
+                        active_paths = doc_repo.list_paths_by_parent(
+                            dataset.id, active_only=True
+                        )
+                        all_paths = doc_repo.list_paths_by_parent(
+                            dataset.id, active_only=False
+                        )
+                        removed_paths = all_paths - active_paths - batch_paths
+                        for rpath in removed_paths:
+                            removed_doc = doc_repo.get_by_path(dataset.id, rpath)
+                            if removed_doc:
+                                fts.delete(removed_doc.id)
 
-                    logger.info(
-                        f"Deletion sync: deactivated {deactivated} documents "
-                        f"not in current batch"
-                    )
+                        logger.info(
+                            f"Deletion sync: deactivated {deactivated} documents "
+                            f"not in current batch"
+                        )
+
+                # Stamp last_ingested_at on the dataset
+                ds_repo = DatasetRepository(session)
+                dataset_orm = ds_repo.get_by_id(dataset.id)
+                dataset_orm.last_ingested_at = datetime.now(tz=timezone.utc)
+
                 session.flush()
 
                 if persist_transform:
@@ -338,7 +380,7 @@ class DatasetIngestPipelineV2(BaseModel):
 
                 return result
 
-    def ingest_dataset(self, config: DatasetIngestConfig) -> IngestResult:
+    def ingest_dataset(self, config: DatasetSourceConfig) -> IngestResult:
         """Ingest documents using the provided config.
 
         Creates a new pipeline instance with the given config and runs ingestion.
@@ -359,8 +401,8 @@ class DatasetIngestPipelineV2(BaseModel):
 if __name__ == "__main__":
     import sys
     from agentlayer.logging import get_logger, configure_logging
-    from catalog.integrations.obsidian import IngestObsidianConfig
-    from catalog.integrations.heptabase import IngestHeptabaseConfig
+    from catalog.integrations.obsidian import SourceObsidianConfig
+    from catalog.integrations.heptabase import SourceHeptabaseConfig
 
     configure_logging(level="DEBUG")
     if len(sys.argv) < 2:
@@ -376,7 +418,7 @@ if __name__ == "__main__":
     if target.suffix in (".yaml", ".yml"):
         pipeline = DatasetIngestPipelineV2.from_job_config(target)
     else:
-        config = IngestHeptabaseConfig(source_path=target, force=force, catalog_name='pkm')
+        config = SourceHeptabaseConfig(source_path=target, force=force, catalog_name='pkm')
         pipeline = DatasetIngestPipelineV2(ingest_config=config)
 
     result = pipeline.ingest()

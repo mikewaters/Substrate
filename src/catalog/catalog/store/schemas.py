@@ -57,6 +57,7 @@ class DatasetInfo(BaseModel):
     description: str | None = None
     created_at: datetime
     updated_at: datetime
+    last_ingested_at: datetime | None = None
     document_count: int = 0
     model_config = {"from_attributes": True}
 

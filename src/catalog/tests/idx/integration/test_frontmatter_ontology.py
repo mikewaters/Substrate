@@ -23,7 +23,7 @@ from catalog.store.database import Base, create_engine_for_path
 from catalog.store.dataset import DatasetService
 from catalog.store.fts import create_fts_table
 from catalog.store.session_context import use_session
-from catalog.transform.frontmatter import FrontmatterTransform
+from catalog.integrations.obsidian.transforms import FrontmatterTransform
 from catalog.transform.llama import PersistenceTransform
 
 
@@ -155,14 +155,14 @@ def _run_pipeline(
     FrontmatterTransform + PersistenceTransform, and returns the count
     of nodes produced.
     """
-    dataset_id = DatasetService.create_or_update(
+    dataset = DatasetService.create_or_update(
         session,
         dataset_name,
         source_type="obsidian",
         source_path=str(vault_path),
     )
 
-    persist = PersistenceTransform(dataset_id=dataset_id)
+    persist = PersistenceTransform(dataset_id=dataset.id)
     frontmatter = FrontmatterTransform(vault_schema_cls=vault_schema_cls)
 
     pipeline = IngestionPipeline(

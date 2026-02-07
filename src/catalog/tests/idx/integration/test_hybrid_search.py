@@ -19,8 +19,8 @@ import pytest
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from catalog.ingest.pipelines import DatasetIngestPipeline
-from catalog.integrations.obsidian import IngestObsidianConfig
+from catalog.ingest.pipelines_v2 import DatasetIngestPipelineV2
+from catalog.integrations.obsidian import SourceObsidianConfig
 from catalog.search.fts import FTSSearch
 from catalog.search.fts_chunk import FTSChunkRetriever
 from catalog.search.hybrid import HybridSearch
@@ -72,7 +72,7 @@ def patched_get_session(session_factory):
         with create_session(session_factory) as session:
             yield session
 
-    with patch("catalog.ingest.pipelines.get_session", get_test_session):
+    with patch("catalog.ingest.pipelines_v2.get_session", get_test_session):
         yield get_test_session
 
 
@@ -143,8 +143,8 @@ class TestSearchServiceModes:
     ) -> None:
         """FTS-only mode returns results matching exact keywords."""
         # Ingest documents
-        pipeline = DatasetIngestPipeline()
-        config = IngestObsidianConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
@@ -171,10 +171,10 @@ class TestSearchServiceModes:
         tmp_path: Path,
     ) -> None:
         """FTS mode respects dataset_name filter."""
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
 
         # Ingest first dataset
-        config1 = IngestObsidianConfig(
+        config1 = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="vault1",
         )
@@ -186,7 +186,7 @@ class TestSearchServiceModes:
         (vault2 / ".obsidian").mkdir()
         (vault2 / "other.md").write_text("# Another auth doc\n\nOAuth2 content here too.")
 
-        config2 = IngestObsidianConfig(
+        config2 = SourceObsidianConfig(
             source_path=vault2,
             dataset_name="vault2",
         )
@@ -221,8 +221,8 @@ class TestHybridSearchRRF:
     ) -> None:
         """Hybrid search returns results from ingested documents."""
         # Ingest documents
-        pipeline = DatasetIngestPipeline()
-        config = IngestObsidianConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
@@ -284,8 +284,8 @@ class TestHybridSearchRRF:
     ) -> None:
         """RRF fusion combines results from both FTS and vector search."""
         # Ingest documents
-        pipeline = DatasetIngestPipeline()
-        config = IngestObsidianConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
@@ -343,8 +343,8 @@ class TestSearchResultShapes:
         sample_vault: Path,
     ) -> None:
         """FTS results have all required fields."""
-        pipeline = DatasetIngestPipeline()
-        config = IngestObsidianConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
@@ -372,8 +372,8 @@ class TestSearchResultShapes:
         sample_vault: Path,
     ) -> None:
         """SearchResults wrapper has correct metadata."""
-        pipeline = DatasetIngestPipeline()
-        config = IngestObsidianConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
@@ -401,8 +401,8 @@ class TestFTSChunkRetriever:
         sample_vault: Path,
     ) -> None:
         """FTSChunkRetriever returns NodeWithScore objects."""
-        pipeline = DatasetIngestPipeline()
-        config = IngestObsidianConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
@@ -432,10 +432,10 @@ class TestFTSChunkRetriever:
         tmp_path: Path,
     ) -> None:
         """FTSChunkRetriever filters by dataset name."""
-        pipeline = DatasetIngestPipeline()
+        pipeline = DatasetIngestPipelineV2()
 
         # Ingest first dataset
-        config1 = IngestObsidianConfig(
+        config1 = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="vault1",
         )
@@ -447,7 +447,7 @@ class TestFTSChunkRetriever:
         (vault2 / ".obsidian").mkdir()
         (vault2 / "auth2.md").write_text("# Auth\n\nOAuth2 in another vault.")
 
-        config2 = IngestObsidianConfig(
+        config2 = SourceObsidianConfig(
             source_path=vault2,
             dataset_name="vault2",
         )
@@ -480,8 +480,8 @@ class TestHybridSuperset:
         sample_vault: Path,
     ) -> None:
         """Hybrid search includes documents found by FTS."""
-        pipeline = DatasetIngestPipeline()
-        config = IngestObsidianConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
@@ -538,8 +538,8 @@ class TestEmptyAndEdgeCases:
         sample_vault: Path,
     ) -> None:
         """Empty or whitespace query returns empty results."""
-        pipeline = DatasetIngestPipeline()
-        config = IngestObsidianConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
@@ -566,8 +566,8 @@ class TestEmptyAndEdgeCases:
         sample_vault: Path,
     ) -> None:
         """Query with special characters doesn't crash."""
-        pipeline = DatasetIngestPipeline()
-        config = IngestObsidianConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
@@ -594,8 +594,8 @@ class TestEmptyAndEdgeCases:
         sample_vault: Path,
     ) -> None:
         """Search respects the limit parameter."""
-        pipeline = DatasetIngestPipeline()
-        config = IngestObsidianConfig(
+        pipeline = DatasetIngestPipelineV2()
+        config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )

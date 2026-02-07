@@ -1,4 +1,8 @@
-"""catalog.ingest.pipelines - Dataset ingestion pipeline.
+"""catalog.ingest.pipelines - Dataset ingestion pipeline (DEPRECATED).
+
+.. deprecated::
+    Use ``catalog.ingest.pipelines_v2.DatasetIngestPipelineV2`` instead.
+    This module will be removed in a future release.
 
 Provides DatasetIngestPipeline for ingesting documents from sources
 into the catalog, persisting them to the database and updating
@@ -55,7 +59,10 @@ __all__ = [
 logger = get_logger(__name__)
 
 class DatasetIngestPipeline(BaseModel):
-    """Dataset ingestion pipeline.
+    """Dataset ingestion pipeline (DEPRECATED).
+
+    .. deprecated::
+        Use ``DatasetIngestPipelineV2`` from ``catalog.ingest.pipelines_v2`` instead.
 
     Entry points:
         - ingest_dataset(config) - Takes config as argument

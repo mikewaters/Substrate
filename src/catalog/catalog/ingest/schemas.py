@@ -71,8 +71,8 @@ class IngestResult(BaseModel):
         documents_read: Total number of documents read.
         documents_created: Number of new documents created.
         documents_updated: Number of documents updated.
-        documents_skipped: Number of unchanged documents skipped.
-        documents_stale: Number of documents marked as stale (soft-deleted).
+        documents_skipped: Number of unchanged documents skipped (filtered by docstore).
+        documents_deactivated: Number of documents deactivated (removed from source).
         documents_failed: Number of documents that failed to process.
         chunks_created: Number of chunks indexed in FTS.
         vectors_inserted: Number of vectors inserted into vector store.
@@ -87,7 +87,7 @@ class IngestResult(BaseModel):
     documents_created: int = 0
     documents_updated: int = 0
     documents_skipped: int = 0
-    documents_stale: int = 0
+    documents_deactivated: int = 0
     documents_failed: int = 0
     chunks_created: int = 0
     vectors_inserted: int = 0

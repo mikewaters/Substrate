@@ -302,26 +302,31 @@ class PersistenceStats:
         self.errors = []
 
 
-def _compute_content_hash(content: str) -> str:
-    """Compute SHA256 hash of content."""
-    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+def _compute_content_hash(content: str, metadata_json: str | None = None) -> str:
+    """Compute SHA256 hash of content and metadata."""
+    data = content
+    if metadata_json:
+        data += metadata_json
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
 
 
 class PersistenceTransform(TransformComponent):
     """LlamaIndex TransformComponent that persists nodes to the database and FTS.
 
-    This transform handles the full persistence workflow within the pipeline:
+    This transform handles database persistence within the pipeline:
     1. Check if document exists (by path from node metadata)
-    2. Compare content hash to detect changes
-    3. Create new documents or update existing ones
-    4. Update FTS index
-    5. Track statistics
+    2. Create new documents or update existing ones
+    3. Update FTS index
+    4. Track statistics
+
+    Change detection is handled upstream by LlamaIndex's docstore mechanism
+    (using SHA256 of text + metadata). Only new or changed documents reach
+    this transform.
 
     The transform uses the ambient session from the current context (set via
-    `use_session()`). Statistics are available via the `stats` property.
+    ``use_session()``). Statistics are available via the ``stats`` property.
 
     Example:
-        # With ambient session (preferred)
         with get_session() as session:
             with use_session(session):
                 persist = PersistenceTransform(dataset_id=dataset_id)
@@ -332,12 +337,11 @@ class PersistenceTransform(TransformComponent):
                 print(f"Created {persist.stats.created} documents")
 
     Attributes:
-        stats: PersistenceStats with counts of created/updated/skipped/failed.
+        stats: PersistenceStats with counts of created/updated/failed.
     """
 
     # Private attributes (not Pydantic fields)
     _dataset_id: int = 0
-    _force: bool = False
     _path_key: str = "relative_path"
     _stats: PersistenceStats | None = None
 
@@ -345,7 +349,6 @@ class PersistenceTransform(TransformComponent):
         self,
         dataset_id: int,
         *,
-        force: bool = False,
         path_key: str = "relative_path",
         **kwargs: Any,
     ) -> None:
@@ -353,13 +356,11 @@ class PersistenceTransform(TransformComponent):
 
         Args:
             dataset_id: ID of the dataset to persist documents to.
-            force: If True, update all documents even if unchanged.
             path_key: Metadata key for the document path (default: "relative_path").
             **kwargs: Additional arguments passed to TransformComponent.
         """
         super().__init__(**kwargs)
         self._dataset_id = dataset_id
-        self._force = force
         self._path_key = path_key
         self._stats = PersistenceStats()
 
@@ -391,7 +392,7 @@ class PersistenceTransform(TransformComponent):
             **kwargs: Additional arguments (unused).
 
         Returns:
-            The same nodes with doc_id added to metadata.
+            All input nodes with doc_id added to metadata.
 
         Raises:
             SessionNotSetError: If no ambient session is set.
@@ -440,7 +441,7 @@ class PersistenceTransform(TransformComponent):
         logger.info(
             f"PersistenceTransform complete: "
             f"created={self.stats.created}, updated={self.stats.updated}, "
-            f"skipped={self.stats.skipped}, failed={self.stats.failed}, "
+            f"failed={self.stats.failed}, "
             f"passing {len(output_nodes)}/{len(nodes)} nodes downstream"
         )
 
@@ -484,14 +485,17 @@ class PersistenceTransform(TransformComponent):
     ) -> bool:
         """Process a single node for persistence.
 
+        Every node that reaches this transform is new or changed (LlamaIndex
+        docstore filters unchanged documents upstream). This method always
+        creates or updates.
+
         Returns:
-            True if the node was created or updated (should continue downstream),
-            False if skipped (unchanged, no downstream processing needed).
+            True (all nodes pass downstream).
         """
         path = self._get_path(node)
         body = node.get_content()
-        content_hash = _compute_content_hash(body)
         metadata_json = self._get_metadata_json(node)
+        content_hash = _compute_content_hash(body, metadata_json)
 
         # Extract source metadata for etag/last_modified
         etag = node.metadata.get("etag") if node.metadata else None
@@ -511,28 +515,7 @@ class PersistenceTransform(TransformComponent):
         existing = existing_docs.get(path)
 
         if existing is not None:
-            # Document exists - check if changed
-            if not self._force and existing.content_hash == content_hash:
-                # Unchanged - skip (but ensure active if was inactive)
-                if not existing.active:
-                    existing.active = True
-                    existing.metadata_json = metadata_json
-                    if title is not None:
-                        existing.title = title
-                    if description is not None:
-                        existing.description = description
-                    session.flush()
-                    fts.upsert(existing.id, path, body)
-                    self.stats.updated += 1
-                    # Add doc_id to node metadata for downstream use
-                    node.metadata["doc_id"] = existing.id
-                else:
-                    self.stats.skipped += 1
-                    node.metadata["doc_id"] = existing.id
-                    return False
-                return True
-
-            # Changed or force - update
+            # Update existing document
             existing.content_hash = content_hash
             existing.body = body
             existing.etag = etag
@@ -548,7 +531,6 @@ class PersistenceTransform(TransformComponent):
             fts.upsert(existing.id, path, body)
             node.metadata["doc_id"] = existing.id
 
-            logger.debug(f"Updated document: {path}")
             self.stats.updated += 1
             return True
         else:
@@ -573,7 +555,6 @@ class PersistenceTransform(TransformComponent):
             # Add to existing_docs cache for any future nodes with same path
             existing_docs[path] = doc
 
-            #logger.debug(f"Created document: {path}")
             self.stats.created += 1
             return True
 

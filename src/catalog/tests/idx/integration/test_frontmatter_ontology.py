@@ -162,7 +162,7 @@ def _run_pipeline(
         source_path=str(vault_path),
     )
 
-    persist = PersistenceTransform(dataset_id=dataset_id, force=True)
+    persist = PersistenceTransform(dataset_id=dataset_id)
     frontmatter = FrontmatterTransform(vault_schema_cls=vault_schema_cls)
 
     pipeline = IngestionPipeline(

@@ -3,14 +3,25 @@
 V2 ingestion with resilient chunking and embedding prefixes.
 Designed to match TypeScript QMD system behavior for retrieval parity.
 
+Change detection is handled by LlamaIndex's docstore, which uses
+SHA256(text + metadata) to detect changes. This catches frontmatter-only
+changes that the old body-only hash missed. The docstore is persisted
+between runs so only new/changed documents are reprocessed.
+
+Deletion detection uses DocstoreStrategy.UPSERTS_AND_DELETE: documents
+present in the docstore but not in the current batch are removed from
+the docstore, vector store, and marked inactive in the SQLite DB.
+
 Pipeline flow:
-1. Source-specific pre-persist transforms
-2. PersistenceTransform (upsert to documents table + documents_fts)
-3. Source-specific post-persist transforms
-4. ResilientSplitter (token-based with char fallback)
-5. ChunkPersistenceTransform (persist chunks to FTS)
-6. EmbeddingPrefixTransform (add Nomic-style prefixes)
-7. embed_model (generate embeddings)
+1. LlamaIndex docstore filters unchanged documents (upstream)
+2. Source-specific pre-persist transforms
+3. PersistenceTransform (upsert to documents table + documents_fts)
+4. Source-specific post-persist transforms
+5. ResilientSplitter (token-based with char fallback)
+6. ChunkPersistenceTransform (persist chunks to FTS)
+7. EmbeddingPrefixTransform (add Nomic-style prefixes)
+8. embed_model (generate embeddings)
+9. Post-pipeline deletion sync (deactivate removed docs in SQLite)
 """
 
 from __future__ import annotations
@@ -35,6 +46,8 @@ from catalog.ingest.schemas import DatasetIngestConfig, IngestResult
 from catalog.ingest.sources import BaseSource, create_source
 from catalog.store.database import get_session
 from catalog.store.dataset import DatasetService
+from catalog.store.fts import FTSManager
+from catalog.store.repositories import DocumentRepository
 from catalog.store.session_context import use_session
 from catalog.store.vector import VectorStoreManager
 from catalog.transform import EmbeddingPrefixTransform, ResilientSplitter
@@ -97,7 +110,6 @@ class DatasetIngestPipelineV2(BaseModel):
         dataset_name: str,
         vector_manager: VectorStoreManager,
         source_transforms: tuple[list, list],
-        force: bool = False,
     ) -> IngestionPipeline:
         """Build the v2 ingestion pipeline.
 
@@ -106,7 +118,6 @@ class DatasetIngestPipelineV2(BaseModel):
             dataset_name: Name of the dataset.
             vector_manager: Vector store manager for embeddings.
             source_transforms: Tuple of (pre-persist, post-persist) transforms.
-            force: Whether to force re-ingestion.
 
         Returns:
             Configured IngestionPipeline ready to run.
@@ -116,7 +127,6 @@ class DatasetIngestPipelineV2(BaseModel):
         # Document persistence transform
         persist = PersistenceTransform(
             dataset_id=dataset_id,
-            force=force,
         )
 
         # Resilient text chunking with fallback
@@ -151,14 +161,25 @@ class DatasetIngestPipelineV2(BaseModel):
             embed_model,
         ]
 
-        # Create pipeline with docstore for deduplication
+        # Create pipeline with docstore for change detection and deduplication.
+        # LlamaIndex's docstore uses SHA256(text + metadata) for change detection,
+        # which catches frontmatter-only changes that our old body-only hash missed.
         docstore = SimpleDocumentStore()
+        vector_store = vector_manager.get_vector_store()
+
+        # Guard: UPSERTS_AND_DELETE silently downgrades to DUPLICATES_ONLY
+        # without a vector store, losing upsert and deletion semantics.
+        if vector_store is None:
+            raise ValueError(
+                "Vector store is required for DocstoreStrategy.UPSERTS_AND_DELETE. "
+                "Without it, LlamaIndex silently downgrades to DUPLICATES_ONLY."
+            )
 
         pipeline = IngestionPipeline(
             transformations=transformations,
             docstore=docstore,
             docstore_strategy=DocstoreStrategy.UPSERTS_AND_DELETE,
-            vector_store=vector_manager.get_vector_store(),
+            vector_store=vector_store,
         )
 
         # Load cached pipeline state if available
@@ -224,13 +245,13 @@ class DatasetIngestPipelineV2(BaseModel):
                     dataset_name=dataset.name,
                     vector_manager=vector_manager,
                     source_transforms=source_transforms,
-                    force=self.ingest_config.force,
                 )
 
+                source_docs = self.source.documents
                 logger.info(
-                    f"Running {len(self.source.documents)} documents through v2 pipeline"
+                    f"Running {len(source_docs)} documents through v2 pipeline"
                 )
-                nodes = pipeline.run(documents=self.source.documents)
+                nodes = pipeline.run(documents=source_docs)
 
                 # Collect statistics from transforms
                 persist_transform = None
@@ -241,20 +262,62 @@ class DatasetIngestPipelineV2(BaseModel):
                     elif isinstance(t, ChunkPersistenceTransform):
                         chunk_persist_transform = t
 
+                # Deletion sync: mark documents not in the current batch
+                # as inactive in our SQLite DB. LlamaIndex already handled
+                # deletion in the docstore and vector store via
+                # UPSERTS_AND_DELETE; this mirrors that to our DB.
+                batch_paths = {
+                    doc.metadata.get("relative_path", doc.id_)
+                    for doc in source_docs
+                }
+                doc_repo = DocumentRepository()
+                deactivated = doc_repo.deactivate_missing(
+                    dataset.id, batch_paths
+                )
+                if deactivated > 0:
+                    # Clean up FTS entries for deactivated documents
+                    fts = FTSManager()
+                    active_paths = doc_repo.list_paths_by_parent(
+                        dataset.id, active_only=True
+                    )
+                    all_paths = doc_repo.list_paths_by_parent(
+                        dataset.id, active_only=False
+                    )
+                    removed_paths = all_paths - active_paths - batch_paths
+                    for rpath in removed_paths:
+                        removed_doc = doc_repo.get_by_path(dataset.id, rpath)
+                        if removed_doc:
+                            fts.delete(removed_doc.id)
+
+                    logger.info(
+                        f"Deletion sync: deactivated {deactivated} documents "
+                        f"not in current batch"
+                    )
+                session.flush()
+
                 if persist_transform:
                     result.documents_created = persist_transform.stats.created
                     result.documents_updated = persist_transform.stats.updated
-                    result.documents_skipped = persist_transform.stats.skipped
                     result.documents_failed = persist_transform.stats.failed
                     result.errors = list(persist_transform.stats.errors)
 
                 if chunk_persist_transform:
                     result.chunks_created = chunk_persist_transform.stats.created
 
-                result.documents_read = len(self.source.documents)
+                result.documents_read = len(source_docs)
                 result.dataset_id = dataset.id
                 result.dataset_name = dataset.name
                 result.vectors_inserted = len(nodes) if nodes else 0
+                result.documents_deactivated = deactivated
+
+                # Derive skipped count: docs in batch that weren't
+                # created or updated were filtered by LlamaIndex's
+                # docstore as unchanged.
+                total_processed = (
+                    (persist_transform.stats.created + persist_transform.stats.updated)
+                    if persist_transform else 0
+                )
+                result.documents_skipped = len(source_docs) - total_processed
 
                 # Persist state
                 vector_manager.persist_vector_store()
@@ -267,6 +330,7 @@ class DatasetIngestPipelineV2(BaseModel):
                     f"created={result.documents_created}, "
                     f"updated={result.documents_updated}, "
                     f"skipped={result.documents_skipped}, "
+                    f"deactivated={result.documents_deactivated}, "
                     f"failed={result.documents_failed}, "
                     f"chunks={result.chunks_created}, "
                     f"vectors={result.vectors_inserted}"
@@ -291,3 +355,30 @@ class DatasetIngestPipelineV2(BaseModel):
             resilient_embedding=self.resilient_embedding,
         )
         return pipeline.ingest()
+
+if __name__ == "__main__":
+    import sys
+    from agentlayer.logging import get_logger, configure_logging
+    from catalog.integrations.obsidian import IngestObsidianConfig
+    from catalog.integrations.heptabase import IngestHeptabaseConfig
+
+    configure_logging(level="DEBUG")
+    if len(sys.argv) < 2:
+        print("Usage: python -m catalog.ingest.pipelines <source_dir_or_yaml> [--force]")
+        sys.exit(1)
+
+    from pathlib import Path
+
+    force = "--force" in sys.argv
+    args = [a for a in sys.argv[1:] if a != "--force"]
+    target = Path(args[0])
+
+    if target.suffix in (".yaml", ".yml"):
+        pipeline = DatasetIngestPipelineV2.from_job_config(target)
+    else:
+        config = IngestHeptabaseConfig(source_path=target, force=force, catalog_name='pkm')
+        pipeline = DatasetIngestPipelineV2(ingest_config=config)
+
+    result = pipeline.ingest()
+
+    print(result.model_dump_json(indent=2))

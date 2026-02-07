@@ -369,6 +369,46 @@ class DocumentRepository(_BaseRepository):
             doc.active = False
         return len(docs)
 
+    def deactivate_missing(
+        self,
+        parent_id: int,
+        active_paths: set[str],
+    ) -> int:
+        """Deactivate documents whose paths are not in the given set.
+
+        Used for deletion sync: after ingestion, any document not present
+        in the current batch is marked inactive.
+
+        Args:
+            parent_id: The parent resource's ID.
+            active_paths: Set of paths that should remain active.
+
+        Returns:
+            Number of documents deactivated.
+        """
+        if not active_paths:
+            # No active paths means deactivate everything
+            stmt = (
+                select(Document)
+                .where(
+                    Document.parent_id == parent_id,
+                    Document.active == True,  # noqa: E712
+                )
+            )
+        else:
+            stmt = (
+                select(Document)
+                .where(
+                    Document.parent_id == parent_id,
+                    Document.active == True,  # noqa: E712
+                    Document.path.notin_(active_paths),
+                )
+            )
+        docs = list(self._session.execute(stmt).scalars().all())
+        for doc in docs:
+            doc.active = False
+        return len(docs)
+
     def hard_delete_by_paths(
         self,
         parent_id: int,

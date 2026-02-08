@@ -1,19 +1,19 @@
-"""Tests for catalog.core.settings, specifically RAGv2Settings."""
+"""Tests for catalog.core.settings, specifically RAGSettings."""
 
 import os
 from unittest import mock
 
 import pytest
 
-from catalog.core.settings import RAGv2Settings, Settings, get_settings
+from catalog.core.settings import RAGSettings, Settings, get_settings
 
 
-class TestRAGv2Settings:
-    """Tests for RAGv2Settings configuration class."""
+class TestRAGSettings:
+    """Tests for RAGSettings configuration class."""
 
     def test_default_values(self) -> None:
-        """RAGv2Settings loads with default values matching QMD system."""
-        settings = RAGv2Settings()
+        """RAGSettings loads with default values matching QMD system."""
+        settings = RAGSettings()
 
         # Chunking defaults
         assert settings.chunk_size == 800
@@ -58,17 +58,17 @@ class TestRAGv2Settings:
         assert settings.snippet_context_lines == 2
 
     def test_environment_variable_override(self) -> None:
-        """RAGv2Settings can be overridden via environment variables."""
+        """RAGSettings can be overridden via environment variables."""
         env_vars = {
-            "IDX_RAG_V2__CHUNK_SIZE": "1000",
-            "IDX_RAG_V2__CHUNK_OVERLAP": "150",
-            "IDX_RAG_V2__RRF_K": "80",
-            "IDX_RAG_V2__EXPANSION_ENABLED": "false",
-            "IDX_RAG_V2__RERANK_TOP_N": "5",
+            "IDX_RAG__CHUNK_SIZE": "1000",
+            "IDX_RAG__CHUNK_OVERLAP": "150",
+            "IDX_RAG__RRF_K": "80",
+            "IDX_RAG__EXPANSION_ENABLED": "false",
+            "IDX_RAG__RERANK_TOP_N": "5",
         }
 
         with mock.patch.dict(os.environ, env_vars, clear=False):
-            settings = RAGv2Settings()
+            settings = RAGSettings()
 
             assert settings.chunk_size == 1000
             assert settings.chunk_overlap == 150
@@ -77,41 +77,41 @@ class TestRAGv2Settings:
             assert settings.rerank_top_n == 5
 
     def test_validation_constraints(self) -> None:
-        """RAGv2Settings validates field constraints."""
+        """RAGSettings validates field constraints."""
         # chunk_size must be >= 100
         with pytest.raises(ValueError):
-            RAGv2Settings(chunk_size=50)
+            RAGSettings(chunk_size=50)
 
         # chunk_overlap must be >= 0
         with pytest.raises(ValueError):
-            RAGv2Settings(chunk_overlap=-1)
+            RAGSettings(chunk_overlap=-1)
 
         # expansion_max_lex must be <= 5
         with pytest.raises(ValueError):
-            RAGv2Settings(expansion_max_lex=10)
+            RAGSettings(expansion_max_lex=10)
 
         # rrf_k must be >= 1
         with pytest.raises(ValueError):
-            RAGv2Settings(rrf_k=0)
+            RAGSettings(rrf_k=0)
 
     def test_nested_in_settings(self) -> None:
-        """RAGv2Settings is accessible via Settings.rag_v2."""
+        """RAGSettings is accessible via Settings.rag."""
         settings = Settings()
-        assert hasattr(settings, "rag_v2")
-        assert isinstance(settings.rag_v2, RAGv2Settings)
-        assert settings.rag_v2.chunk_size == 800
+        assert hasattr(settings, "rag")
+        assert isinstance(settings.rag, RAGSettings)
+        assert settings.rag.chunk_size == 800
 
     def test_nested_environment_override(self) -> None:
-        """RAGv2Settings can be overridden via nested env vars in main Settings."""
+        """RAGSettings can be overridden via nested env vars in main Settings."""
         env_vars = {
-            "IDX_RAG_V2__CHUNK_SIZE": "900",
-            "IDX_RAG_V2__CACHE_TTL_HOURS": "48",
+            "IDX_RAG__CHUNK_SIZE": "900",
+            "IDX_RAG__CACHE_TTL_HOURS": "48",
         }
 
         with mock.patch.dict(os.environ, env_vars, clear=False):
             settings = Settings()
-            assert settings.rag_v2.chunk_size == 900
-            assert settings.rag_v2.cache_ttl_hours == 48
+            assert settings.rag.chunk_size == 900
+            assert settings.rag.cache_ttl_hours == 48
 
 
 class TestGetSettings:
@@ -123,7 +123,7 @@ class TestGetSettings:
         get_settings.cache_clear()
         settings = get_settings()
         assert isinstance(settings, Settings)
-        assert hasattr(settings, "rag_v2")
+        assert hasattr(settings, "rag")
 
     def test_get_settings_caches_result(self) -> None:
         """get_settings() returns the same cached instance."""

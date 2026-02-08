@@ -116,11 +116,10 @@ def patched_embedding(mock_embed_model, mock_vector_manager):
     with patch("catalog.embedding.get_embed_model", return_value=mock_embed_model):
         # Patch where VectorStoreManager is imported and used, not where it's defined
         with patch("catalog.ingest.pipelines.VectorStoreManager", return_value=mock_vector_manager):
-            with patch("catalog.ingest.pipelines_v2.VectorStoreManager", return_value=mock_vector_manager):
-                yield {
-                    "embed_model": mock_embed_model,
-                    "vector_manager": mock_vector_manager,
-                }
+            yield {
+                "embed_model": mock_embed_model,
+                "vector_manager": mock_vector_manager,
+            }
 
 
 @pytest.fixture

@@ -16,17 +16,16 @@ from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
+from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from catalog.ingest.pipelines_v2 import DatasetIngestPipelineV2
+from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.integrations.obsidian import SourceObsidianConfig
 from catalog.search.fts import FTSSearch
 from catalog.search.fts_chunk import FTSChunkRetriever
-from catalog.search.hybrid import HybridSearch
+from catalog.search.hybrid import WeightedRRFRetriever
 from catalog.search.models import SearchCriteria, SearchResult, SearchResults
-from catalog.search.service import SearchService
-from catalog.search.vector import VectorSearch
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.fts import create_fts_table
 from catalog.store.fts_chunk import create_chunks_fts_table
@@ -72,7 +71,7 @@ def patched_get_session(session_factory):
         with create_session(session_factory) as session:
             yield session
 
-    with patch("catalog.ingest.pipelines_v2.get_session", get_test_session):
+    with patch("catalog.ingest.pipelines.get_session", get_test_session):
         yield get_test_session
 
 
@@ -143,7 +142,7 @@ class TestSearchServiceModes:
     ) -> None:
         """FTS-only mode returns results matching exact keywords."""
         # Ingest documents
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
@@ -171,7 +170,7 @@ class TestSearchServiceModes:
         tmp_path: Path,
     ) -> None:
         """FTS mode respects dataset_name filter."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
 
         # Ingest first dataset
         config1 = SourceObsidianConfig(
@@ -210,7 +209,7 @@ class TestSearchServiceModes:
 
 
 class TestHybridSearchRRF:
-    """Tests for hybrid search RRF fusion behavior."""
+    """Tests for hybrid search RRF fusion behavior using WeightedRRFRetriever."""
 
     def test_hybrid_search_returns_results(
         self,
@@ -219,61 +218,52 @@ class TestHybridSearchRRF:
         session_factory,
         sample_vault: Path,
     ) -> None:
-        """Hybrid search returns results from ingested documents."""
+        """WeightedRRFRetriever returns fused results from sub-retrievers."""
         # Ingest documents
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
         pipeline.ingest_dataset(config)
 
-        # Create mock vector search (to avoid requiring embedding model)
-        mock_vector = MagicMock(spec=VectorSearch)
-        mock_vector.search.return_value = [
-            SearchResult(
-                path="auth.md",
-                dataset_name="test-vault",
-                score=0.95,
-                chunk_text="OAuth2 authentication",
-                scores={"vector": 0.95},
-            ),
-            SearchResult(
-                path="security.md",
-                dataset_name="test-vault",
-                score=0.85,
-                chunk_text="Identity verification",
-                scores={"vector": 0.85},
+        # Create mock FTS and vector retrievers
+        mock_fts_retriever = MagicMock()
+        mock_fts_retriever.retrieve.return_value = [
+            NodeWithScore(
+                node=TextNode(
+                    id_="fts-1",
+                    text="OAuth2 authentication",
+                    metadata={"source_doc_id": "test-vault:auth.md"},
+                ),
+                score=1.0,
             ),
         ]
 
-        # Run hybrid search with mocked vector component
-        with create_session(session_factory) as session:
-            with use_session(session):
-                # Create HybridSearch with mock vector manager
-                mock_manager = MagicMock()
-                mock_index = MagicMock()
-                mock_manager.load_or_create.return_value = mock_index
+        mock_vector_retriever = MagicMock()
+        mock_vector_retriever.retrieve.return_value = [
+            NodeWithScore(
+                node=TextNode(
+                    id_="vec-1",
+                    text="Identity verification",
+                    metadata={"source_doc_id": "test-vault:security.md"},
+                ),
+                score=0.85,
+            ),
+        ]
 
-                # Mock the fusion retriever
-                with patch("llama_index.core.retrievers.QueryFusionRetriever") as mock_fusion_cls:
-                    mock_node = MagicMock()
-                    mock_node.metadata = {"source_doc_id": "test-vault:auth.md"}
-                    mock_node.text = "OAuth2 authentication"
+        # Create WeightedRRFRetriever with mock sub-retrievers
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_fts_retriever, mock_vector_retriever],
+            weights=[1.0, 1.0],
+            k=60,
+            top_n=10,
+        )
 
-                    mock_nws = MagicMock()
-                    mock_nws.node = mock_node
-                    mock_nws.score = 0.8
-
-                    mock_fusion = MagicMock()
-                    mock_fusion.retrieve.return_value = [mock_nws]
-                    mock_fusion_cls.return_value = mock_fusion
-
-                    hybrid = HybridSearch(vector_manager=mock_manager)
-                    results = hybrid.search("authentication", top_k=10)
+        results = retriever.retrieve(QueryBundle(query_str="authentication"))
 
         assert len(results) >= 1
-        assert all(isinstance(r, SearchResult) for r in results)
+        assert all(isinstance(r, NodeWithScore) for r in results)
 
     def test_rrf_combines_fts_and_vector_results(
         self,
@@ -284,52 +274,63 @@ class TestHybridSearchRRF:
     ) -> None:
         """RRF fusion combines results from both FTS and vector search."""
         # Ingest documents
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
         pipeline.ingest_dataset(config)
 
-        # Setup mocks for hybrid search components
-        with create_session(session_factory) as session:
-            with use_session(session):
-                mock_manager = MagicMock()
-                mock_index = MagicMock()
-                mock_manager.load_or_create.return_value = mock_index
+        # Create mock retrievers with overlapping results
+        # auth.md appears in both, api.md only in FTS
+        mock_fts_retriever = MagicMock()
+        mock_fts_retriever.retrieve.return_value = [
+            NodeWithScore(
+                node=TextNode(
+                    id_="auth-node",
+                    text="OAuth2 authentication",
+                    metadata={"source_doc_id": "test-vault:auth.md"},
+                ),
+                score=1.0,
+            ),
+            NodeWithScore(
+                node=TextNode(
+                    id_="api-node",
+                    text="Authentication endpoints",
+                    metadata={"source_doc_id": "test-vault:api.md"},
+                ),
+                score=0.8,
+            ),
+        ]
 
-                with patch("llama_index.core.retrievers.QueryFusionRetriever") as mock_fusion_cls:
-                    # Simulate results from both FTS and vector (appearing in both)
-                    mock_node1 = MagicMock()
-                    mock_node1.metadata = {"source_doc_id": "test-vault:auth.md"}
-                    mock_node1.text = "OAuth2 authentication"
+        mock_vector_retriever = MagicMock()
+        mock_vector_retriever.retrieve.return_value = [
+            NodeWithScore(
+                node=TextNode(
+                    id_="auth-node",
+                    text="OAuth2 authentication",
+                    metadata={"source_doc_id": "test-vault:auth.md"},
+                ),
+                score=0.9,
+            ),
+        ]
 
-                    mock_node2 = MagicMock()
-                    mock_node2.metadata = {"source_doc_id": "test-vault:api.md"}
-                    mock_node2.text = "Authentication endpoints"
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_fts_retriever, mock_vector_retriever],
+            weights=[1.0, 1.0],
+            k=60,
+            top_n=10,
+        )
 
-                    mock_nws1 = MagicMock()
-                    mock_nws1.node = mock_node1
-                    mock_nws1.score = 0.9  # Higher RRF score (in both lists)
+        results = retriever.retrieve(QueryBundle(query_str="authentication security"))
 
-                    mock_nws2 = MagicMock()
-                    mock_nws2.node = mock_node2
-                    mock_nws2.score = 0.6  # Lower score (only in one list)
-
-                    mock_fusion = MagicMock()
-                    mock_fusion.retrieve.return_value = [mock_nws1, mock_nws2]
-                    mock_fusion_cls.return_value = mock_fusion
-
-                    hybrid = HybridSearch(vector_manager=mock_manager)
-                    results = hybrid.search("authentication security", top_k=10)
-
-        # Results should be ordered by score
+        # Results should be ordered by RRF score descending
         scores = [r.score for r in results]
         assert scores == sorted(scores, reverse=True)
 
-        # Top result should have RRF score
-        if results:
-            assert "rrf" in results[0].scores
+        # auth-node should rank higher (appears in both retrievers)
+        assert len(results) >= 2
+        assert results[0].node.node_id == "auth-node"
 
 
 class TestSearchResultShapes:
@@ -343,7 +344,7 @@ class TestSearchResultShapes:
         sample_vault: Path,
     ) -> None:
         """FTS results have all required fields."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
@@ -372,7 +373,7 @@ class TestSearchResultShapes:
         sample_vault: Path,
     ) -> None:
         """SearchResults wrapper has correct metadata."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
@@ -401,7 +402,7 @@ class TestFTSChunkRetriever:
         sample_vault: Path,
     ) -> None:
         """FTSChunkRetriever returns NodeWithScore objects."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
@@ -409,8 +410,6 @@ class TestFTSChunkRetriever:
         pipeline.ingest_dataset(config)
 
         # Test chunk retriever
-        from llama_index.core.schema import QueryBundle
-
         with create_session(session_factory) as session:
             with use_session(session):
                 retriever = FTSChunkRetriever(similarity_top_k=10)
@@ -432,7 +431,7 @@ class TestFTSChunkRetriever:
         tmp_path: Path,
     ) -> None:
         """FTSChunkRetriever filters by dataset name."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
 
         # Ingest first dataset
         config1 = SourceObsidianConfig(
@@ -452,8 +451,6 @@ class TestFTSChunkRetriever:
             dataset_name="vault2",
         )
         pipeline.ingest_dataset(config2)
-
-        from llama_index.core.schema import QueryBundle
 
         with create_session(session_factory) as session:
             with use_session(session):
@@ -480,7 +477,7 @@ class TestHybridSuperset:
         sample_vault: Path,
     ) -> None:
         """Hybrid search includes documents found by FTS."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
@@ -496,35 +493,40 @@ class TestHybridSuperset:
 
         fts_paths = {r.path for r in fts_results.results}
 
-        # Then, get hybrid results with mocked vector
+        # Build a WeightedRRFRetriever with a real FTS retriever and mock vector
+        mock_vector_retriever = MagicMock()
+        mock_vector_retriever.retrieve.return_value = [
+            NodeWithScore(
+                node=TextNode(
+                    id_="vec-db",
+                    text="PostgreSQL and SQLite",
+                    metadata={"source_doc_id": "test-vault:database.md"},
+                ),
+                score=0.7,
+            ),
+        ]
+
         with create_session(session_factory) as session:
             with use_session(session):
-                mock_manager = MagicMock()
-                mock_index = MagicMock()
-                mock_manager.load_or_create.return_value = mock_index
+                fts_retriever = FTSChunkRetriever(similarity_top_k=10)
 
-                with patch("llama_index.core.retrievers.QueryFusionRetriever") as mock_fusion_cls:
-                    # Include FTS result in fusion output
-                    mock_node = MagicMock()
-                    mock_node.metadata = {"source_doc_id": "test-vault:database.md"}
-                    mock_node.text = "PostgreSQL and SQLite"
+                retriever = WeightedRRFRetriever(
+                    retrievers=[fts_retriever, mock_vector_retriever],
+                    weights=[1.0, 1.0],
+                    k=60,
+                    top_n=10,
+                )
 
-                    mock_nws = MagicMock()
-                    mock_nws.node = mock_node
-                    mock_nws.score = 0.7
+                hybrid_results = retriever.retrieve(
+                    QueryBundle(query_str="PostgreSQL")
+                )
 
-                    mock_fusion = MagicMock()
-                    mock_fusion.retrieve.return_value = [mock_nws]
-                    mock_fusion_cls.return_value = mock_fusion
+        hybrid_doc_ids = {
+            n.node.metadata.get("source_doc_id", "") for n in hybrid_results
+        }
 
-                    hybrid = HybridSearch(vector_manager=mock_manager)
-                    hybrid_results = hybrid.search("PostgreSQL", top_k=10)
-
-        hybrid_paths = {r.path for r in hybrid_results}
-
-        # FTS results should appear in hybrid results
-        # (when fusion is properly configured)
-        assert len(hybrid_paths) >= 1
+        # Hybrid results should include matches
+        assert len(hybrid_doc_ids) >= 1
 
 
 class TestEmptyAndEdgeCases:
@@ -538,7 +540,7 @@ class TestEmptyAndEdgeCases:
         sample_vault: Path,
     ) -> None:
         """Empty or whitespace query returns empty results."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
@@ -566,7 +568,7 @@ class TestEmptyAndEdgeCases:
         sample_vault: Path,
     ) -> None:
         """Query with special characters doesn't crash."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
@@ -594,7 +596,7 @@ class TestEmptyAndEdgeCases:
         sample_vault: Path,
     ) -> None:
         """Search respects the limit parameter."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",

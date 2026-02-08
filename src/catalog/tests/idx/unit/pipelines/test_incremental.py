@@ -14,7 +14,7 @@ from llama_index.core.ingestion import DocstoreStrategy
 from sqlalchemy.orm import sessionmaker
 
 from catalog.ingest.job import SourceConfig
-from catalog.ingest.pipelines_v2 import DatasetIngestPipelineV2
+from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.fts import create_fts_table
@@ -85,7 +85,7 @@ class TestBuildPipelineDocstoreStrategy:
 
     def test_full_run_uses_upserts_and_delete(self):
         """Non-incremental build uses UPSERTS_AND_DELETE strategy."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         vector_manager = VectorStoreManager()
 
         ingestion_pipeline = pipeline.build_pipeline(
@@ -99,7 +99,7 @@ class TestBuildPipelineDocstoreStrategy:
 
     def test_incremental_uses_upserts(self):
         """Incremental build uses UPSERTS strategy."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         vector_manager = VectorStoreManager()
 
         ingestion_pipeline = pipeline.build_pipeline(
@@ -143,7 +143,7 @@ class TestIncrementalIngestion:
             finally:
                 session.close()
 
-        with patch("catalog.ingest.pipelines_v2.get_session", get_test_session):
+        with patch("catalog.ingest.pipelines.get_session", get_test_session):
             yield get_test_session
 
     @pytest.fixture
@@ -164,7 +164,7 @@ class TestIncrementalIngestion:
             dataset_name="incr-test-new",
             incremental=True,
         )
-        pipeline = DatasetIngestPipelineV2(ingest_config=config)
+        pipeline = DatasetIngestPipeline(ingest_config=config)
         result = pipeline.ingest()
 
         # Full run: all documents created
@@ -179,7 +179,7 @@ class TestIncrementalIngestion:
             source_path=sample_directory,
             dataset_name="incr-test-stamp",
         )
-        pipeline = DatasetIngestPipelineV2(ingest_config=config)
+        pipeline = DatasetIngestPipeline(ingest_config=config)
         before = datetime.now(tz=timezone.utc)
         result = pipeline.ingest()
 
@@ -198,7 +198,7 @@ class TestIncrementalIngestion:
             source_path=sample_directory,
             dataset_name="incr-test-resolve",
         )
-        pipeline1 = DatasetIngestPipelineV2(ingest_config=config1)
+        pipeline1 = DatasetIngestPipeline(ingest_config=config1)
         result1 = pipeline1.ingest()
         assert result1.documents_created == 2
 
@@ -215,7 +215,7 @@ class TestIncrementalIngestion:
             dataset_name="incr-test-resolve",
             incremental=True,
         )
-        pipeline2 = DatasetIngestPipelineV2(ingest_config=config2)
+        pipeline2 = DatasetIngestPipeline(ingest_config=config2)
         result2 = pipeline2.ingest()
 
         # The config should have been mutated with resolved timestamp
@@ -230,7 +230,7 @@ class TestIncrementalIngestion:
             source_path=sample_directory,
             dataset_name="incr-test-explicit",
         )
-        DatasetIngestPipelineV2(ingest_config=config1).ingest()
+        DatasetIngestPipeline(ingest_config=config1).ingest()
 
         # Second run with both incremental=True and explicit timestamp
         explicit_ts = datetime(2020, 1, 1, tzinfo=timezone.utc)
@@ -240,7 +240,7 @@ class TestIncrementalIngestion:
             incremental=True,
             if_modified_since=explicit_ts,
         )
-        DatasetIngestPipelineV2(ingest_config=config2).ingest()
+        DatasetIngestPipeline(ingest_config=config2).ingest()
 
         # Explicit value should not be overwritten
         assert config2.if_modified_since == explicit_ts
@@ -254,7 +254,7 @@ class TestIncrementalIngestion:
             source_path=sample_directory,
             dataset_name="incr-test-delsync",
         )
-        result1 = DatasetIngestPipelineV2(ingest_config=config1).ingest()
+        result1 = DatasetIngestPipeline(ingest_config=config1).ingest()
         assert result1.documents_created == 2
 
         # Second run: incremental with if_modified_since in the future
@@ -265,7 +265,7 @@ class TestIncrementalIngestion:
             dataset_name="incr-test-delsync",
             if_modified_since=future_ts,
         )
-        result2 = DatasetIngestPipelineV2(ingest_config=config2).ingest()
+        result2 = DatasetIngestPipeline(ingest_config=config2).ingest()
 
         # No documents should be deactivated despite empty batch
         assert result2.documents_deactivated == 0

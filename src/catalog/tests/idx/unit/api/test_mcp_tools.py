@@ -7,31 +7,31 @@ from llama_index.core.tools import FunctionTool
 
 from catalog.api.mcp.tools import create_mcp_tools
 from catalog.search.models import SearchCriteria, SearchResult, SearchResults
-from catalog.search.service_v2 import SearchServiceV2
+from catalog.search.service import SearchService
 
 
 class TestCreateMcpTools:
     """Tests for create_mcp_tools factory function."""
 
     @pytest.fixture
-    def mock_service(self) -> SearchServiceV2:
-        """Create mock SearchServiceV2."""
+    def mock_service(self) -> SearchService:
+        """Create mock SearchService."""
         mock_session = MagicMock()
-        service = SearchServiceV2(mock_session)
+        service = SearchService(mock_session)
         return service
 
-    def test_creates_six_tools(self, mock_service: SearchServiceV2) -> None:
+    def test_creates_six_tools(self, mock_service: SearchService) -> None:
         """create_mcp_tools returns six tools."""
         tools = create_mcp_tools(mock_service)
         assert len(tools) == 6
 
-    def test_all_tools_are_function_tools(self, mock_service: SearchServiceV2) -> None:
+    def test_all_tools_are_function_tools(self, mock_service: SearchService) -> None:
         """All returned tools are FunctionTool instances."""
         tools = create_mcp_tools(mock_service)
         for tool in tools:
             assert isinstance(tool, FunctionTool)
 
-    def test_tool_names(self, mock_service: SearchServiceV2) -> None:
+    def test_tool_names(self, mock_service: SearchService) -> None:
         """Tools have expected names."""
         tools = create_mcp_tools(mock_service)
         names = {t.metadata.name for t in tools}
@@ -46,7 +46,7 @@ class TestCreateMcpTools:
         }
         assert names == expected
 
-    def test_tools_have_descriptions(self, mock_service: SearchServiceV2) -> None:
+    def test_tools_have_descriptions(self, mock_service: SearchService) -> None:
         """All tools have descriptions."""
         tools = create_mcp_tools(mock_service)
         for tool in tools:
@@ -58,13 +58,13 @@ class TestCatalogSearchTool:
     """Tests for catalog_search tool."""
 
     @pytest.fixture
-    def mock_service(self) -> SearchServiceV2:
-        """Create mock SearchServiceV2 with stubbed search."""
+    def mock_service(self) -> SearchService:
+        """Create mock SearchService with stubbed search."""
         mock_session = MagicMock()
-        service = SearchServiceV2(mock_session)
+        service = SearchService(mock_session)
         return service
 
-    def test_catalog_search_calls_service(self, mock_service: SearchServiceV2) -> None:
+    def test_catalog_search_calls_service(self, mock_service: SearchService) -> None:
         """catalog_search calls service.search with fts mode."""
         mock_results = SearchResults(
             results=[
@@ -94,7 +94,7 @@ class TestCatalogSearchTool:
             assert result["query"] == "test query"
             assert len(result["results"]) == 1
 
-    def test_catalog_search_clamps_limit(self, mock_service: SearchServiceV2) -> None:
+    def test_catalog_search_clamps_limit(self, mock_service: SearchService) -> None:
         """catalog_search clamps limit to 1-100 range."""
         mock_results = SearchResults(
             results=[],
@@ -119,7 +119,7 @@ class TestCatalogSearchTool:
             call_args = mock_search.call_args[0][0]
             assert call_args.limit == 1
 
-    def test_catalog_search_handles_error(self, mock_service: SearchServiceV2) -> None:
+    def test_catalog_search_handles_error(self, mock_service: SearchService) -> None:
         """catalog_search returns error dict on exception."""
         with patch.object(mock_service, "search", side_effect=Exception("DB error")):
             tools = create_mcp_tools(mock_service)
@@ -137,12 +137,12 @@ class TestCatalogVsearchTool:
     """Tests for catalog_vsearch tool."""
 
     @pytest.fixture
-    def mock_service(self) -> SearchServiceV2:
-        """Create mock SearchServiceV2."""
+    def mock_service(self) -> SearchService:
+        """Create mock SearchService."""
         mock_session = MagicMock()
-        return SearchServiceV2(mock_session)
+        return SearchService(mock_session)
 
-    def test_catalog_vsearch_uses_vector_mode(self, mock_service: SearchServiceV2) -> None:
+    def test_catalog_vsearch_uses_vector_mode(self, mock_service: SearchService) -> None:
         """catalog_vsearch calls service.search with vector mode."""
         mock_results = SearchResults(
             results=[],
@@ -169,12 +169,12 @@ class TestCatalogQueryTool:
     """Tests for catalog_query tool."""
 
     @pytest.fixture
-    def mock_service(self) -> SearchServiceV2:
-        """Create mock SearchServiceV2."""
+    def mock_service(self) -> SearchService:
+        """Create mock SearchService."""
         mock_session = MagicMock()
-        return SearchServiceV2(mock_session)
+        return SearchService(mock_session)
 
-    def test_catalog_query_uses_hybrid_mode(self, mock_service: SearchServiceV2) -> None:
+    def test_catalog_query_uses_hybrid_mode(self, mock_service: SearchService) -> None:
         """catalog_query calls service.search with hybrid mode."""
         mock_results = SearchResults(
             results=[],
@@ -198,7 +198,7 @@ class TestCatalogQueryTool:
             assert result["mode"] == "hybrid"
             assert result["reranked"] is True
 
-    def test_catalog_query_rerank_false(self, mock_service: SearchServiceV2) -> None:
+    def test_catalog_query_rerank_false(self, mock_service: SearchService) -> None:
         """catalog_query respects rerank=False."""
         mock_results = SearchResults(
             results=[],
@@ -225,12 +225,12 @@ class TestCatalogGetTool:
     """Tests for catalog_get tool."""
 
     @pytest.fixture
-    def mock_service(self) -> SearchServiceV2:
-        """Create mock SearchServiceV2."""
+    def mock_service(self) -> SearchService:
+        """Create mock SearchService."""
         mock_session = MagicMock()
-        return SearchServiceV2(mock_session)
+        return SearchService(mock_session)
 
-    def test_catalog_get_with_dataset_prefix(self, mock_service: SearchServiceV2) -> None:
+    def test_catalog_get_with_dataset_prefix(self, mock_service: SearchService) -> None:
         """catalog_get parses dataset:path format."""
         mock_doc = MagicMock()
         mock_doc.path = "notes/todo.md"
@@ -258,7 +258,7 @@ class TestCatalogGetTool:
             assert result["dataset_name"] == "vault"
             assert "# Todo" in result["body"]
 
-    def test_catalog_get_not_found(self, mock_service: SearchServiceV2) -> None:
+    def test_catalog_get_not_found(self, mock_service: SearchService) -> None:
         """catalog_get returns error for missing document."""
         with patch("catalog.api.mcp.tools.DatasetService") as mock_ds_cls:
             mock_ds = MagicMock()
@@ -279,13 +279,13 @@ class TestCatalogMultiGetTool:
     """Tests for catalog_multi_get tool."""
 
     @pytest.fixture
-    def mock_service(self) -> SearchServiceV2:
-        """Create mock SearchServiceV2."""
+    def mock_service(self) -> SearchService:
+        """Create mock SearchService."""
         mock_session = MagicMock()
-        return SearchServiceV2(mock_session)
+        return SearchService(mock_session)
 
     def test_catalog_multi_get_requires_dataset_prefix(
-        self, mock_service: SearchServiceV2
+        self, mock_service: SearchService
     ) -> None:
         """catalog_multi_get requires dataset:pattern format."""
         tools = create_mcp_tools(mock_service)
@@ -298,7 +298,7 @@ class TestCatalogMultiGetTool:
         assert "error" in result
         assert "dataset prefix" in result["error"]
 
-    def test_catalog_multi_get_filters_by_glob(self, mock_service: SearchServiceV2) -> None:
+    def test_catalog_multi_get_filters_by_glob(self, mock_service: SearchService) -> None:
         """catalog_multi_get filters documents by glob pattern."""
         mock_doc1 = MagicMock()
         mock_doc1.path = "notes/a.md"
@@ -347,12 +347,12 @@ class TestCatalogStatusTool:
     """Tests for catalog_status tool."""
 
     @pytest.fixture
-    def mock_service(self) -> SearchServiceV2:
-        """Create mock SearchServiceV2."""
+    def mock_service(self) -> SearchService:
+        """Create mock SearchService."""
         mock_session = MagicMock()
-        return SearchServiceV2(mock_session)
+        return SearchService(mock_session)
 
-    def test_catalog_status_returns_health_info(self, mock_service: SearchServiceV2) -> None:
+    def test_catalog_status_returns_health_info(self, mock_service: SearchService) -> None:
         """catalog_status returns health status information."""
         mock_health = MagicMock()
         mock_health.is_healthy = True
@@ -378,7 +378,7 @@ class TestCatalogStatusTool:
                 assert "components" in result
                 assert "datasets" in result
 
-    def test_catalog_status_handles_error(self, mock_service: SearchServiceV2) -> None:
+    def test_catalog_status_handles_error(self, mock_service: SearchService) -> None:
         """catalog_status returns error info on exception."""
         with patch("catalog.api.mcp.tools.check_health", side_effect=Exception("Check failed")):
             tools = create_mcp_tools(mock_service)

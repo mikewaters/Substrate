@@ -1,4 +1,4 @@
-"""Snippet formatting for RAG v2 search results.
+"""Snippet formatting for RAG search results.
 
 Provides utilities for extracting and formatting code/text snippets from
 search results with diff-style headers for provenance tracking.
@@ -52,7 +52,7 @@ def extract_snippet(
         doc_content: The full document content (used for line number calculation).
         doc_path: Path to the document (used in the header).
         max_lines: Maximum number of lines to include in the snippet.
-            Defaults to settings.rag_v2.snippet_max_lines.
+            Defaults to settings.rag.snippet_max_lines.
 
     Returns:
         A Snippet with the formatted text, line numbers, and diff-style header.
@@ -60,7 +60,7 @@ def extract_snippet(
     if max_lines is None:
         from catalog.core.settings import get_settings
 
-        max_lines = get_settings().rag_v2.snippet_max_lines
+        max_lines = get_settings().rag.snippet_max_lines
 
     # Calculate line number from character position
     # Count newlines in content before the chunk position

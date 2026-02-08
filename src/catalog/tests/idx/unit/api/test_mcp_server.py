@@ -35,7 +35,7 @@ class TestMCPServerEnsureInitialized:
             mock_get_session.return_value.__enter__ = MagicMock(return_value=mock_session)
 
             with patch("catalog.api.mcp.server.use_session"):
-                with patch("catalog.api.mcp.server.SearchServiceV2") as mock_service_cls:
+                with patch("catalog.api.mcp.server.SearchService") as mock_service_cls:
                     mock_service = MagicMock()
                     mock_service_cls.return_value = mock_service
 

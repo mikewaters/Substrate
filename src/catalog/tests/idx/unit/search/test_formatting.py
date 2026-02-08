@@ -224,7 +224,7 @@ class TestExtractSnippet:
         mock_settings = type(
             "MockSettings",
             (),
-            {"rag_v2": type("MockRagV2", (), {"snippet_max_lines": 7})()},
+            {"rag": type("MockRag", (), {"snippet_max_lines": 7})()},
         )()
 
         # Patch at the source module since import happens inside the function

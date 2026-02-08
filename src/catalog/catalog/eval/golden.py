@@ -1,4 +1,4 @@
-"""Golden Query Evaluation Suite for RAG v2.
+"""Golden Query Evaluation Suite for RAG search.
 
 Provides data models and functions for evaluating search quality against
 a set of golden (ground truth) queries. Supports multiple retriever types
@@ -10,7 +10,7 @@ Example usage:
         evaluate_golden_queries,
         EVAL_THRESHOLDS,
     )
-    from catalog.search.service_v2 import SearchServiceV2
+    from catalog.search.service import SearchService
 
     golden_queries = load_golden_queries("tests/fixtures/golden_queries.json")
     results = evaluate_golden_queries(service, golden_queries)
@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Literal
 from agentlayer.logging import get_logger
 
 if TYPE_CHECKING:
-    from catalog.search.service_v2 import SearchServiceV2
+    from catalog.search.service import SearchService
 
 __all__ = [
     "GoldenQuery",
@@ -217,7 +217,7 @@ def load_golden_queries(path: str) -> list[GoldenQuery]:
 
 
 def evaluate_golden_queries(
-    search_service: "SearchServiceV2",
+    search_service: "SearchService",
     golden_queries: list[GoldenQuery],
     k_values: list[int] | None = None,
 ) -> dict[str, dict[str, dict[str, float]]]:
@@ -228,7 +228,7 @@ def evaluate_golden_queries(
     type and difficulty level.
 
     Args:
-        search_service: SearchServiceV2 instance to use for search.
+        search_service: SearchService instance to use for search.
         golden_queries: List of GoldenQuery objects to evaluate.
         k_values: List of k values for hit@k calculation. Defaults
             to [1, 3, 5, 10].
@@ -263,7 +263,7 @@ def evaluate_golden_queries(
 
 
 def _evaluate_single(
-    service: "SearchServiceV2",
+    service: "SearchService",
     gq: GoldenQuery,
     retriever_type: Literal["bm25", "vector", "hybrid"],
     k_values: list[int],
@@ -271,7 +271,7 @@ def _evaluate_single(
     """Evaluate a single golden query against a retriever type.
 
     Args:
-        service: SearchServiceV2 instance.
+        service: SearchService instance.
         gq: GoldenQuery to evaluate.
         retriever_type: Retriever type to use.
         k_values: List of k values for hit@k calculation.

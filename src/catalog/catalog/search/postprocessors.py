@@ -1,4 +1,4 @@
-"""catalog.search.postprocessors - RRF postprocessors for RAG v2.
+"""catalog.search.postprocessors - RRF postprocessors for RAG search.
 
 Provides LlamaIndex-compatible postprocessors for hybrid search result refinement:
 - TopRankBonusPostprocessor: Add bonus scores to top-ranked results
@@ -66,18 +66,18 @@ class TopRankBonusPostprocessor(BaseNodePostprocessor):
 
         Args:
             rank_1_bonus: Score bonus for rank 1 result. If None, reads from
-                settings.rag_v2.rrf_rank1_bonus.
+                settings.rag.rrf_rank1_bonus.
             rank_2_3_bonus: Score bonus for ranks 2-3. If None, reads from
-                settings.rag_v2.rrf_rank23_bonus.
+                settings.rag.rrf_rank23_bonus.
         """
         settings = get_settings()
         super().__init__(
             rank_1_bonus=rank_1_bonus
             if rank_1_bonus is not None
-            else settings.rag_v2.rrf_rank1_bonus,
+            else settings.rag.rrf_rank1_bonus,
             rank_2_3_bonus=rank_2_3_bonus
             if rank_2_3_bonus is not None
-            else settings.rag_v2.rrf_rank23_bonus,
+            else settings.rag.rrf_rank23_bonus,
         )
 
     def _postprocess_nodes(

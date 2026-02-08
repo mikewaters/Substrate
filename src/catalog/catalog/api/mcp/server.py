@@ -22,7 +22,7 @@ from agentlayer.logging import get_logger
 
 from catalog.api.mcp.resources import list_resources, read_resource
 from catalog.api.mcp.tools import create_mcp_tools
-from catalog.search.service_v2 import SearchServiceV2
+from catalog.search.service import SearchService
 from catalog.store.database import get_session
 from catalog.store.session_context import use_session
 
@@ -39,7 +39,7 @@ class MCPServer:
 
     Attributes:
         _session: SQLAlchemy database session.
-        _service: SearchServiceV2 instance.
+        _service: SearchService instance.
         _tools: List of FunctionTool instances.
         _tool_map: Dictionary mapping tool names to FunctionTool instances.
     """
@@ -63,7 +63,7 @@ class MCPServer:
         if self._service is None:
             self._session = get_session().__enter__()
             use_session(self._session).__enter__()
-            self._service = SearchServiceV2(self._session)
+            self._service = SearchService(self._session)
             self._tools = create_mcp_tools(self._service)
             self._tool_map = {t.metadata.name: t for t in self._tools}
             logger.debug(f"Initialized MCPServer with {len(self._tools)} tools")

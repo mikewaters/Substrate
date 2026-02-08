@@ -1,33 +1,31 @@
-"""catalog.search.service - Unified search service.
+"""catalog.search.service - Search service with full QMD feature parity.
 
-Provides a unified entry point for all search modes (FTS, vector, hybrid)
-with optional LLM-as-judge reranking. Dispatches to appropriate search
-implementations based on SearchCriteria.mode.
+Provides the unified search orchestrator integrating:
+- Query expansion (lex/vec/HyDE)
+- Weighted RRF hybrid retrieval
+- Cached LLM reranking
+- Top-rank bonuses
 
 Example usage:
-    from catalog.search.service import SearchService
+    from catalog.search.service import SearchService, search
     from catalog.search.models import SearchCriteria
     from catalog.store.database import get_session
     from catalog.store.session_context import use_session
 
+    # Using convenience function
+    results = search(SearchCriteria(
+        query="python async patterns",
+        mode="hybrid",
+        rerank=True,
+    ))
+
+    # Using service directly
     with get_session() as session:
         with use_session(session):
-            service = SearchService()
-
-            # FTS search
-            results = service.search(SearchCriteria(
-                query="python async patterns",
-                mode="fts",
-                limit=10,
-            ))
-
-            # Hybrid search with reranking
+            service = SearchService(session)
             results = service.search(SearchCriteria(
                 query="machine learning",
-                mode="hybrid",
                 rerank=True,
-                rerank_candidates=20,
-                limit=5,
             ))
 """
 
@@ -35,96 +33,115 @@ from typing import TYPE_CHECKING, Any
 
 from agentlayer.logging import get_logger
 
+from catalog.core.settings import get_settings
 from catalog.search.models import SearchCriteria, SearchResult, SearchResults
+from catalog.store.llm_cache import LLMCache
 
 if TYPE_CHECKING:
-    from catalog.search.fts import FTSSearch
-    from catalog.search.hybrid import HybridSearch
-    from catalog.search.rerank import Reranker
+    from sqlalchemy.orm import Session
+
+    from catalog.llm.reranker import CachedReranker
+    from catalog.search.fts_chunk import FTSChunkRetriever
+    from catalog.search.hybrid import HybridRetriever
+    from catalog.search.postprocessors import (
+        PerDocDedupePostprocessor,
+        TopRankBonusPostprocessor,
+    )
+    from catalog.search.query_expansion import QueryExpansionTransform
     from catalog.search.vector import VectorSearch
 
-__all__ = ["SearchService"]
+__all__ = ["SearchService", "search"]
 
 logger = get_logger(__name__)
 
 
 class SearchService:
-    """Unified search service orchestrating FTS, vector, and hybrid search.
+    """Search orchestrator with full QMD feature parity.
 
-    Provides a single entry point for all search operations, dispatching
-    to the appropriate implementation based on SearchCriteria.mode.
-    Supports optional LLM-as-judge reranking when criteria.rerank=True.
+    Provides unified search interface with:
+    - Query expansion via LLM (lex/vec/HyDE variants)
+    - Weighted RRF fusion for hybrid search
+    - Cached LLM-as-judge reranking
+    - Top-rank bonuses for high-confidence results
 
-    All retrievers and the reranker are lazy-loaded on first use to
-    minimize startup time and resource consumption.
+    All components are lazy-loaded on first use to minimize startup time.
 
     Attributes:
-        _fts_search: Lazy-loaded FTSSearch instance.
-        _vector_search: Lazy-loaded VectorSearch instance.
-        _hybrid_search: Lazy-loaded HybridSearch instance.
-        _reranker: Lazy-loaded Reranker instance.
-        _debug: Whether to include debug information in results.
-
-    Example:
-        service = SearchService()
-
-        # Basic FTS search
-        results = service.search(SearchCriteria(
-            query="python tutorials",
-            mode="fts",
-        ))
-
-        # Vector search with dataset filter
-        results = service.search(SearchCriteria(
-            query="meeting notes about Q4",
-            mode="vector",
-            dataset_name="obsidian",
-            limit=20,
-        ))
-
-        # Hybrid search with reranking
-        results = service.search(SearchCriteria(
-            query="async error handling patterns",
-            mode="hybrid",
-            rerank=True,
-            rerank_candidates=30,
-            limit=10,
-        ))
+        session: SQLAlchemy session for database access.
+        _settings: RAGSettings instance.
+        _cache: Lazy-loaded LLMCache instance.
+        _query_expander: Lazy-loaded QueryExpansionTransform.
+        _hybrid_retriever: Lazy-loaded HybridRetriever.
+        _cached_reranker: Lazy-loaded CachedReranker.
     """
 
-    def __init__(self, debug: bool = False) -> None:
+    def __init__(self, session: "Session") -> None:
         """Initialize the SearchService.
 
         Args:
-            debug: Whether to include debug information in SearchResults.
-                When True, debug_info will contain timing breakdowns and
-                intermediate scores.
+            session: SQLAlchemy session for database access.
         """
-        self._debug = debug
-        self._fts_search: "FTSSearch | None" = None
+        self.session = session
+        self._settings = get_settings().rag
+        self._cache: LLMCache | None = None
+        self._query_expander: "QueryExpansionTransform | None" = None
+        self._hybrid_retriever_factory: "HybridRetriever | None" = None
+        self._cached_reranker: "CachedReranker | None" = None
+        self._fts_search: "FTSChunkRetriever | None" = None
         self._vector_search: "VectorSearch | None" = None
-        self._hybrid_search: "HybridSearch | None" = None
-        self._reranker: "Reranker | None" = None
 
-    def _ensure_fts_search(self) -> "FTSSearch":
-        """Lazy-load the FTSSearch instance.
+    @property
+    def cache(self) -> LLMCache:
+        """Get or create LLMCache instance."""
+        if self._cache is None:
+            self._cache = LLMCache(
+                session=self.session,
+                ttl_hours=self._settings.cache_ttl_hours,
+            )
+        return self._cache
 
-        Returns:
-            Initialized FTSSearch instance.
-        """
+    def _ensure_query_expander(self) -> "QueryExpansionTransform":
+        """Lazy-load QueryExpansionTransform."""
+        if self._query_expander is None:
+            from catalog.search.query_expansion import QueryExpansionTransform
+
+            logger.debug("Lazy-loading QueryExpansionTransform")
+            self._query_expander = QueryExpansionTransform(cache=self.cache)
+        return self._query_expander
+
+    def _ensure_hybrid_retriever(self) -> "HybridRetriever":
+        """Lazy-load HybridRetriever factory."""
+        if self._hybrid_retriever_factory is None:
+            from catalog.search.hybrid import HybridRetriever
+
+            logger.debug("Lazy-loading HybridRetriever")
+            self._hybrid_retriever_factory = HybridRetriever(self.session)
+        return self._hybrid_retriever_factory
+
+    def _ensure_cached_reranker(self) -> "CachedReranker":
+        """Lazy-load CachedReranker."""
+        if self._cached_reranker is None:
+            from catalog.llm.reranker import CachedReranker, Reranker
+
+            logger.debug("Lazy-loading CachedReranker")
+            base_reranker = Reranker()
+            self._cached_reranker = CachedReranker(
+                reranker=base_reranker,
+                cache=self.cache,
+            )
+        return self._cached_reranker
+
+    def _ensure_fts_search(self) -> "FTSChunkRetriever":
+        """Lazy-load FTSChunkRetriever."""
         if self._fts_search is None:
-            from catalog.search.fts import FTSSearch
+            from catalog.search.fts_chunk import FTSChunkRetriever
 
-            logger.debug("Lazy-loading FTSSearch")
-            self._fts_search = FTSSearch()
+            logger.debug("Lazy-loading FTSChunkRetriever")
+            self._fts_search = FTSChunkRetriever()
         return self._fts_search
 
     def _ensure_vector_search(self) -> "VectorSearch":
-        """Lazy-load the VectorSearch instance.
-
-        Returns:
-            Initialized VectorSearch instance.
-        """
+        """Lazy-load VectorSearch."""
         if self._vector_search is None:
             from catalog.search.vector import VectorSearch
 
@@ -132,218 +149,334 @@ class SearchService:
             self._vector_search = VectorSearch()
         return self._vector_search
 
-    def _ensure_hybrid_search(self) -> "HybridSearch":
-        """Lazy-load the HybridSearch instance.
-
-        Returns:
-            Initialized HybridSearch instance.
-        """
-        if self._hybrid_search is None:
-            from catalog.search.hybrid import HybridSearch
-
-            logger.debug("Lazy-loading HybridSearch")
-            self._hybrid_search = HybridSearch()
-        return self._hybrid_search
-
-    def _ensure_reranker(self) -> "Reranker":
-        """Lazy-load the Reranker instance.
-
-        Returns:
-            Initialized Reranker instance.
-        """
-        if self._reranker is None:
-            from catalog.search.rerank import Reranker
-
-            logger.debug("Lazy-loading Reranker")
-            self._reranker = Reranker()
-        return self._reranker
-
     def search(self, criteria: SearchCriteria) -> SearchResults:
-        """Execute a search based on the provided criteria.
+        """Execute search with query expansion, weighted RRF, and caching.
 
-        Dispatches to the appropriate search implementation based on
-        criteria.mode, optionally applying LLM-as-judge reranking.
-
-        When reranking is enabled (criteria.rerank=True):
-        1. Retrieves criteria.rerank_candidates results from the primary search
-        2. Converts results to LlamaIndex NodeWithScore format
-        3. Applies LLMRerank postprocessor
-        4. Converts back to SearchResult format, limited to criteria.limit
+        Pipeline:
+        1. Query expansion (if enabled)
+        2. Dispatch to appropriate search mode
+        3. Apply top-rank bonus
+        4. Rerank (if enabled)
+        5. Return results
 
         Args:
             criteria: Search criteria specifying query, mode, filters,
                 and reranking options.
 
         Returns:
-            SearchResults containing matching documents ordered by score,
-            with optional debug_info when debug=True.
-
-        Raises:
-            ValueError: If criteria.mode is not one of "fts", "vector", "hybrid".
+            SearchResults containing matching documents ordered by score.
         """
         import time
 
         start = time.perf_counter()
-        debug_info: dict[str, Any] = {} if self._debug else {}
+        debug_info: dict[str, Any] = {}
 
-        # Determine effective limit (use more candidates if reranking)
+        # 1. Query expansion (if enabled and not pure FTS)
+        expansion_result = None
+        if self._settings.expansion_enabled and criteria.mode != "fts":
+            try:
+                expander = self._ensure_query_expander()
+                expansion_result = expander.expand(criteria.query)
+                debug_info["expansion"] = {
+                    "lex": expansion_result.lex_expansions,
+                    "vec": expansion_result.vec_expansions,
+                    "hyde": expansion_result.hyde_passage,
+                }
+            except Exception as e:
+                logger.warning(f"Query expansion failed: {e}")
+
+        # 2. Dispatch based on mode
         effective_limit = (
             criteria.rerank_candidates if criteria.rerank else criteria.limit
         )
 
-        # Dispatch based on mode
         if criteria.mode == "fts":
-            results = self._search_fts(criteria, effective_limit)
+            results = self.search_fts(
+                criteria.query,
+                criteria.dataset_name,
+                effective_limit,
+            )
         elif criteria.mode == "vector":
-            results = self._search_vector(criteria, effective_limit)
-        elif criteria.mode == "hybrid":
-            results = self._search_hybrid(criteria, effective_limit)
-        else:
-            raise ValueError(f"Unsupported search mode: {criteria.mode}")
+            results = self.search_vector(
+                criteria.query,
+                criteria.dataset_name,
+                effective_limit,
+            )
+        else:  # hybrid (default)
+            results = self.search_hybrid(
+                criteria.query,
+                criteria.dataset_name,
+                effective_limit,
+                expansion_result=expansion_result,
+            )
 
         search_elapsed_ms = (time.perf_counter() - start) * 1000
+        debug_info["search_time_ms"] = search_elapsed_ms
+        debug_info["candidates_retrieved"] = len(results.results)
 
-        if self._debug:
-            debug_info["search_mode"] = criteria.mode
-            debug_info["search_time_ms"] = search_elapsed_ms
-            debug_info["candidates_retrieved"] = len(results)
+        # 3. Apply top-rank bonus
+        if results.results:
+            results = self._apply_top_rank_bonus(results)
 
-        # Apply reranking if requested
-        if criteria.rerank and results:
+        # 4. Rerank if requested
+        if criteria.rerank and results.results:
             rerank_start = time.perf_counter()
             results = self._apply_rerank(results, criteria.query, criteria.limit)
-            rerank_elapsed_ms = (time.perf_counter() - rerank_start) * 1000
-
-            if self._debug:
-                debug_info["rerank_time_ms"] = rerank_elapsed_ms
-                debug_info["results_after_rerank"] = len(results)
+            debug_info["rerank_time_ms"] = (time.perf_counter() - rerank_start) * 1000
         else:
             # Apply limit without reranking
-            results = results[: criteria.limit]
+            results = SearchResults(
+                results=results.results[: criteria.limit],
+                query=results.query,
+                mode=results.mode,
+                total_candidates=results.total_candidates,
+                timing_ms=results.timing_ms,
+            )
 
         total_elapsed_ms = (time.perf_counter() - start) * 1000
 
         logger.debug(
             f"SearchService.search({criteria.mode}) for '{criteria.query[:50]}...' "
-            f"returned {len(results)} results in {total_elapsed_ms:.1f}ms"
+            f"returned {len(results.results)} results in {total_elapsed_ms:.1f}ms"
+        )
+
+        return SearchResults(
+            results=results.results,
+            query=criteria.query,
+            mode=criteria.mode,
+            total_candidates=len(results.results),
+            timing_ms=total_elapsed_ms,
+        )
+
+    def search_fts(
+        self,
+        query: str,
+        dataset_name: str | None = None,
+        limit: int | None = None,
+    ) -> SearchResults:
+        """Execute FTS search.
+
+        Args:
+            query: Search query string.
+            dataset_name: Optional dataset filter.
+            limit: Maximum results to return.
+
+        Returns:
+            SearchResults from FTS search.
+        """
+        from llama_index.core.schema import QueryBundle
+
+        limit = limit or self._settings.fts_top_k
+        fts = self._ensure_fts_search()
+
+        # Use the retriever interface
+        query_bundle = QueryBundle(query_str=query)
+        nodes = fts.retrieve(query_bundle)
+
+        # Filter by dataset if specified
+        if dataset_name:
+            nodes = [
+                n
+                for n in nodes
+                if n.node.metadata.get("dataset_name") == dataset_name
+            ]
+
+        # Convert to SearchResults
+        results = self._nodes_to_search_results(nodes[:limit])
+
+        return SearchResults(
+            results=results,
+            query=query,
+            mode="fts",
+            total_candidates=len(results),
+            timing_ms=0,
+        )
+
+    def search_vector(
+        self,
+        query: str,
+        dataset_name: str | None = None,
+        limit: int | None = None,
+    ) -> SearchResults:
+        """Execute vector search.
+
+        Args:
+            query: Search query string.
+            dataset_name: Optional dataset filter.
+            limit: Maximum results to return.
+
+        Returns:
+            SearchResults from vector search.
+        """
+        limit = limit or self._settings.vector_top_k
+        vector = self._ensure_vector_search()
+
+        results = vector.search(
+            query=query,
+            top_k=limit,
+            dataset_name=dataset_name,
         )
 
         return SearchResults(
             results=results,
-            query=criteria.query,
-            mode=criteria.mode,
+            query=query,
+            mode="vector",
             total_candidates=len(results),
-            timing_ms=total_elapsed_ms,
+            timing_ms=0,
         )
 
-    def _search_fts(
-        self, criteria: SearchCriteria, limit: int
-    ) -> list[SearchResult]:
-        """Execute FTS search.
+    def search_hybrid(
+        self,
+        query: str,
+        dataset_name: str | None = None,
+        limit: int | None = None,
+        expansion_result: Any = None,
+    ) -> SearchResults:
+        """Execute hybrid search with weighted RRF fusion.
 
         Args:
-            criteria: Search criteria.
-            limit: Maximum number of results to return.
+            query: Search query string.
+            dataset_name: Optional dataset filter.
+            limit: Maximum results to return.
+            expansion_result: Optional QueryExpansionResult for multi-query search.
 
         Returns:
-            List of SearchResult objects from FTS search.
+            SearchResults from hybrid search.
         """
-        fts = self._ensure_fts_search()
+        from llama_index.core.schema import QueryBundle
 
-        # Create modified criteria with effective limit
-        fts_criteria = SearchCriteria(
-            query=criteria.query,
-            mode="fts",
-            dataset_name=criteria.dataset_name,
-            limit=limit,
-            rerank=False,
+        limit = limit or self._settings.fusion_top_k
+        hybrid_factory = self._ensure_hybrid_retriever()
+
+        # Build retriever
+        retriever = hybrid_factory.build(dataset_name=dataset_name, fusion_top_k=limit)
+
+        # Execute search
+        query_bundle = QueryBundle(query_str=query)
+        nodes = retriever.retrieve(query_bundle)
+
+        # Convert to SearchResults
+        results = self._nodes_to_search_results(nodes)
+
+        return SearchResults(
+            results=results,
+            query=query,
+            mode="hybrid",
+            total_candidates=len(results),
+            timing_ms=0,
         )
 
-        fts_results = fts.search(fts_criteria)
-        return fts_results.results
-
-    def _search_vector(
-        self, criteria: SearchCriteria, limit: int
-    ) -> list[SearchResult]:
-        """Execute vector search.
+    def _nodes_to_search_results(self, nodes: list) -> list[SearchResult]:
+        """Convert LlamaIndex nodes to SearchResult objects.
 
         Args:
-            criteria: Search criteria.
-            limit: Maximum number of results to return.
+            nodes: List of NodeWithScore objects.
 
         Returns:
-            List of SearchResult objects from vector search.
+            List of SearchResult objects.
         """
-        vector = self._ensure_vector_search()
+        results = []
+        for node in nodes:
+            metadata = node.node.metadata or {}
 
-        results = vector.search(
-            query=criteria.query,
-            top_k=limit,
-            dataset_name=criteria.dataset_name,
-        )
+            # Extract source info
+            source_doc_id = metadata.get("source_doc_id", "")
+            if ":" in source_doc_id:
+                dataset_name, path = source_doc_id.split(":", 1)
+            else:
+                dataset_name = metadata.get("dataset_name", "")
+                path = metadata.get("file_path", metadata.get("path", ""))
+
+            results.append(
+                SearchResult(
+                    path=path,
+                    dataset_name=dataset_name,
+                    score=node.score or 0.0,
+                    chunk_text=node.node.get_content(),
+                    chunk_seq=metadata.get("chunk_seq"),
+                    chunk_pos=metadata.get("chunk_pos"),
+                    metadata=metadata,
+                    scores={"retrieval": node.score or 0.0},
+                )
+            )
         return results
 
-    def _search_hybrid(
-        self, criteria: SearchCriteria, limit: int
-    ) -> list[SearchResult]:
-        """Execute hybrid search (RRF fusion of FTS and vector).
+    def _apply_top_rank_bonus(self, results: SearchResults) -> SearchResults:
+        """Apply top-rank bonus to results.
 
         Args:
-            criteria: Search criteria.
-            limit: Maximum number of results to return.
+            results: SearchResults to modify.
 
         Returns:
-            List of SearchResult objects from hybrid search.
+            SearchResults with bonus scores applied.
         """
-        hybrid = self._ensure_hybrid_search()
+        rank_1_bonus = self._settings.rrf_rank1_bonus
+        rank_23_bonus = self._settings.rrf_rank23_bonus
 
-        results = hybrid.search(
-            query=criteria.query,
-            top_k=limit,
-            dataset_name=criteria.dataset_name,
+        modified_results = []
+        for i, result in enumerate(results.results):
+            bonus = 0.0
+            if i == 0:
+                bonus = rank_1_bonus
+            elif i <= 2:
+                bonus = rank_23_bonus
+
+            modified_results.append(
+                SearchResult(
+                    path=result.path,
+                    dataset_name=result.dataset_name,
+                    score=result.score + bonus,
+                    chunk_text=result.chunk_text,
+                    chunk_seq=result.chunk_seq,
+                    chunk_pos=result.chunk_pos,
+                    metadata=result.metadata,
+                    scores={**result.scores, "bonus": bonus},
+                )
+            )
+
+        # Re-sort by score
+        modified_results.sort(key=lambda r: r.score, reverse=True)
+
+        return SearchResults(
+            results=modified_results,
+            query=results.query,
+            mode=results.mode,
+            total_candidates=results.total_candidates,
+            timing_ms=results.timing_ms,
         )
-        return results
 
     def _apply_rerank(
         self,
-        results: list[SearchResult],
+        results: SearchResults,
         query: str,
         limit: int,
-    ) -> list[SearchResult]:
-        """Apply LLM-as-judge reranking to search results.
-
-        Converts SearchResult objects to LlamaIndex NodeWithScore format,
-        applies reranking, and converts back to SearchResult format.
+    ) -> SearchResults:
+        """Apply cached LLM reranking to results.
 
         Args:
-            results: List of SearchResult objects to rerank.
-            query: The search query for relevance evaluation.
-            limit: Maximum number of results to return after reranking.
+            results: SearchResults to rerank.
+            query: Query for relevance evaluation.
+            limit: Maximum results after reranking.
 
         Returns:
-            Reranked list of SearchResult objects, limited to `limit`.
+            Reranked SearchResults.
         """
         from llama_index.core.schema import NodeWithScore, TextNode
 
-        reranker = self._ensure_reranker()
+        reranker = self._ensure_cached_reranker()
 
-        # Convert SearchResult to NodeWithScore
-        nodes: list[NodeWithScore] = []
-        result_by_node_id: dict[str, SearchResult] = {}
-
-        for i, result in enumerate(results):
-            # Create unique node ID for mapping back
+        # Convert to nodes
+        nodes = []
+        result_map = {}
+        for i, result in enumerate(results.results):
             node_id = f"result_{i}"
-
-            # Build metadata for the node
             metadata = {
                 "source_doc_id": f"{result.dataset_name}:{result.path}",
+                "content_hash": result.metadata.get("content_hash", node_id)
+                if result.metadata
+                else node_id,
                 **(result.metadata or {}),
             }
-            if result.chunk_seq is not None:
-                metadata["chunk_seq"] = result.chunk_seq
-            if result.chunk_pos is not None:
-                metadata["chunk_pos"] = result.chunk_pos
 
             node = TextNode(
                 id_=node_id,
@@ -351,39 +484,56 @@ class SearchService:
                 metadata=metadata,
             )
             nodes.append(NodeWithScore(node=node, score=result.score))
-            result_by_node_id[node_id] = result
+            result_map[node_id] = result
 
-        logger.debug(f"Reranking {len(nodes)} candidates for query '{query[:50]}...'")
+        logger.debug(f"Reranking {len(nodes)} candidates")
 
         # Apply reranking
-        reranked_nodes = reranker.rerank(nodes=nodes, query=query, top_n=limit)
+        reranked = reranker.rerank(query=query, nodes=nodes, top_n=limit)
 
-        # Convert back to SearchResult, preserving rerank scores
-        reranked_results: list[SearchResult] = []
-        for node_with_score in reranked_nodes:
-            node_id = node_with_score.node.id_
-            original_result = result_by_node_id.get(node_id)
-
-            if original_result is None:
-                logger.warning(f"Could not find original result for node {node_id}")
-                continue
-
-            # Update scores to include rerank score
-            new_scores = {**original_result.scores, "rerank": node_with_score.score or 0.0}
-
-            reranked_results.append(
-                SearchResult(
-                    path=original_result.path,
-                    dataset_name=original_result.dataset_name,
-                    score=node_with_score.score or 0.0,  # Use rerank score as primary
-                    chunk_text=original_result.chunk_text,
-                    chunk_seq=original_result.chunk_seq,
-                    chunk_pos=original_result.chunk_pos,
-                    metadata=original_result.metadata,
-                    scores=new_scores,
+        # Convert back
+        reranked_results = []
+        for node in reranked:
+            original = result_map.get(node.node.id_)
+            if original:
+                reranked_results.append(
+                    SearchResult(
+                        path=original.path,
+                        dataset_name=original.dataset_name,
+                        score=node.score or 0.0,
+                        chunk_text=original.chunk_text,
+                        chunk_seq=original.chunk_seq,
+                        chunk_pos=original.chunk_pos,
+                        metadata=original.metadata,
+                        scores={**original.scores, "rerank": node.score or 0.0},
+                    )
                 )
-            )
 
-        logger.debug(f"Reranking complete: {len(results)} -> {len(reranked_results)} results")
+        return SearchResults(
+            results=reranked_results,
+            query=query,
+            mode=results.mode,
+            total_candidates=len(reranked_results),
+            timing_ms=results.timing_ms,
+        )
 
-        return reranked_results
+
+def search(criteria: SearchCriteria) -> SearchResults:
+    """Search with query expansion, weighted RRF, and caching.
+
+    Convenience function that creates a session and SearchService
+    for one-off searches.
+
+    Args:
+        criteria: Search criteria.
+
+    Returns:
+        SearchResults from search.
+    """
+    from catalog.store.database import get_session
+    from catalog.store.session_context import use_session
+
+    with get_session() as session:
+        with use_session(session):
+            service = SearchService(session)
+            return service.search(criteria)

@@ -4,17 +4,12 @@ Provides CLI commands for managing catalog operations including
 search evaluation, document ingestion, and quality assessment.
 
 Commands:
-    eval: Evaluation commands for RAG v2 search quality
+    eval: Evaluation commands for RAG search quality
         golden: Run golden query evaluation
-        compare: Compare v1 and v2 for a single query
-        compare-batch: Compare v1 and v2 for multiple queries
 
 Example usage:
     # Run golden query evaluation
     uv run python -m catalog eval golden
-
-    # Compare single query
-    uv run python -m catalog eval compare "authentication config"
 """
 
 import typer

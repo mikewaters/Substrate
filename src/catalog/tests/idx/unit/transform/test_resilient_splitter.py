@@ -12,14 +12,14 @@ class TestResilientSplitterInit:
     """Tests for ResilientSplitter initialization."""
 
     def test_init_default_values_from_settings(self) -> None:
-        """Test that defaults are loaded from RAGv2Settings."""
+        """Test that defaults are loaded from RAGSettings."""
         with patch("catalog.transform.splitter.get_settings") as mock_settings:
-            mock_rag_v2 = MagicMock()
-            mock_rag_v2.chunk_size = 500
-            mock_rag_v2.chunk_overlap = 50
-            mock_rag_v2.chunk_chars_per_token = 3
-            mock_rag_v2.chunk_fallback_enabled = False
-            mock_settings.return_value.rag_v2 = mock_rag_v2
+            mock_rag = MagicMock()
+            mock_rag.chunk_size = 500
+            mock_rag.chunk_overlap = 50
+            mock_rag.chunk_chars_per_token = 3
+            mock_rag.chunk_fallback_enabled = False
+            mock_settings.return_value.rag = mock_rag
 
             splitter = ResilientSplitter()
 

@@ -65,7 +65,7 @@ class TestEmbeddingPrefixTransform:
         # When no prefix_template is provided, it should use settings default
         transform = EmbeddingPrefixTransform()
 
-        # The default from RAGv2Settings is "title: {title} | text: "
+        # The default from RAGSettings is "title: {title} | text: "
         assert transform.prefix_template == "title: {title} | text: "
 
     def test_multiple_nodes_processed(self) -> None:

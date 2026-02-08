@@ -1,15 +1,15 @@
-"""catalog.api.mcp.tools - MCP tool definitions for RAG v2.
+"""catalog.api.mcp.tools - MCP tool definitions for RAG search.
 
-Provides LlamaIndex FunctionTool wrappers for the SearchServiceV2.
+Provides LlamaIndex FunctionTool wrappers for the SearchService.
 These tools enable AI agents to search and retrieve documents from the catalog.
 
 Example usage:
     from catalog.api.mcp.tools import create_mcp_tools
-    from catalog.search.service_v2 import SearchServiceV2
+    from catalog.search.service import SearchService
     from catalog.store.database import get_session
 
     with get_session() as session:
-        service = SearchServiceV2(session)
+        service = SearchService(session)
         tools = create_mcp_tools(service)
 
         # Use tools with an agent
@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 
 from catalog.core.status import check_health
 from catalog.search.models import SearchCriteria, SearchResult
-from catalog.search.service_v2 import SearchServiceV2
+from catalog.search.service import SearchService
 from catalog.store.dataset import DatasetService
 
 __all__ = ["create_mcp_tools"]
@@ -79,11 +79,11 @@ def _result_to_dict(result: SearchResult) -> dict[str, Any]:
     }
 
 
-def _make_catalog_search(service: SearchServiceV2):
+def _make_catalog_search(service: SearchService):
     """Create catalog_search tool function.
 
     Args:
-        service: SearchServiceV2 instance.
+        service: SearchService instance.
 
     Returns:
         Callable for BM25 keyword search.
@@ -136,11 +136,11 @@ def _make_catalog_search(service: SearchServiceV2):
     return catalog_search
 
 
-def _make_catalog_vsearch(service: SearchServiceV2):
+def _make_catalog_vsearch(service: SearchService):
     """Create catalog_vsearch tool function.
 
     Args:
-        service: SearchServiceV2 instance.
+        service: SearchService instance.
 
     Returns:
         Callable for semantic vector search.
@@ -193,11 +193,11 @@ def _make_catalog_vsearch(service: SearchServiceV2):
     return catalog_vsearch
 
 
-def _make_catalog_query(service: SearchServiceV2):
+def _make_catalog_query(service: SearchService):
     """Create catalog_query tool function.
 
     Args:
-        service: SearchServiceV2 instance.
+        service: SearchService instance.
 
     Returns:
         Callable for hybrid search with RRF fusion.
@@ -255,11 +255,11 @@ def _make_catalog_query(service: SearchServiceV2):
     return catalog_query
 
 
-def _make_catalog_get(service: SearchServiceV2):
+def _make_catalog_get(service: SearchService):
     """Create catalog_get tool function.
 
     Args:
-        service: SearchServiceV2 instance.
+        service: SearchService instance.
 
     Returns:
         Callable for document retrieval by path or ID.
@@ -332,11 +332,11 @@ def _make_catalog_get(service: SearchServiceV2):
     return catalog_get
 
 
-def _make_catalog_multi_get(service: SearchServiceV2):
+def _make_catalog_multi_get(service: SearchService):
     """Create catalog_multi_get tool function.
 
     Args:
-        service: SearchServiceV2 instance.
+        service: SearchService instance.
 
     Returns:
         Callable for multiple document retrieval by glob pattern.
@@ -412,11 +412,11 @@ def _make_catalog_multi_get(service: SearchServiceV2):
     return catalog_multi_get
 
 
-def _make_catalog_status(service: SearchServiceV2):
+def _make_catalog_status(service: SearchService):
     """Create catalog_status tool function.
 
     Args:
-        service: SearchServiceV2 instance.
+        service: SearchService instance.
 
     Returns:
         Callable for index health status.
@@ -472,7 +472,7 @@ def _make_catalog_status(service: SearchServiceV2):
     return catalog_status
 
 
-def create_mcp_tools(service: SearchServiceV2) -> list[FunctionTool]:
+def create_mcp_tools(service: SearchService) -> list[FunctionTool]:
     """Create MCP tools for the catalog search service.
 
     Creates LlamaIndex FunctionTool wrappers for all catalog operations:
@@ -484,13 +484,13 @@ def create_mcp_tools(service: SearchServiceV2) -> list[FunctionTool]:
     - catalog_status: Get index health info
 
     Args:
-        service: SearchServiceV2 instance with database session.
+        service: SearchService instance with database session.
 
     Returns:
         List of FunctionTool instances ready for agent use.
 
     Example:
-        service = SearchServiceV2(session)
+        service = SearchService(session)
         tools = create_mcp_tools(service)
 
         # Get tool by name

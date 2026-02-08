@@ -1,269 +1,543 @@
 """Tests for catalog.search.hybrid module.
 
-Tests for HybridSearch class using LlamaIndex QueryFusionRetriever.
+Tests for WeightedRRFRetriever and HybridRetriever classes.
 """
 
 from unittest.mock import MagicMock, patch
 
 import pytest
+from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 
-from catalog.search.hybrid import HybridSearch
-from catalog.search.models import SearchResult
+from catalog.search.hybrid import HybridRetriever, WeightedRRFRetriever
 
 
-class TestHybridSearch:
-    """Tests for HybridSearch class."""
+class TestWeightedRRFRetriever:
+    """Tests for WeightedRRFRetriever class."""
+
+    @pytest.fixture
+    def mock_retriever_a(self) -> MagicMock:
+        """Create mock retriever A."""
+        retriever = MagicMock()
+        return retriever
+
+    @pytest.fixture
+    def mock_retriever_b(self) -> MagicMock:
+        """Create mock retriever B."""
+        retriever = MagicMock()
+        return retriever
+
+    def _make_node_with_score(
+        self, node_id: str, text: str, score: float
+    ) -> NodeWithScore:
+        """Create a NodeWithScore for testing."""
+        node = TextNode(id_=node_id, text=text)
+        return NodeWithScore(node=node, score=score)
+
+    def test_init_basic(
+        self, mock_retriever_a: MagicMock, mock_retriever_b: MagicMock
+    ) -> None:
+        """Test basic initialization."""
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a, mock_retriever_b],
+            weights=[1.0, 1.0],
+            k=60,
+            top_n=30,
+        )
+
+        assert len(retriever.retrievers) == 2
+        assert retriever.weights == [1.0, 1.0]
+        assert retriever.k == 60
+        assert retriever.top_n == 30
+
+    def test_init_default_values(
+        self, mock_retriever_a: MagicMock, mock_retriever_b: MagicMock
+    ) -> None:
+        """Test initialization with default values."""
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a, mock_retriever_b],
+            weights=[1.0, 1.0],
+        )
+
+        assert retriever.k == 60
+        assert retriever.top_n == 30
+
+    def test_init_mismatched_lengths(
+        self, mock_retriever_a: MagicMock, mock_retriever_b: MagicMock
+    ) -> None:
+        """Test initialization fails with mismatched retriever/weight lengths."""
+        with pytest.raises(ValueError, match="must match"):
+            WeightedRRFRetriever(
+                retrievers=[mock_retriever_a, mock_retriever_b],
+                weights=[1.0],  # Only one weight for two retrievers
+            )
+
+    def test_init_negative_weight(
+        self, mock_retriever_a: MagicMock, mock_retriever_b: MagicMock
+    ) -> None:
+        """Test initialization fails with negative weight."""
+        with pytest.raises(ValueError, match="non-negative"):
+            WeightedRRFRetriever(
+                retrievers=[mock_retriever_a, mock_retriever_b],
+                weights=[1.0, -0.5],
+            )
+
+    def test_rrf_calculation_single_retriever(
+        self, mock_retriever_a: MagicMock
+    ) -> None:
+        """Test RRF calculation with a single retriever."""
+        # Retriever A returns 3 results
+        mock_retriever_a.retrieve.return_value = [
+            self._make_node_with_score("node1", "text1", 0.9),
+            self._make_node_with_score("node2", "text2", 0.8),
+            self._make_node_with_score("node3", "text3", 0.7),
+        ]
+
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a],
+            weights=[1.0],
+            k=60,
+            top_n=10,
+        )
+
+        query = QueryBundle(query_str="test query")
+        results = retriever._retrieve(query)
+
+        # With k=60, weight=1.0:
+        # node1: 1.0 / (60 + 0 + 1) = 1/61
+        # node2: 1.0 / (60 + 1 + 1) = 1/62
+        # node3: 1.0 / (60 + 2 + 1) = 1/63
+        assert len(results) == 3
+        assert results[0].node.node_id == "node1"
+        assert results[1].node.node_id == "node2"
+        assert results[2].node.node_id == "node3"
+
+        # Verify scores are correct
+        assert abs(results[0].score - (1.0 / 61)) < 1e-10
+        assert abs(results[1].score - (1.0 / 62)) < 1e-10
+        assert abs(results[2].score - (1.0 / 63)) < 1e-10
+
+    def test_rrf_calculation_two_retrievers_no_overlap(
+        self, mock_retriever_a: MagicMock, mock_retriever_b: MagicMock
+    ) -> None:
+        """Test RRF calculation with two retrievers, no overlapping results."""
+        mock_retriever_a.retrieve.return_value = [
+            self._make_node_with_score("node1", "text1", 0.9),
+            self._make_node_with_score("node2", "text2", 0.8),
+        ]
+        mock_retriever_b.retrieve.return_value = [
+            self._make_node_with_score("node3", "text3", 0.95),
+            self._make_node_with_score("node4", "text4", 0.85),
+        ]
+
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a, mock_retriever_b],
+            weights=[1.0, 1.0],
+            k=60,
+            top_n=10,
+        )
+
+        query = QueryBundle(query_str="test query")
+        results = retriever._retrieve(query)
+
+        # All 4 nodes should be returned
+        assert len(results) == 4
+        node_ids = [r.node.node_id for r in results]
+        assert set(node_ids) == {"node1", "node2", "node3", "node4"}
+
+    def test_rrf_calculation_two_retrievers_with_overlap(
+        self, mock_retriever_a: MagicMock, mock_retriever_b: MagicMock
+    ) -> None:
+        """Test RRF calculation with overlapping results (node appears in both)."""
+        # Both retrievers return node1, with node1 at rank 0 in A and rank 1 in B
+        mock_retriever_a.retrieve.return_value = [
+            self._make_node_with_score("node1", "text1", 0.9),
+            self._make_node_with_score("node2", "text2", 0.8),
+        ]
+        mock_retriever_b.retrieve.return_value = [
+            self._make_node_with_score("node3", "text3", 0.95),
+            self._make_node_with_score("node1", "text1", 0.85),
+        ]
+
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a, mock_retriever_b],
+            weights=[1.0, 1.0],
+            k=60,
+            top_n=10,
+        )
+
+        query = QueryBundle(query_str="test query")
+        results = retriever._retrieve(query)
+
+        # 3 unique nodes should be returned
+        assert len(results) == 3
+
+        # node1 should have highest score (appears in both retrievers)
+        # node1 score: 1/(60+0+1) + 1/(60+1+1) = 1/61 + 1/62
+        expected_node1_score = (1.0 / 61) + (1.0 / 62)
+
+        # Find node1 in results
+        node1_result = next(r for r in results if r.node.node_id == "node1")
+        assert abs(node1_result.score - expected_node1_score) < 1e-10
+
+        # node1 should be ranked first due to combined score
+        assert results[0].node.node_id == "node1"
+
+    def test_weight_application(
+        self, mock_retriever_a: MagicMock, mock_retriever_b: MagicMock
+    ) -> None:
+        """Test that weights are correctly applied to RRF scores."""
+        mock_retriever_a.retrieve.return_value = [
+            self._make_node_with_score("node1", "text1", 0.9),
+        ]
+        mock_retriever_b.retrieve.return_value = [
+            self._make_node_with_score("node2", "text2", 0.9),
+        ]
+
+        # Weight retriever A at 2.0, B at 1.0
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a, mock_retriever_b],
+            weights=[2.0, 1.0],
+            k=60,
+            top_n=10,
+        )
+
+        query = QueryBundle(query_str="test query")
+        results = retriever._retrieve(query)
+
+        assert len(results) == 2
+
+        # node1 should have score 2.0 / 61 (higher weight)
+        # node2 should have score 1.0 / 61 (lower weight)
+        node1_result = next(r for r in results if r.node.node_id == "node1")
+        node2_result = next(r for r in results if r.node.node_id == "node2")
+
+        assert abs(node1_result.score - (2.0 / 61)) < 1e-10
+        assert abs(node2_result.score - (1.0 / 61)) < 1e-10
+
+        # node1 should rank higher due to higher weight
+        assert results[0].node.node_id == "node1"
+        assert results[1].node.node_id == "node2"
+
+    def test_top_n_limiting(
+        self, mock_retriever_a: MagicMock
+    ) -> None:
+        """Test that top_n limits the number of results."""
+        # Return 5 results
+        mock_retriever_a.retrieve.return_value = [
+            self._make_node_with_score(f"node{i}", f"text{i}", 1.0 - i * 0.1)
+            for i in range(5)
+        ]
+
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a],
+            weights=[1.0],
+            k=60,
+            top_n=3,  # Limit to 3
+        )
+
+        query = QueryBundle(query_str="test query")
+        results = retriever._retrieve(query)
+
+        # Should only return 3 results
+        assert len(results) == 3
+        # Should be the top 3 by RRF score
+        assert results[0].node.node_id == "node0"
+        assert results[1].node.node_id == "node1"
+        assert results[2].node.node_id == "node2"
+
+    def test_zero_weight_retriever_ignored(
+        self, mock_retriever_a: MagicMock, mock_retriever_b: MagicMock
+    ) -> None:
+        """Test that a retriever with weight 0 contributes nothing."""
+        mock_retriever_a.retrieve.return_value = [
+            self._make_node_with_score("node1", "text1", 0.9),
+        ]
+        mock_retriever_b.retrieve.return_value = [
+            self._make_node_with_score("node2", "text2", 0.95),
+        ]
+
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a, mock_retriever_b],
+            weights=[1.0, 0.0],  # B has weight 0
+            k=60,
+            top_n=10,
+        )
+
+        query = QueryBundle(query_str="test query")
+        results = retriever._retrieve(query)
+
+        # Only node1 appears since node2 has zero weight and contributes nothing
+        assert len(results) == 1
+        assert results[0].node.node_id == "node1"
+        assert results[0].score > 0
+
+    def test_empty_results(
+        self, mock_retriever_a: MagicMock, mock_retriever_b: MagicMock
+    ) -> None:
+        """Test handling of empty results from retrievers."""
+        mock_retriever_a.retrieve.return_value = []
+        mock_retriever_b.retrieve.return_value = []
+
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a, mock_retriever_b],
+            weights=[1.0, 1.0],
+            k=60,
+            top_n=10,
+        )
+
+        query = QueryBundle(query_str="test query")
+        results = retriever._retrieve(query)
+
+        assert results == []
+
+    def test_retriever_failure_handled(
+        self, mock_retriever_a: MagicMock, mock_retriever_b: MagicMock
+    ) -> None:
+        """Test that retriever failures are handled gracefully."""
+        mock_retriever_a.retrieve.side_effect = RuntimeError("Network error")
+        mock_retriever_b.retrieve.return_value = [
+            self._make_node_with_score("node1", "text1", 0.9),
+        ]
+
+        retriever = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a, mock_retriever_b],
+            weights=[1.0, 1.0],
+            k=60,
+            top_n=10,
+        )
+
+        query = QueryBundle(query_str="test query")
+        results = retriever._retrieve(query)
+
+        # Should still return results from B
+        assert len(results) == 1
+        assert results[0].node.node_id == "node1"
+
+    def test_different_k_values(
+        self, mock_retriever_a: MagicMock
+    ) -> None:
+        """Test that different k values affect scoring."""
+        mock_retriever_a.retrieve.return_value = [
+            self._make_node_with_score("node1", "text1", 0.9),
+            self._make_node_with_score("node2", "text2", 0.8),
+        ]
+
+        # With k=10 (small k gives more weight to top ranks)
+        retriever_small_k = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a],
+            weights=[1.0],
+            k=10,
+            top_n=10,
+        )
+
+        # With k=100 (large k flattens the ranking)
+        retriever_large_k = WeightedRRFRetriever(
+            retrievers=[mock_retriever_a],
+            weights=[1.0],
+            k=100,
+            top_n=10,
+        )
+
+        query = QueryBundle(query_str="test query")
+
+        results_small = retriever_small_k._retrieve(query)
+        results_large = retriever_large_k._retrieve(query)
+
+        # With small k, difference between rank 0 and rank 1 is larger
+        diff_small = results_small[0].score - results_small[1].score
+        diff_large = results_large[0].score - results_large[1].score
+
+        # Small k: 1/11 - 1/12 = (12-11)/(11*12) = 1/132
+        # Large k: 1/101 - 1/102 = (102-101)/(101*102) = 1/10302
+        assert diff_small > diff_large
+
+
+class TestHybridRetriever:
+    """Tests for HybridRetriever factory class."""
+
+    @pytest.fixture
+    def mock_session(self) -> MagicMock:
+        """Create mock SQLAlchemy session."""
+        return MagicMock()
 
     @pytest.fixture
     def mock_vector_manager(self) -> MagicMock:
         """Create mock VectorStoreManager."""
         manager = MagicMock()
         mock_index = MagicMock()
+        mock_retriever = MagicMock()
+        mock_index.as_retriever.return_value = mock_retriever
         manager.load_or_create.return_value = mock_index
         return manager
 
     @pytest.fixture
-    def mock_fts_retriever(self) -> MagicMock:
-        """Create mock FTSChunkRetriever."""
-        retriever = MagicMock()
-        retriever.similarity_top_k = 20
-        retriever.dataset_name = None
-        return retriever
+    def mock_settings(self) -> MagicMock:
+        """Create mock RAGSettings."""
+        settings = MagicMock()
+        settings.rrf_k = 60
+        settings.rrf_original_weight = 2.0
+        settings.fts_top_k = 20
+        settings.vector_top_k = 20
+        settings.fusion_top_k = 30
+        return settings
 
-    @pytest.fixture
-    def hybrid_search(
-        self, mock_vector_manager: MagicMock, mock_fts_retriever: MagicMock
-    ) -> HybridSearch:
-        """Create HybridSearch with mocked dependencies."""
-        return HybridSearch(
-            vector_manager=mock_vector_manager,
-            fts_retriever=mock_fts_retriever,
-        )
-
-    def test_init_default(self) -> None:
-        """Test HybridSearch initializes with default dependencies."""
+    def test_init_default_vector_manager(self, mock_session: MagicMock) -> None:
+        """Test HybridRetriever creates default VectorStoreManager."""
         with patch("catalog.search.hybrid.VectorStoreManager") as mock_vm_cls, \
-             patch("catalog.search.hybrid.FTSChunkRetriever") as mock_fts_cls:
+             patch("catalog.search.hybrid.get_settings") as mock_get_settings:
             mock_vm_cls.return_value = MagicMock()
-            mock_fts_cls.return_value = MagicMock()
+            mock_get_settings.return_value.rag = MagicMock()
 
-            HybridSearch()
+            HybridRetriever(mock_session)
 
             mock_vm_cls.assert_called_once()
+
+    def test_init_custom_vector_manager(
+        self, mock_session: MagicMock, mock_vector_manager: MagicMock
+    ) -> None:
+        """Test HybridRetriever accepts custom VectorStoreManager."""
+        with patch("catalog.search.hybrid.get_settings") as mock_get_settings:
+            mock_get_settings.return_value.rag = MagicMock()
+
+            factory = HybridRetriever(mock_session, mock_vector_manager)
+
+            assert factory._vector_manager is mock_vector_manager
+
+    def test_build_returns_weighted_rrf_retriever(
+        self,
+        mock_session: MagicMock,
+        mock_vector_manager: MagicMock,
+        mock_settings: MagicMock,
+    ) -> None:
+        """Test build() returns a WeightedRRFRetriever."""
+        with patch("catalog.search.hybrid.get_settings") as mock_get_settings, \
+             patch("catalog.search.hybrid.FTSChunkRetriever"):
+            mock_get_settings.return_value.rag = mock_settings
+
+            factory = HybridRetriever(mock_session, mock_vector_manager)
+            retriever = factory.build()
+
+            assert isinstance(retriever, WeightedRRFRetriever)
+
+    def test_build_uses_settings_values(
+        self,
+        mock_session: MagicMock,
+        mock_vector_manager: MagicMock,
+        mock_settings: MagicMock,
+    ) -> None:
+        """Test build() uses values from rag settings."""
+        with patch("catalog.search.hybrid.get_settings") as mock_get_settings, \
+             patch("catalog.search.hybrid.FTSChunkRetriever") as mock_fts_cls:
+            mock_get_settings.return_value.rag = mock_settings
+
+            factory = HybridRetriever(mock_session, mock_vector_manager)
+            retriever = factory.build()
+
+            # Check that FTS retriever was created with correct top_k
             mock_fts_cls.assert_called_once()
+            call_kwargs = mock_fts_cls.call_args.kwargs
+            assert call_kwargs["similarity_top_k"] == mock_settings.fts_top_k
 
-    def test_init_custom_dependencies(
-        self, mock_vector_manager: MagicMock, mock_fts_retriever: MagicMock
+            # Check RRF retriever has correct settings
+            assert retriever.k == mock_settings.rrf_k
+            assert retriever.top_n == mock_settings.fusion_top_k
+            assert retriever.weights == [
+                mock_settings.rrf_original_weight,
+                mock_settings.rrf_original_weight,
+            ]
+
+    def test_build_with_custom_top_k_values(
+        self,
+        mock_session: MagicMock,
+        mock_vector_manager: MagicMock,
+        mock_settings: MagicMock,
     ) -> None:
-        """Test HybridSearch accepts custom dependencies."""
-        search = HybridSearch(
-            vector_manager=mock_vector_manager,
-            fts_retriever=mock_fts_retriever,
-        )
+        """Test build() accepts custom top_k overrides."""
+        with patch("catalog.search.hybrid.get_settings") as mock_get_settings, \
+             patch("catalog.search.hybrid.FTSChunkRetriever") as mock_fts_cls:
+            mock_get_settings.return_value.rag = mock_settings
 
-        assert search._vector_manager is mock_vector_manager
-        assert search._fts_retriever is mock_fts_retriever
-
-    def test_search_creates_fusion_retriever(
-        self, hybrid_search: HybridSearch
-    ) -> None:
-        """Test search creates QueryFusionRetriever with correct parameters."""
-        mock_node = MagicMock()
-        mock_node.metadata = {"source_doc_id": "vault:doc1.md"}
-        mock_node.text = "Sample text"
-
-        mock_nws = MagicMock()
-        mock_nws.node = mock_node
-        mock_nws.score = 0.5
-
-        with patch("llama_index.core.retrievers.QueryFusionRetriever") as mock_fusion_cls:
-            mock_fusion = MagicMock()
-            mock_fusion.retrieve.return_value = [mock_nws]
-            mock_fusion_cls.return_value = mock_fusion
-
-            hybrid_search.search("test query", top_k=10)
-
-            # Verify QueryFusionRetriever was created with correct settings
-            mock_fusion_cls.assert_called_once()
-            call_kwargs = mock_fusion_cls.call_args.kwargs
-            assert call_kwargs["mode"] == "reciprocal_rerank"
-            assert call_kwargs["num_queries"] == 1
-            assert call_kwargs["use_async"] is False
-            assert call_kwargs["similarity_top_k"] == 10
-
-    def test_search_returns_search_results(
-        self, hybrid_search: HybridSearch
-    ) -> None:
-        """Test search returns list of SearchResult objects."""
-        mock_node = MagicMock()
-        mock_node.metadata = {"source_doc_id": "vault:doc1.md"}
-        mock_node.text = "Sample text"
-
-        mock_nws = MagicMock()
-        mock_nws.node = mock_node
-        mock_nws.score = 0.5
-
-        with patch("llama_index.core.retrievers.QueryFusionRetriever") as mock_fusion_cls:
-            mock_fusion = MagicMock()
-            mock_fusion.retrieve.return_value = [mock_nws]
-            mock_fusion_cls.return_value = mock_fusion
-
-            results = hybrid_search.search("test query")
-
-            assert len(results) == 1
-            assert isinstance(results[0], SearchResult)
-            assert results[0].path == "doc1.md"
-            assert results[0].dataset_name == "vault"
-            assert results[0].scores["rrf"] == 0.5
-
-    def test_search_with_custom_k_values(
-        self, hybrid_search: HybridSearch, mock_fts_retriever: MagicMock
-    ) -> None:
-        """Test search configures retrievers with custom k values."""
-        mock_node = MagicMock()
-        mock_node.metadata = {"source_doc_id": "vault:doc1.md"}
-        mock_node.text = "Sample text"
-
-        mock_nws = MagicMock()
-        mock_nws.node = mock_node
-        mock_nws.score = 0.5
-
-        with patch("llama_index.core.retrievers.QueryFusionRetriever") as mock_fusion_cls:
-            mock_fusion = MagicMock()
-            mock_fusion.retrieve.return_value = [mock_nws]
-            mock_fusion_cls.return_value = mock_fusion
-
-            hybrid_search.search(
-                "test query",
-                top_k=5,
-                k_lex=30,
-                k_dense=40,
+            factory = HybridRetriever(mock_session, mock_vector_manager)
+            retriever = factory.build(
+                fts_top_k=50,
+                vector_top_k=50,
+                fusion_top_k=40,
             )
 
-            # Verify FTS retriever was configured
-            assert mock_fts_retriever.similarity_top_k == 30
+            # FTS should use custom value
+            mock_fts_cls.assert_called_once()
+            call_kwargs = mock_fts_cls.call_args.kwargs
+            assert call_kwargs["similarity_top_k"] == 50
 
-    def test_search_with_default_k_values(
-        self, hybrid_search: HybridSearch, mock_fts_retriever: MagicMock
+            # Fusion should use custom value
+            assert retriever.top_n == 40
+
+    def test_build_with_dataset_filter(
+        self,
+        mock_session: MagicMock,
+        mock_vector_manager: MagicMock,
+        mock_settings: MagicMock,
     ) -> None:
-        """Test search uses 2x top_k as default for k_lex and k_dense."""
-        mock_node = MagicMock()
-        mock_node.metadata = {"source_doc_id": "vault:doc1.md"}
-        mock_node.text = "Sample text"
+        """Test build() passes dataset filter to retrievers."""
+        with patch("catalog.search.hybrid.get_settings") as mock_get_settings, \
+             patch("catalog.search.hybrid.FTSChunkRetriever") as mock_fts_cls:
+            mock_get_settings.return_value.rag = mock_settings
 
-        mock_nws = MagicMock()
-        mock_nws.node = mock_node
-        mock_nws.score = 0.5
+            factory = HybridRetriever(mock_session, mock_vector_manager)
+            factory.build(dataset_name="obsidian")
 
-        with patch("llama_index.core.retrievers.QueryFusionRetriever") as mock_fusion_cls:
-            mock_fusion = MagicMock()
-            mock_fusion.retrieve.return_value = [mock_nws]
-            mock_fusion_cls.return_value = mock_fusion
+            # FTS should have dataset filter
+            mock_fts_cls.assert_called_once()
+            call_kwargs = mock_fts_cls.call_args.kwargs
+            assert call_kwargs["dataset_name"] == "obsidian"
 
-            hybrid_search.search("test query", top_k=10)
+            # Vector retriever should have metadata filter
+            mock_vector_manager.load_or_create.return_value.as_retriever.assert_called_once()
+            vector_call_kwargs = (
+                mock_vector_manager.load_or_create.return_value.as_retriever.call_args.kwargs
+            )
+            assert vector_call_kwargs["filters"] is not None
 
-            # Default k_lex should be 2 * top_k = 20
-            assert mock_fts_retriever.similarity_top_k == 20
-
-    def test_search_with_dataset_filter(
-        self, hybrid_search: HybridSearch, mock_fts_retriever: MagicMock
+    def test_build_without_dataset_filter(
+        self,
+        mock_session: MagicMock,
+        mock_vector_manager: MagicMock,
+        mock_settings: MagicMock,
     ) -> None:
-        """Test search passes dataset filter to both retrievers."""
-        mock_node = MagicMock()
-        mock_node.metadata = {"source_doc_id": "my-vault:doc1.md"}
-        mock_node.text = "Sample text"
+        """Test build() passes no filter when dataset_name is None."""
+        with patch("catalog.search.hybrid.get_settings") as mock_get_settings, \
+             patch("catalog.search.hybrid.FTSChunkRetriever") as mock_fts_cls:
+            mock_get_settings.return_value.rag = mock_settings
 
-        mock_nws = MagicMock()
-        mock_nws.node = mock_node
-        mock_nws.score = 0.5
+            factory = HybridRetriever(mock_session, mock_vector_manager)
+            factory.build(dataset_name=None)
 
-        with patch("llama_index.core.retrievers.QueryFusionRetriever") as mock_fusion_cls:
-            mock_fusion = MagicMock()
-            mock_fusion.retrieve.return_value = [mock_nws]
-            mock_fusion_cls.return_value = mock_fusion
+            # FTS should have no dataset filter
+            mock_fts_cls.assert_called_once()
+            call_kwargs = mock_fts_cls.call_args.kwargs
+            assert call_kwargs["dataset_name"] is None
 
-            hybrid_search.search("test query", dataset_name="my-vault")
+            # Vector retriever should have no filter
+            vector_call_kwargs = (
+                mock_vector_manager.load_or_create.return_value.as_retriever.call_args.kwargs
+            )
+            assert vector_call_kwargs["filters"] is None
 
-            # Verify FTS retriever was configured with dataset
-            assert mock_fts_retriever.dataset_name == "my-vault"
-
-    def test_search_empty_results(self, hybrid_search: HybridSearch) -> None:
-        """Test search handles empty results gracefully."""
-        with patch("llama_index.core.retrievers.QueryFusionRetriever") as mock_fusion_cls:
-            mock_fusion = MagicMock()
-            mock_fusion.retrieve.return_value = []
-            mock_fusion_cls.return_value = mock_fusion
-
-            results = hybrid_search.search("test query")
-
-            assert results == []
-
-    def test_convert_node_extracts_chunk_metadata(
-        self, hybrid_search: HybridSearch
+    def test_build_creates_two_retrievers(
+        self,
+        mock_session: MagicMock,
+        mock_vector_manager: MagicMock,
+        mock_settings: MagicMock,
     ) -> None:
-        """Test node conversion extracts chunk_seq and chunk_pos."""
-        mock_node = MagicMock()
-        mock_node.metadata = {
-            "source_doc_id": "vault:notes/doc.md",
-            "chunk_seq": 2,
-            "chunk_pos": 1024,
-        }
-        mock_node.text = "Chunk content"
+        """Test build() creates FTS and vector retrievers."""
+        with patch("catalog.search.hybrid.get_settings") as mock_get_settings, \
+             patch("catalog.search.hybrid.FTSChunkRetriever"):
+            mock_get_settings.return_value.rag = mock_settings
 
-        mock_nws = MagicMock()
-        mock_nws.node = mock_node
-        mock_nws.score = 0.75
+            factory = HybridRetriever(mock_session, mock_vector_manager)
+            retriever = factory.build()
 
-        result = hybrid_search._convert_node_to_result(mock_nws)
-
-        assert result.chunk_seq == 2
-        assert result.chunk_pos == 1024
-        assert result.chunk_text == "Chunk content"
-
-    def test_convert_node_fallback_dataset(
-        self, hybrid_search: HybridSearch
-    ) -> None:
-        """Test node conversion uses fallback dataset_name."""
-        mock_node = MagicMock()
-        mock_node.metadata = {"relative_path": "doc.md"}
-        mock_node.text = "Content"
-
-        mock_nws = MagicMock()
-        mock_nws.node = mock_node
-        mock_nws.score = 0.5
-
-        result = hybrid_search._convert_node_to_result(
-            mock_nws, dataset_name="fallback-vault"
-        )
-
-        assert result.dataset_name == "fallback-vault"
-        assert result.path == "doc.md"
-
-    def test_convert_node_excludes_internal_metadata(
-        self, hybrid_search: HybridSearch
-    ) -> None:
-        """Test node conversion excludes internal metadata keys."""
-        mock_node = MagicMock()
-        mock_node.metadata = {
-            "source_doc_id": "vault:doc.md",
-            "chunk_seq": 1,
-            "chunk_pos": 0,
-            "doc_id": 42,
-            "custom_field": "value",
-        }
-        mock_node.text = "Content"
-
-        mock_nws = MagicMock()
-        mock_nws.node = mock_node
-        mock_nws.score = 0.5
-
-        result = hybrid_search._convert_node_to_result(mock_nws)
-
-        # Internal keys should be excluded from metadata
-        assert "source_doc_id" not in result.metadata
-        assert "chunk_seq" not in result.metadata
-        assert "chunk_pos" not in result.metadata
-        assert "doc_id" not in result.metadata
-
-        # Custom fields should be preserved
-        assert result.metadata.get("custom_field") == "value"
+            # Should have exactly 2 retrievers
+            assert len(retriever.retrievers) == 2
+            # Should have exactly 2 weights
+            assert len(retriever.weights) == 2

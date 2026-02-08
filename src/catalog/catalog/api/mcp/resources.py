@@ -9,9 +9,9 @@ URI scheme:
 
 Example usage:
     from catalog.api.mcp.resources import list_resources, read_resource
-    from catalog.search.service_v2 import SearchServiceV2
+    from catalog.search.service import SearchService
 
-    service = SearchServiceV2(session)
+    service = SearchService(session)
 
     # List all resources
     resources = list_resources(service)
@@ -24,7 +24,7 @@ from typing import Any
 
 from agentlayer.logging import get_logger
 
-from catalog.search.service_v2 import SearchServiceV2
+from catalog.search.service import SearchService
 from catalog.store.dataset import DatasetService
 
 __all__ = ["list_resources", "read_resource"]
@@ -32,7 +32,7 @@ __all__ = ["list_resources", "read_resource"]
 logger = get_logger(__name__)
 
 
-def list_resources(service: SearchServiceV2) -> list[dict[str, Any]]:
+def list_resources(service: SearchService) -> list[dict[str, Any]]:
     """List all available resources as catalog:// URIs.
 
     Returns datasets as top-level resources. Each dataset can be read
@@ -40,7 +40,7 @@ def list_resources(service: SearchServiceV2) -> list[dict[str, Any]]:
     via catalog://{dataset}/{path}.
 
     Args:
-        service: SearchServiceV2 instance with database session.
+        service: SearchService instance with database session.
 
     Returns:
         List of resource dictionaries with uri, name, description, and mimeType.
@@ -80,7 +80,7 @@ def list_resources(service: SearchServiceV2) -> list[dict[str, Any]]:
         return []
 
 
-def read_resource(service: SearchServiceV2, uri: str) -> list[dict[str, Any]]:
+def read_resource(service: SearchService, uri: str) -> list[dict[str, Any]]:
     """Read a resource by catalog:// URI.
 
     URI formats:
@@ -88,7 +88,7 @@ def read_resource(service: SearchServiceV2, uri: str) -> list[dict[str, Any]]:
     - catalog://{dataset}/{path}: Returns the specific document content
 
     Args:
-        service: SearchServiceV2 instance with database session.
+        service: SearchService instance with database session.
         uri: Resource URI in catalog:// format.
 
     Returns:

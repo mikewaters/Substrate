@@ -9,19 +9,19 @@ from catalog.api.mcp.resources import (
     list_resources,
     read_resource,
 )
-from catalog.search.service_v2 import SearchServiceV2
+from catalog.search.service import SearchService
 
 
 class TestListResources:
     """Tests for list_resources function."""
 
     @pytest.fixture
-    def mock_service(self) -> SearchServiceV2:
-        """Create mock SearchServiceV2."""
+    def mock_service(self) -> SearchService:
+        """Create mock SearchService."""
         mock_session = MagicMock()
-        return SearchServiceV2(mock_session)
+        return SearchService(mock_session)
 
-    def test_lists_datasets_as_resources(self, mock_service: SearchServiceV2) -> None:
+    def test_lists_datasets_as_resources(self, mock_service: SearchService) -> None:
         """list_resources returns datasets as catalog:// URIs."""
         mock_dataset1 = MagicMock()
         mock_dataset1.name = "vault"
@@ -54,7 +54,7 @@ class TestListResources:
             assert resources[1]["uri"] == "catalog://notes"
             assert resources[1]["name"] == "notes"
 
-    def test_returns_empty_on_no_datasets(self, mock_service: SearchServiceV2) -> None:
+    def test_returns_empty_on_no_datasets(self, mock_service: SearchService) -> None:
         """list_resources returns empty list when no datasets."""
         with patch("catalog.api.mcp.resources.DatasetService") as mock_ds_cls:
             mock_ds = MagicMock()
@@ -65,7 +65,7 @@ class TestListResources:
 
             assert resources == []
 
-    def test_handles_error(self, mock_service: SearchServiceV2) -> None:
+    def test_handles_error(self, mock_service: SearchService) -> None:
         """list_resources returns empty list on error."""
         with patch("catalog.api.mcp.resources.DatasetService") as mock_ds_cls:
             mock_ds_cls.side_effect = Exception("DB error")
@@ -74,7 +74,7 @@ class TestListResources:
 
             assert resources == []
 
-    def test_resource_has_mime_type(self, mock_service: SearchServiceV2) -> None:
+    def test_resource_has_mime_type(self, mock_service: SearchService) -> None:
         """Resources have mimeType field."""
         mock_dataset = MagicMock()
         mock_dataset.name = "vault"
@@ -96,22 +96,22 @@ class TestReadResource:
     """Tests for read_resource function."""
 
     @pytest.fixture
-    def mock_service(self) -> SearchServiceV2:
-        """Create mock SearchServiceV2."""
+    def mock_service(self) -> SearchService:
+        """Create mock SearchService."""
         mock_session = MagicMock()
-        return SearchServiceV2(mock_session)
+        return SearchService(mock_session)
 
-    def test_invalid_uri_scheme(self, mock_service: SearchServiceV2) -> None:
+    def test_invalid_uri_scheme(self, mock_service: SearchService) -> None:
         """read_resource raises on invalid URI scheme."""
         with pytest.raises(ValueError, match="Invalid URI scheme"):
             read_resource(mock_service, "http://example.com")
 
-    def test_empty_path(self, mock_service: SearchServiceV2) -> None:
+    def test_empty_path(self, mock_service: SearchService) -> None:
         """read_resource raises on empty path."""
         with pytest.raises(ValueError, match="Empty catalog URI path"):
             read_resource(mock_service, "catalog://")
 
-    def test_read_dataset_listing(self, mock_service: SearchServiceV2) -> None:
+    def test_read_dataset_listing(self, mock_service: SearchService) -> None:
         """read_resource returns document listing for dataset URI."""
         mock_dataset = MagicMock()
         mock_dataset.id = 1
@@ -147,7 +147,7 @@ class TestReadResource:
             assert data["document_count"] == 2
             assert len(data["documents"]) == 2
 
-    def test_read_specific_document(self, mock_service: SearchServiceV2) -> None:
+    def test_read_specific_document(self, mock_service: SearchService) -> None:
         """read_resource returns document content for path URI."""
         mock_dataset = MagicMock()
         mock_dataset.id = 1
@@ -168,7 +168,7 @@ class TestReadResource:
             assert contents[0]["text"] == "# Test Document\n\nContent here."
             assert contents[0]["mimeType"] == "text/markdown"
 
-    def test_dataset_not_found(self, mock_service: SearchServiceV2) -> None:
+    def test_dataset_not_found(self, mock_service: SearchService) -> None:
         """read_resource returns error for missing dataset."""
         with patch("catalog.api.mcp.resources.DatasetService") as mock_ds_cls:
             mock_ds = MagicMock()
@@ -180,7 +180,7 @@ class TestReadResource:
             assert len(contents) == 1
             assert "not found" in contents[0]["text"].lower()
 
-    def test_document_not_found(self, mock_service: SearchServiceV2) -> None:
+    def test_document_not_found(self, mock_service: SearchService) -> None:
         """read_resource returns error for missing document."""
         mock_dataset = MagicMock()
         mock_dataset.id = 1

@@ -280,10 +280,10 @@ class TestFallbackBehavior:
     @pytest.mark.asyncio
     async def test_disabled_expansion_returns_original(self, db_session, monkeypatch) -> None:
         """Returns original only when expansion is disabled."""
-        from catalog.core.settings import RAGv2Settings, Settings
+        from catalog.core.settings import RAGSettings, Settings
         import catalog.core.settings as settings_module
 
-        mock_settings = Settings(rag_v2=RAGv2Settings(expansion_enabled=False))
+        mock_settings = Settings(rag=RAGSettings(expansion_enabled=False))
         monkeypatch.setattr(settings_module, "get_settings", lambda: mock_settings)
 
         transform = QueryExpansionTransform(db_session, model_name="test-model")
@@ -372,13 +372,13 @@ class TestSettingsIntegration:
 
     def test_respects_max_lex_setting(self, db_session, monkeypatch) -> None:
         """Limits lex expansions to configured maximum."""
-        from catalog.core.settings import RAGv2Settings, Settings, get_settings
+        from catalog.core.settings import RAGSettings, Settings, get_settings
         import catalog.search.query_expansion as query_expansion_module
 
         # Clear the lru_cache to allow new mock to take effect
         get_settings.cache_clear()
 
-        mock_settings = Settings(rag_v2=RAGv2Settings(expansion_max_lex=2))
+        mock_settings = Settings(rag=RAGSettings(expansion_max_lex=2))
         monkeypatch.setattr(query_expansion_module, "get_settings", lambda: mock_settings)
 
         transform = QueryExpansionTransform(db_session, model_name="test-model")
@@ -397,13 +397,13 @@ lex: python four"""
 
     def test_respects_max_vec_setting(self, db_session, monkeypatch) -> None:
         """Limits vec expansions to configured maximum."""
-        from catalog.core.settings import RAGv2Settings, Settings, get_settings
+        from catalog.core.settings import RAGSettings, Settings, get_settings
         import catalog.search.query_expansion as query_expansion_module
 
         # Clear the lru_cache to allow new mock to take effect
         get_settings.cache_clear()
 
-        mock_settings = Settings(rag_v2=RAGv2Settings(expansion_max_vec=1))
+        mock_settings = Settings(rag=RAGSettings(expansion_max_vec=1))
         monkeypatch.setattr(query_expansion_module, "get_settings", lambda: mock_settings)
 
         transform = QueryExpansionTransform(db_session, model_name="test-model")
@@ -420,13 +420,13 @@ vec: semantic python two"""
 
     def test_hyde_disabled_by_setting(self, db_session, monkeypatch) -> None:
         """HyDE is excluded when disabled in settings."""
-        from catalog.core.settings import RAGv2Settings, Settings, get_settings
+        from catalog.core.settings import RAGSettings, Settings, get_settings
         import catalog.search.query_expansion as query_expansion_module
 
         # Clear the lru_cache to allow new mock to take effect
         get_settings.cache_clear()
 
-        mock_settings = Settings(rag_v2=RAGv2Settings(expansion_include_hyde=False))
+        mock_settings = Settings(rag=RAGSettings(expansion_include_hyde=False))
         monkeypatch.setattr(query_expansion_module, "get_settings", lambda: mock_settings)
 
         transform = QueryExpansionTransform(db_session, model_name="test-model")

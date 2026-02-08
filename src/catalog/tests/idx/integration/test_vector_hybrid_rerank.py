@@ -13,13 +13,15 @@ from typing import Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from catalog.ingest.pipelines_v2 import DatasetIngestPipelineV2
+from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.search.fts import FTSSearch
-from catalog.search.hybrid import HybridSearch
+from catalog.search.fts_chunk import FTSChunkRetriever
+from catalog.search.hybrid import WeightedRRFRetriever
 from catalog.search.models import SearchCriteria, SearchResult, SearchResults
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.fts import create_fts_table
@@ -66,7 +68,7 @@ def patched_get_session(session_factory):
         with create_session(session_factory) as session:
             yield session
 
-    with patch("catalog.ingest.pipelines_v2.get_session", get_test_session):
+    with patch("catalog.ingest.pipelines.get_session", get_test_session):
         yield get_test_session
 
 
@@ -165,9 +167,8 @@ class TestVectorSearchIntegration:
 class TestHybridSearchIntegration:
     """Integration tests for hybrid RRF search.
 
-    Note: HybridSearch uses QueryFusionRetriever internally which requires
-    real vector indices. These tests mock the VectorStoreManager to avoid
-    embedding model downloads.
+    Uses WeightedRRFRetriever with mock sub-retrievers to test RRF fusion
+    behavior without requiring real embedding models.
     """
 
     def test_hybrid_search_combines_sources(
@@ -176,11 +177,9 @@ class TestHybridSearchIntegration:
         session_factory,
         sample_docs: Path,
     ) -> None:
-        """Hybrid search combines FTS and vector results."""
-        from llama_index.core.schema import NodeWithScore, TextNode
-
+        """Hybrid search combines FTS and vector results via WeightedRRFRetriever."""
         # Ingest documents (FTS only for this test)
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceDirectoryConfig(
             source_path=sample_docs,
             dataset_name="test-vault",
@@ -189,17 +188,12 @@ class TestHybridSearchIntegration:
         result = pipeline.ingest_dataset(config)
         assert result.documents_created == 3
 
-        # Create mock vector manager
-        mock_vector_manager = MagicMock()
-        mock_index = MagicMock()
-        mock_vector_manager.load_or_create.return_value = mock_index
-
-        # Mock retriever to return some nodes
-        mock_retriever = MagicMock()
-        mock_index.as_retriever.return_value = mock_retriever
-        mock_retriever.retrieve.return_value = [
+        # Create mock vector retriever
+        mock_vector_retriever = MagicMock()
+        mock_vector_retriever.retrieve.return_value = [
             NodeWithScore(
                 node=TextNode(
+                    id_="vec-auth",
                     text="Authentication content",
                     metadata={"source_doc_id": "test-vault:auth.md"},
                 ),
@@ -207,21 +201,29 @@ class TestHybridSearchIntegration:
             ),
         ]
 
-        # Run hybrid search with ambient session
+        # Run hybrid search with real FTS + mock vector via WeightedRRFRetriever
         with create_session(session_factory) as session:
             with use_session(session):
-                hybrid = HybridSearch(vector_manager=mock_vector_manager)
-                results = hybrid.search(
-                    query="authentication",
-                    top_k=10,
+                fts_retriever = FTSChunkRetriever(similarity_top_k=10)
+
+                retriever = WeightedRRFRetriever(
+                    retrievers=[fts_retriever, mock_vector_retriever],
+                    weights=[1.0, 1.0],
+                    k=60,
+                    top_n=10,
+                )
+
+                results = retriever.retrieve(
+                    QueryBundle(query_str="authentication")
                 )
 
         # Verify hybrid results
         assert len(results) >= 1
 
-        # Results should have RRF scores
+        # Results should have RRF scores (float)
         for result in results:
-            assert "rrf" in result.scores
+            assert isinstance(result.score, float)
+            assert result.score > 0
 
     def test_hybrid_search_normalizes_scores(
         self,
@@ -229,11 +231,9 @@ class TestHybridSearchIntegration:
         session_factory,
         sample_docs: Path,
     ) -> None:
-        """Hybrid search normalizes RRF scores to 0-1 range."""
-        from llama_index.core.schema import NodeWithScore, TextNode
-
+        """Hybrid search RRF scores are positive floats."""
         # Ingest documents
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceDirectoryConfig(
             source_path=sample_docs,
             dataset_name="test-vault",
@@ -241,16 +241,12 @@ class TestHybridSearchIntegration:
         )
         pipeline.ingest_dataset(config)
 
-        # Create mock vector manager
-        mock_vector_manager = MagicMock()
-        mock_index = MagicMock()
-        mock_vector_manager.load_or_create.return_value = mock_index
-
-        mock_retriever = MagicMock()
-        mock_index.as_retriever.return_value = mock_retriever
-        mock_retriever.retrieve.return_value = [
+        # Create mock vector retriever
+        mock_vector_retriever = MagicMock()
+        mock_vector_retriever.retrieve.return_value = [
             NodeWithScore(
                 node=TextNode(
+                    id_="vec-db",
                     text="Database content",
                     metadata={"source_doc_id": "test-vault:database.md"},
                 ),
@@ -261,12 +257,22 @@ class TestHybridSearchIntegration:
         # Run hybrid search
         with create_session(session_factory) as session:
             with use_session(session):
-                hybrid = HybridSearch(vector_manager=mock_vector_manager)
-                results = hybrid.search(query="database", top_k=10)
+                fts_retriever = FTSChunkRetriever(similarity_top_k=10)
 
-        # All scores should be between 0 and 1
+                retriever = WeightedRRFRetriever(
+                    retrievers=[fts_retriever, mock_vector_retriever],
+                    weights=[1.0, 1.0],
+                    k=60,
+                    top_n=10,
+                )
+
+                results = retriever.retrieve(
+                    QueryBundle(query_str="database")
+                )
+
+        # All RRF scores should be positive
         for result in results:
-            assert 0.0 <= result.score <= 1.0
+            assert result.score > 0.0
 
     def test_hybrid_search_respects_dataset_filter(
         self,
@@ -275,10 +281,8 @@ class TestHybridSearchIntegration:
         sample_docs: Path,
         tmp_path: Path,
     ) -> None:
-        """Hybrid search filters by dataset name."""
-        from llama_index.core.schema import NodeWithScore, TextNode
-
-        pipeline = DatasetIngestPipelineV2()
+        """Hybrid search filters by dataset name via retriever configuration."""
+        pipeline = DatasetIngestPipeline()
 
         # Create two datasets
         docs2 = tmp_path / "docs2"
@@ -301,16 +305,12 @@ class TestHybridSearchIntegration:
             )
         )
 
-        # Create mock vector manager
-        mock_vector_manager = MagicMock()
-        mock_index = MagicMock()
-        mock_vector_manager.load_or_create.return_value = mock_index
-
-        mock_retriever = MagicMock()
-        mock_index.as_retriever.return_value = mock_retriever
-        mock_retriever.retrieve.return_value = [
+        # Create mock vector retriever returning only vault1 results
+        mock_vector_retriever = MagicMock()
+        mock_vector_retriever.retrieve.return_value = [
             NodeWithScore(
                 node=TextNode(
+                    id_="vec-auth",
                     text="Auth content",
                     metadata={"source_doc_id": "vault1:auth.md"},
                 ),
@@ -318,19 +318,29 @@ class TestHybridSearchIntegration:
             ),
         ]
 
-        # Search with filter
+        # Use FTS retriever filtered by dataset
         with create_session(session_factory) as session:
             with use_session(session):
-                hybrid = HybridSearch(vector_manager=mock_vector_manager)
-                results = hybrid.search(
-                    query="content",
-                    top_k=10,
+                fts_retriever = FTSChunkRetriever(
+                    similarity_top_k=10,
                     dataset_name="vault1",
+                )
+
+                retriever = WeightedRRFRetriever(
+                    retrievers=[fts_retriever, mock_vector_retriever],
+                    weights=[1.0, 1.0],
+                    k=60,
+                    top_n=10,
+                )
+
+                results = retriever.retrieve(
+                    QueryBundle(query_str="content")
                 )
 
         # Results should only be from vault1
         for result in results:
-            assert result.dataset_name == "vault1"
+            source_doc_id = result.node.metadata.get("source_doc_id", "")
+            assert source_doc_id.startswith("vault1:")
 
 
 class TestRerankerIntegration:
@@ -449,12 +459,10 @@ class TestEndToEndFlow:
         sample_docs: Path,
     ) -> None:
         """Full flow: ingest -> hybrid search -> rerank."""
-        from llama_index.core.schema import NodeWithScore, TextNode
-
         from catalog.llm.reranker import Reranker
 
         # 1. Ingest documents
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceDirectoryConfig(
             source_path=sample_docs,
             dataset_name="test-vault",
@@ -463,16 +471,12 @@ class TestEndToEndFlow:
         result = pipeline.ingest_dataset(config)
         assert result.documents_created == 3
 
-        # 2. Hybrid search (with mocked vector manager)
-        mock_vector_manager = MagicMock()
-        mock_index = MagicMock()
-        mock_vector_manager.load_or_create.return_value = mock_index
-
-        mock_retriever = MagicMock()
-        mock_index.as_retriever.return_value = mock_retriever
-        mock_retriever.retrieve.return_value = [
+        # 2. Hybrid search with WeightedRRFRetriever (real FTS + mock vector)
+        mock_vector_retriever = MagicMock()
+        mock_vector_retriever.retrieve.return_value = [
             NodeWithScore(
                 node=TextNode(
+                    id_="vec-auth",
                     text="Authentication with OAuth2",
                     metadata={"source_doc_id": "test-vault:auth.md"},
                 ),
@@ -480,6 +484,7 @@ class TestEndToEndFlow:
             ),
             NodeWithScore(
                 node=TextNode(
+                    id_="vec-api",
                     text="API authentication endpoints",
                     metadata={"source_doc_id": "test-vault:api.md"},
                 ),
@@ -489,20 +494,47 @@ class TestEndToEndFlow:
 
         with create_session(session_factory) as session:
             with use_session(session):
-                hybrid = HybridSearch(vector_manager=mock_vector_manager)
-                search_results = hybrid.search(
-                    query="authentication",
-                    top_k=10,
+                fts_retriever = FTSChunkRetriever(similarity_top_k=10)
+
+                retriever = WeightedRRFRetriever(
+                    retrievers=[fts_retriever, mock_vector_retriever],
+                    weights=[1.0, 1.0],
+                    k=60,
+                    top_n=10,
                 )
+
+                hybrid_nodes = retriever.retrieve(
+                    QueryBundle(query_str="authentication")
+                )
+
+        assert len(hybrid_nodes) >= 1
+
+        # Convert nodes to SearchResult for reranker
+        search_results = []
+        for node in hybrid_nodes:
+            metadata = node.node.metadata or {}
+            source_doc_id = metadata.get("source_doc_id", "")
+            if ":" in source_doc_id:
+                dataset_name, path = source_doc_id.split(":", 1)
+            else:
+                dataset_name = ""
+                path = ""
+
+            search_results.append(
+                SearchResult(
+                    path=path,
+                    dataset_name=dataset_name,
+                    score=node.score or 0.0,
+                    chunk_text=node.node.get_content() or f"Content from {path}",
+                    scores={"rrf": node.score or 0.0},
+                )
+            )
 
         # 3. Rerank (with mocked LLM)
         mock_provider = MagicMock()
-        mock_provider.generate = AsyncMock(side_effect=["Yes", "Yes", "No"])
-
-        # Add chunk text for reranker if missing
-        for res in search_results:
-            if not res.chunk_text:
-                res.chunk_text = f"Content from {res.path}"
+        mock_provider.generate = AsyncMock(
+            side_effect=["Yes"] * len(search_results) + ["No"] * 10
+        )
 
         reranker = Reranker(provider=mock_provider)
         reranked = await reranker.rerank(
@@ -532,7 +564,7 @@ class TestEndToEndFlow:
     ) -> None:
         """FTS search works independently of vector search."""
         # Ingest
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceDirectoryConfig(
             source_path=sample_docs,
             dataset_name="test-vault",

@@ -38,10 +38,10 @@ class TestTopRankBonusPostprocessor:
     def test_init_default_from_settings(self) -> None:
         """Test initialization reads defaults from settings."""
         with patch("catalog.search.postprocessors.get_settings") as mock_settings:
-            mock_rag_v2 = MagicMock()
-            mock_rag_v2.rrf_rank1_bonus = 0.1
-            mock_rag_v2.rrf_rank23_bonus = 0.05
-            mock_settings.return_value.rag_v2 = mock_rag_v2
+            mock_rag = MagicMock()
+            mock_rag.rrf_rank1_bonus = 0.1
+            mock_rag.rrf_rank23_bonus = 0.05
+            mock_settings.return_value.rag = mock_rag
 
             postprocessor = TopRankBonusPostprocessor()
 
@@ -51,10 +51,10 @@ class TestTopRankBonusPostprocessor:
     def test_init_custom_values(self) -> None:
         """Test initialization with custom values."""
         with patch("catalog.search.postprocessors.get_settings") as mock_settings:
-            mock_rag_v2 = MagicMock()
-            mock_rag_v2.rrf_rank1_bonus = 0.1
-            mock_rag_v2.rrf_rank23_bonus = 0.05
-            mock_settings.return_value.rag_v2 = mock_rag_v2
+            mock_rag = MagicMock()
+            mock_rag.rrf_rank1_bonus = 0.1
+            mock_rag.rrf_rank23_bonus = 0.05
+            mock_settings.return_value.rag = mock_rag
 
             postprocessor = TopRankBonusPostprocessor(
                 rank_1_bonus=0.2,
@@ -67,10 +67,10 @@ class TestTopRankBonusPostprocessor:
     def test_rank_1_gets_bonus(self) -> None:
         """Test rank 1 result receives rank_1_bonus."""
         with patch("catalog.search.postprocessors.get_settings") as mock_settings:
-            mock_rag_v2 = MagicMock()
-            mock_rag_v2.rrf_rank1_bonus = 0.05
-            mock_rag_v2.rrf_rank23_bonus = 0.02
-            mock_settings.return_value.rag_v2 = mock_rag_v2
+            mock_rag = MagicMock()
+            mock_rag.rrf_rank1_bonus = 0.05
+            mock_rag.rrf_rank23_bonus = 0.02
+            mock_settings.return_value.rag = mock_rag
 
             postprocessor = TopRankBonusPostprocessor()
             nodes = [make_node("1", "text", "doc:1", 0.5)]
@@ -83,10 +83,10 @@ class TestTopRankBonusPostprocessor:
     def test_ranks_2_3_get_bonus(self) -> None:
         """Test ranks 2-3 receive rank_2_3_bonus."""
         with patch("catalog.search.postprocessors.get_settings") as mock_settings:
-            mock_rag_v2 = MagicMock()
-            mock_rag_v2.rrf_rank1_bonus = 0.05
-            mock_rag_v2.rrf_rank23_bonus = 0.02
-            mock_settings.return_value.rag_v2 = mock_rag_v2
+            mock_rag = MagicMock()
+            mock_rag.rrf_rank1_bonus = 0.05
+            mock_rag.rrf_rank23_bonus = 0.02
+            mock_settings.return_value.rag = mock_rag
 
             postprocessor = TopRankBonusPostprocessor()
             nodes = [
@@ -105,10 +105,10 @@ class TestTopRankBonusPostprocessor:
     def test_rank_4_and_below_no_bonus(self) -> None:
         """Test rank 4+ receive no bonus."""
         with patch("catalog.search.postprocessors.get_settings") as mock_settings:
-            mock_rag_v2 = MagicMock()
-            mock_rag_v2.rrf_rank1_bonus = 0.05
-            mock_rag_v2.rrf_rank23_bonus = 0.02
-            mock_settings.return_value.rag_v2 = mock_rag_v2
+            mock_rag = MagicMock()
+            mock_rag.rrf_rank1_bonus = 0.05
+            mock_rag.rrf_rank23_bonus = 0.02
+            mock_settings.return_value.rag = mock_rag
 
             postprocessor = TopRankBonusPostprocessor()
             nodes = [
@@ -127,10 +127,10 @@ class TestTopRankBonusPostprocessor:
     def test_empty_nodes(self) -> None:
         """Test empty node list returns empty."""
         with patch("catalog.search.postprocessors.get_settings") as mock_settings:
-            mock_rag_v2 = MagicMock()
-            mock_rag_v2.rrf_rank1_bonus = 0.05
-            mock_rag_v2.rrf_rank23_bonus = 0.02
-            mock_settings.return_value.rag_v2 = mock_rag_v2
+            mock_rag = MagicMock()
+            mock_rag.rrf_rank1_bonus = 0.05
+            mock_rag.rrf_rank23_bonus = 0.02
+            mock_settings.return_value.rag = mock_rag
 
             postprocessor = TopRankBonusPostprocessor()
             result = postprocessor.postprocess_nodes([])

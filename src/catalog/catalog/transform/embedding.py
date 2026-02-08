@@ -1,4 +1,4 @@
-"""catalog.transform.embedding - Embedding prefix transform for RAG v2.
+"""catalog.transform.embedding - Embedding prefix transform for RAG search.
 
 Provides a LlamaIndex TransformComponent that applies prefix formatting to node
 text before embedding. This enables Nomic-style prefixing for improved
@@ -37,7 +37,7 @@ class EmbeddingPrefixTransform(TransformComponent):
 
     Attributes:
         prefix_template: Template string with optional {title} placeholder.
-            Defaults to the value from settings.rag_v2.embed_prefix_doc.
+            Defaults to the value from settings.rag.embed_prefix_doc.
     """
 
     prefix_template: str = ""
@@ -51,12 +51,12 @@ class EmbeddingPrefixTransform(TransformComponent):
 
         Args:
             prefix_template: Template string with optional {title} placeholder.
-                If not provided, uses settings.rag_v2.embed_prefix_doc.
+                If not provided, uses settings.rag.embed_prefix_doc.
             **kwargs: Additional arguments passed to TransformComponent.
         """
         super().__init__(**kwargs)
         if prefix_template is None:
-            self.prefix_template = get_settings().rag_v2.embed_prefix_doc
+            self.prefix_template = get_settings().rag.embed_prefix_doc
         else:
             self.prefix_template = prefix_template
 

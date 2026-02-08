@@ -1,48 +1,48 @@
-"""Tests for catalog.search.service_v2 module."""
+"""Tests for catalog.search.service module."""
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from catalog.search.models import SearchCriteria, SearchResult, SearchResults
-from catalog.search.service_v2 import SearchServiceV2
+from catalog.search.service import SearchService
 
 
-class TestSearchServiceV2Init:
-    """Tests for SearchServiceV2 initialization."""
+class TestSearchServiceInit:
+    """Tests for SearchService initialization."""
 
     def test_init_stores_session(self) -> None:
         """Service stores session reference."""
         mock_session = MagicMock()
-        service = SearchServiceV2(mock_session)
+        service = SearchService(mock_session)
         assert service.session is mock_session
 
     def test_init_loads_settings(self) -> None:
-        """Service loads RAGv2Settings."""
+        """Service loads RAGSettings."""
         mock_session = MagicMock()
-        service = SearchServiceV2(mock_session)
+        service = SearchService(mock_session)
         assert service._settings is not None
         assert service._settings.chunk_size == 800  # Default value
 
     def test_lazy_initialization(self) -> None:
         """Components are not loaded on init."""
         mock_session = MagicMock()
-        service = SearchServiceV2(mock_session)
+        service = SearchService(mock_session)
         assert service._cache is None
         assert service._query_expander is None
         assert service._hybrid_retriever_factory is None
         assert service._cached_reranker is None
 
 
-class TestSearchServiceV2Cache:
+class TestSearchServiceCache:
     """Tests for LLMCache integration."""
 
     def test_cache_property_creates_cache(self) -> None:
         """cache property lazily creates LLMCache."""
         mock_session = MagicMock()
-        service = SearchServiceV2(mock_session)
+        service = SearchService(mock_session)
 
-        with patch("catalog.search.service_v2.LLMCache") as mock_cache_cls:
+        with patch("catalog.search.service.LLMCache") as mock_cache_cls:
             mock_cache_cls.return_value = MagicMock()
             cache = service.cache
             mock_cache_cls.assert_called_once()
@@ -51,9 +51,9 @@ class TestSearchServiceV2Cache:
     def test_cache_property_caches_instance(self) -> None:
         """cache property returns same instance on subsequent calls."""
         mock_session = MagicMock()
-        service = SearchServiceV2(mock_session)
+        service = SearchService(mock_session)
 
-        with patch("catalog.search.service_v2.LLMCache") as mock_cache_cls:
+        with patch("catalog.search.service.LLMCache") as mock_cache_cls:
             mock_instance = MagicMock()
             mock_cache_cls.return_value = mock_instance
 
@@ -64,13 +64,13 @@ class TestSearchServiceV2Cache:
             assert cache1 is cache2
 
 
-class TestSearchServiceV2LazyLoading:
+class TestSearchServiceLazyLoading:
     """Tests for lazy component loading."""
 
     def test_ensure_query_expander_loads_once(self) -> None:
         """Query expander is loaded once."""
         mock_session = MagicMock()
-        service = SearchServiceV2(mock_session)
+        service = SearchService(mock_session)
 
         with patch(
             "catalog.search.query_expansion.QueryExpansionTransform"
@@ -89,9 +89,9 @@ class TestSearchServiceV2LazyLoading:
     def test_ensure_hybrid_retriever_loads_once(self) -> None:
         """Hybrid retriever is loaded once."""
         mock_session = MagicMock()
-        service = SearchServiceV2(mock_session)
+        service = SearchService(mock_session)
 
-        with patch("catalog.search.hybrid_v2.HybridRetrieverV2") as mock_cls:
+        with patch("catalog.search.hybrid.HybridRetriever") as mock_cls:
             mock_instance = MagicMock()
             mock_cls.return_value = mock_instance
 
@@ -101,17 +101,17 @@ class TestSearchServiceV2LazyLoading:
             assert retriever1 is retriever2
 
 
-class TestSearchServiceV2Search:
+class TestSearchServiceSearch:
     """Tests for search method."""
 
     @pytest.fixture
-    def mock_service(self) -> SearchServiceV2:
+    def mock_service(self) -> SearchService:
         """Create service with mocked components."""
         mock_session = MagicMock()
-        service = SearchServiceV2(mock_session)
+        service = SearchService(mock_session)
         return service
 
-    def test_search_fts_mode(self, mock_service: SearchServiceV2) -> None:
+    def test_search_fts_mode(self, mock_service: SearchService) -> None:
         """FTS mode dispatches to search_fts."""
         mock_results = [
             SearchResult(
@@ -140,7 +140,7 @@ class TestSearchServiceV2Search:
             mock_fts.assert_called_once()
             assert results.mode == "fts"
 
-    def test_search_vector_mode(self, mock_service: SearchServiceV2) -> None:
+    def test_search_vector_mode(self, mock_service: SearchService) -> None:
         """Vector mode dispatches to search_vector."""
         mock_results = [
             SearchResult(
@@ -167,7 +167,7 @@ class TestSearchServiceV2Search:
             mock_vector.assert_called_once()
             assert results.mode == "vector"
 
-    def test_search_hybrid_mode_default(self, mock_service: SearchServiceV2) -> None:
+    def test_search_hybrid_mode_default(self, mock_service: SearchService) -> None:
         """Hybrid mode is used by default for non-fts."""
         mock_results = [
             SearchResult(
@@ -195,16 +195,16 @@ class TestSearchServiceV2Search:
             assert results.mode == "hybrid"
 
 
-class TestSearchServiceV2TopRankBonus:
+class TestSearchServiceTopRankBonus:
     """Tests for top-rank bonus application."""
 
     @pytest.fixture
-    def service(self) -> SearchServiceV2:
+    def service(self) -> SearchService:
         """Create service."""
         mock_session = MagicMock()
-        return SearchServiceV2(mock_session)
+        return SearchService(mock_session)
 
-    def test_applies_rank_1_bonus(self, service: SearchServiceV2) -> None:
+    def test_applies_rank_1_bonus(self, service: SearchService) -> None:
         """Rank 1 result gets rank_1_bonus."""
         results = SearchResults(
             results=[
@@ -234,7 +234,7 @@ class TestSearchServiceV2TopRankBonus:
         # First result should have rank_1_bonus (0.05 default)
         assert modified.results[0].scores.get("bonus") == 0.05
 
-    def test_applies_rank_23_bonus(self, service: SearchServiceV2) -> None:
+    def test_applies_rank_23_bonus(self, service: SearchService) -> None:
         """Ranks 2-3 get rank_23_bonus."""
         results = SearchResults(
             results=[
@@ -264,16 +264,16 @@ class TestSearchServiceV2TopRankBonus:
         assert modified.results[3].scores.get("bonus") == 0.0
 
 
-class TestSearchServiceV2NodeConversion:
+class TestSearchServiceNodeConversion:
     """Tests for node-to-SearchResult conversion."""
 
     @pytest.fixture
-    def service(self) -> SearchServiceV2:
+    def service(self) -> SearchService:
         """Create service."""
         mock_session = MagicMock()
-        return SearchServiceV2(mock_session)
+        return SearchService(mock_session)
 
-    def test_converts_node_with_source_doc_id(self, service: SearchServiceV2) -> None:
+    def test_converts_node_with_source_doc_id(self, service: SearchService) -> None:
         """Converts node with source_doc_id metadata."""
         from llama_index.core.schema import NodeWithScore, TextNode
 
@@ -292,7 +292,7 @@ class TestSearchServiceV2NodeConversion:
         assert results[0].score == 0.9
 
     def test_converts_node_with_separate_metadata(
-        self, service: SearchServiceV2
+        self, service: SearchService
     ) -> None:
         """Converts node with separate dataset_name and path."""
         from llama_index.core.schema import NodeWithScore, TextNode
@@ -314,12 +314,12 @@ class TestSearchServiceV2NodeConversion:
         assert results[0].path == "notes.md"
 
 
-class TestSearchV2ConvenienceFunction:
-    """Tests for search_v2 convenience function."""
+class TestSearchConvenienceFunction:
+    """Tests for search convenience function."""
 
-    def test_search_v2_creates_session_and_service(self) -> None:
-        """search_v2 handles session management."""
-        from catalog.search.service_v2 import search_v2
+    def test_search_creates_session_and_service(self) -> None:
+        """search handles session management."""
+        from catalog.search.service import search
 
         with patch("catalog.store.database.get_session") as mock_get_session:
             with patch("catalog.store.session_context.use_session"):
@@ -330,7 +330,7 @@ class TestSearchV2ConvenienceFunction:
                 mock_get_session.return_value.__exit__ = MagicMock(return_value=False)
 
                 with patch.object(
-                    SearchServiceV2, "search"
+                    SearchService, "search"
                 ) as mock_search:
                     mock_search.return_value = SearchResults(
                         results=[],
@@ -341,6 +341,6 @@ class TestSearchV2ConvenienceFunction:
                     )
 
                     criteria = SearchCriteria(query="test")
-                    search_v2(criteria)
+                    search(criteria)
 
                     mock_search.assert_called_once_with(criteria)

@@ -13,7 +13,7 @@ Example usage:
     pipeline = IngestionPipeline(
         transformations=[
             MarkdownNodeParser(),
-            ResilientSplitter(),  # Uses RAGv2Settings defaults
+            ResilientSplitter(),  # Uses RAGSettings defaults
         ]
     )
     nodes = pipeline.run(documents=documents)
@@ -40,7 +40,7 @@ class ResilientSplitter(TransformComponent):
     This provides resilient chunking that handles edge cases like malformed
     text or tokenizer errors gracefully.
 
-    The splitter reads defaults from RAGv2Settings and logs fallback events
+    The splitter reads defaults from RAGSettings and logs fallback events
     for monitoring purposes.
 
     Attributes:
@@ -67,38 +67,38 @@ class ResilientSplitter(TransformComponent):
 
         Args:
             chunk_size_tokens: Target chunk size in tokens. If None, reads from
-                settings.rag_v2.chunk_size.
+                settings.rag.chunk_size.
             chunk_overlap_tokens: Token overlap between chunks. If None, reads
-                from settings.rag_v2.chunk_overlap.
+                from settings.rag.chunk_overlap.
             chars_per_token: Estimated characters per token for fallback
-                calculation. If None, reads from settings.rag_v2.chunk_chars_per_token.
+                calculation. If None, reads from settings.rag.chunk_chars_per_token.
             fallback_enabled: Whether to use char-based fallback on tokenizer
-                errors. If None, reads from settings.rag_v2.chunk_fallback_enabled.
+                errors. If None, reads from settings.rag.chunk_fallback_enabled.
             **kwargs: Additional arguments passed to TransformComponent.
         """
         super().__init__(**kwargs)
 
         # Load defaults from settings if not provided
         settings = get_settings()
-        rag_v2 = settings.rag_v2
+        rag = settings.rag
 
         self.chunk_size_tokens = (
-            chunk_size_tokens if chunk_size_tokens is not None else rag_v2.chunk_size
+            chunk_size_tokens if chunk_size_tokens is not None else rag.chunk_size
         )
         self.chunk_overlap_tokens = (
             chunk_overlap_tokens
             if chunk_overlap_tokens is not None
-            else rag_v2.chunk_overlap
+            else rag.chunk_overlap
         )
         self.chars_per_token = (
             chars_per_token
             if chars_per_token is not None
-            else rag_v2.chunk_chars_per_token
+            else rag.chunk_chars_per_token
         )
         self.fallback_enabled = (
             fallback_enabled
             if fallback_enabled is not None
-            else rag_v2.chunk_fallback_enabled
+            else rag.chunk_fallback_enabled
         )
 
         # Initialize primary token-based splitter

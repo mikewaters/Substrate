@@ -1,4 +1,4 @@
-"""catalog.store.llm_cache - LLM result caching for RAG v2.
+"""catalog.store.llm_cache - LLM result caching for RAG search.
 
 Provides persistent caching of LLM results for query expansion and reranking
 to reduce redundant API calls and improve response times.
@@ -84,7 +84,7 @@ class LLMCache:
         if ttl_hours is None:
             from catalog.core.settings import get_settings
 
-            ttl_hours = get_settings().rag_v2.cache_ttl_hours
+            ttl_hours = get_settings().rag.cache_ttl_hours
         self._ttl_hours = ttl_hours
 
     def _make_key(self, cache_type: str, *parts: str) -> str:

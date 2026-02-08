@@ -247,7 +247,7 @@ class TestGetEmbedModelResilient:
             mock_settings.return_value.embedding.backend = "mlx"
             mock_settings.return_value.embedding.model_name = "test-model"
             mock_settings.return_value.embedding.batch_size = 32
-            mock_settings.return_value.rag_v2.embed_batch_size = 16
+            mock_settings.return_value.rag.embed_batch_size = 16
 
             # Import after patching
             from catalog.embedding import get_embed_model
@@ -269,7 +269,7 @@ class TestGetEmbedModelResilient:
             mock_settings.return_value.embedding.backend = "mlx"
             mock_settings.return_value.embedding.model_name = "test-model"
             mock_settings.return_value.embedding.batch_size = 32
-            mock_settings.return_value.rag_v2.embed_batch_size = 16
+            mock_settings.return_value.rag.embed_batch_size = 16
 
             # Import after patching
             from catalog.embedding import get_embed_model
@@ -292,7 +292,7 @@ class TestGetEmbedModelResilient:
             mock_settings.return_value.embedding.backend = "mlx"
             mock_settings.return_value.embedding.model_name = "test-model"
             mock_settings.return_value.embedding.batch_size = 32
-            mock_settings.return_value.rag_v2.embed_batch_size = 16
+            mock_settings.return_value.rag.embed_batch_size = 16
 
             # Import after patching
             from catalog.embedding import get_embed_model

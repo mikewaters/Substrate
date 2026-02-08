@@ -15,7 +15,7 @@ from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from catalog.core.settings import get_settings
-from catalog.ingest.pipelines_v2 import DatasetIngestPipelineV2
+from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.integrations.obsidian import SourceObsidianConfig
 from catalog.search.fts import FTSSearch
@@ -91,7 +91,7 @@ def patched_get_session(session_factory):
         with create_session(session_factory) as session:
             yield session
 
-    with patch("catalog.ingest.pipelines_v2.get_session", get_test_session):
+    with patch("catalog.ingest.pipelines.get_session", get_test_session):
         yield get_test_session
 
 
@@ -166,7 +166,7 @@ class TestIngestAndSearch:
     ) -> None:
         """Ingest directory and verify FTS search works."""
         # Ingest the directory
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceDirectoryConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
@@ -197,7 +197,7 @@ class TestIngestAndSearch:
         tmp_path: Path,
     ) -> None:
         """Search results can be filtered by dataset."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
 
         # Ingest first vault
         config1 = SourceDirectoryConfig(
@@ -257,7 +257,7 @@ class TestRefreshBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
         result1 = pipeline.ingest_dataset(config)
@@ -280,7 +280,7 @@ class TestRefreshBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
         result1 = pipeline.ingest_dataset(config)
@@ -292,7 +292,7 @@ class TestRefreshBehavior:
         note1 = sample_vault / "note1.md"
         note1.write_text(note1.read_text() + "\n\nNew content added!")
 
-        # Second ingest - v2 pipeline upserts all documents (docstore dedup)
+        # Second ingest - pipeline upserts all documents (docstore dedup)
         result2 = pipeline.ingest_dataset(config)
         assert result2.documents_updated >= 1
 
@@ -308,7 +308,7 @@ class TestRefreshBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
         result1 = pipeline.ingest_dataset(config)
@@ -317,7 +317,7 @@ class TestRefreshBehavior:
         # Add a new file
         (sample_vault / "new_note.md").write_text("# New Note\n\nBrand new content.")
 
-        # Second ingest - v2 pipeline upserts all documents (docstore dedup)
+        # Second ingest - pipeline upserts all documents (docstore dedup)
         result2 = pipeline.ingest_dataset(config)
         assert result2.documents_created >= 1
 
@@ -344,7 +344,7 @@ class TestSoftDeleteBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
         result1 = pipeline.ingest_dataset(config)
@@ -389,7 +389,7 @@ class TestSoftDeleteBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
 
         # Ingest
         result = pipeline.ingest_dataset(config)
@@ -435,7 +435,7 @@ class TestSoftDeleteBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
 
         # First ingest
         result = pipeline.ingest_dataset(config)
@@ -489,7 +489,7 @@ class TestObsidianIngest:
             dataset_name="obsidian-vault",
         )
 
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         result = pipeline.ingest_dataset(config)
 
         assert result.documents_created == 4
@@ -522,7 +522,7 @@ class TestObsidianIngest:
             dataset_name="obsidian-vault",
         )
 
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         result = pipeline.ingest_dataset(config)
 
         # Should only have the 4 markdown files, not the config

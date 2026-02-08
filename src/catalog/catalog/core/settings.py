@@ -30,7 +30,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 __all__ = [
     "DatabasesSettings",
     "QdrantSettings",
-    "RAGv2Settings",
+    "RAGSettings",
     "Settings",
     "get_settings",
 ]
@@ -176,20 +176,20 @@ class DatabasesSettings(BaseSettings):
     )
 
 
-class RAGv2Settings(BaseSettings):
-    """RAG v2 configuration with environment variable support.
+class RAGSettings(BaseSettings):
+    """RAG configuration with environment variable support.
 
-    Controls all v2 RAG behavior including chunking, embedding, query expansion,
+    Controls all RAG behavior including chunking, embedding, query expansion,
     RRF fusion, reranking, and caching. All settings can be overridden via
-    environment variables with the IDX_RAG_V2__ prefix.
+    environment variables with the IDX_RAG__ prefix.
 
     Example:
-        IDX_RAG_V2__CHUNK_SIZE=1000
-        IDX_RAG_V2__RRF_K=80
+        IDX_RAG__CHUNK_SIZE=1000
+        IDX_RAG__RRF_K=80
     """
 
     model_config = SettingsConfigDict(
-        env_prefix="IDX_RAG_V2__",
+        env_prefix="IDX_RAG__",
         extra="ignore",
     )
 
@@ -413,9 +413,9 @@ class Settings(BaseSettings):
         default_factory=QdrantSettings,
         description="Qdrant vector store settings",
     )
-    rag_v2: RAGv2Settings = Field(
-        default_factory=RAGv2Settings,
-        description="RAG v2 configuration (chunking, expansion, reranking, caching)",
+    rag: RAGSettings = Field(
+        default_factory=RAGSettings,
+        description="RAG configuration (chunking, expansion, reranking, caching)",
     )
 
     def ensure_directories(self) -> None:

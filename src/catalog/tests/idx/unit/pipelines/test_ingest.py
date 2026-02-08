@@ -1,4 +1,4 @@
-"""Tests for catalog.ingest.pipelines_v2 module."""
+"""Tests for catalog.ingest.pipelines module."""
 
 import shutil
 from contextlib import contextmanager
@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy.orm import sessionmaker
 
 from catalog.core.settings import get_settings
-from catalog.ingest.pipelines_v2 import DatasetIngestPipelineV2
+from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.fts import FTSManager, create_fts_table
@@ -29,15 +29,15 @@ def _clear_pipeline_cache(dataset_names: list[str]) -> None:
             shutil.rmtree(cache_path)
 
 
-class TestDatasetIngestPipelineV2:
-    """Tests for DatasetIngestPipelineV2 class."""
+class TestDatasetIngestPipeline:
+    """Tests for DatasetIngestPipeline class."""
 
     @pytest.fixture(autouse=True)
     def clear_cache(self) -> None:
         """Clear pipeline cache before and after each test."""
-        _clear_pipeline_cache(["test-docs-v2", "test-vault-v2", "my-dataset-v2"])
+        _clear_pipeline_cache(["test-docs", "test-vault", "my-dataset"])
         yield
-        _clear_pipeline_cache(["test-docs-v2", "test-vault-v2", "my-dataset-v2"])
+        _clear_pipeline_cache(["test-docs", "test-vault", "my-dataset"])
 
     @pytest.fixture(autouse=True)
     def use_mock_embedding(self, patched_embedding) -> None:
@@ -67,7 +67,7 @@ class TestDatasetIngestPipelineV2:
             finally:
                 session.close()
 
-        with patch("catalog.ingest.pipelines_v2.get_session", get_test_session):
+        with patch("catalog.ingest.pipelines.get_session", get_test_session):
             yield get_test_session
 
     @pytest.fixture
@@ -98,64 +98,64 @@ class TestDatasetIngestPipelineV2:
 
         return docs_dir
 
-    def test_v2_pipeline_initialization(self) -> None:
-        """V2 pipeline can be initialized with defaults."""
-        pipeline = DatasetIngestPipelineV2()
+    def test_pipeline_initialization(self) -> None:
+        """Pipeline can be initialized with defaults."""
+        pipeline = DatasetIngestPipeline()
         assert pipeline.ingest_config is None
         assert pipeline.resilient_embedding is True
 
-    def test_v2_pipeline_uses_rag_v2_settings(self) -> None:
-        """V2 pipeline reads settings from RAGv2Settings."""
-        pipeline = DatasetIngestPipelineV2()
+    def test_pipeline_uses_rag_settings(self) -> None:
+        """Pipeline reads settings from RAGSettings."""
+        pipeline = DatasetIngestPipeline()
         settings = pipeline._settings
 
-        # These should match defaults from RAGv2Settings
+        # These should match defaults from RAGSettings
         assert settings.chunk_size == 800
         assert settings.chunk_overlap == 120
         assert settings.chunk_fallback_enabled is True
         assert settings.embed_prefix_doc == "title: {title} | text: "
 
-    def test_v2_pipeline_requires_config_for_ingest(self) -> None:
-        """V2 pipeline raises ValueError if ingest_config not set."""
-        pipeline = DatasetIngestPipelineV2()
+    def test_pipeline_requires_config_for_ingest(self) -> None:
+        """Pipeline raises ValueError if ingest_config not set."""
+        pipeline = DatasetIngestPipeline()
         with pytest.raises(ValueError, match="ingest_config is required"):
             pipeline.ingest()
 
-    def test_v2_ingest_creates_documents(
+    def test_ingest_creates_documents(
         self, test_db, db_session, sample_directory: Path
     ) -> None:
-        """V2 pipeline creates documents in the database."""
+        """Pipeline creates documents in the database."""
         config = SourceDirectoryConfig(
             source_path=sample_directory,
-            dataset_name="test-docs-v2",
+            dataset_name="test-docs",
         )
-        pipeline = DatasetIngestPipelineV2(ingest_config=config)
+        pipeline = DatasetIngestPipeline(ingest_config=config)
         result = pipeline.ingest()
 
         assert result.documents_created == 3
-        assert result.dataset_name == "test-docs-v2"
+        assert result.dataset_name == "test-docs"
 
         # Verify documents in database
         doc_repo = DocumentRepository(db_session)
         docs = doc_repo.list_by_parent(result.dataset_id)
         assert len(docs) == 3
 
-    def test_v2_build_pipeline_uses_resilient_splitter(
+    def test_build_pipeline_uses_resilient_splitter(
         self, test_db, sample_directory: Path
     ) -> None:
-        """V2 pipeline uses ResilientSplitter transform."""
+        """Pipeline uses ResilientSplitter transform."""
         config = SourceDirectoryConfig(
             source_path=sample_directory,
-            dataset_name="test-docs-v2",
+            dataset_name="test-docs",
         )
-        pipeline = DatasetIngestPipelineV2(ingest_config=config)
+        pipeline = DatasetIngestPipeline(ingest_config=config)
 
         # Use real VectorStoreManager but with test path
         vector_manager = VectorStoreManager()
 
         ingestion_pipeline = pipeline.build_pipeline(
             dataset_id=1,
-            dataset_name="test-docs-v2",
+            dataset_name="test-docs",
             vector_manager=vector_manager,
             source_transforms=([], []),
         )
@@ -167,21 +167,21 @@ class TestDatasetIngestPipelineV2:
         )
         assert splitter_found, "ResilientSplitter not found in transformations"
 
-    def test_v2_build_pipeline_uses_embedding_prefix(
+    def test_build_pipeline_uses_embedding_prefix(
         self, test_db, sample_directory: Path
     ) -> None:
-        """V2 pipeline uses EmbeddingPrefixTransform."""
+        """Pipeline uses EmbeddingPrefixTransform."""
         config = SourceDirectoryConfig(
             source_path=sample_directory,
-            dataset_name="test-docs-v2",
+            dataset_name="test-docs",
         )
-        pipeline = DatasetIngestPipelineV2(ingest_config=config)
+        pipeline = DatasetIngestPipeline(ingest_config=config)
 
         vector_manager = VectorStoreManager()
 
         ingestion_pipeline = pipeline.build_pipeline(
             dataset_id=1,
-            dataset_name="test-docs-v2",
+            dataset_name="test-docs",
             vector_manager=vector_manager,
             source_transforms=([], []),
         )
@@ -193,32 +193,32 @@ class TestDatasetIngestPipelineV2:
         )
         assert prefix_found, "EmbeddingPrefixTransform not found in transformations"
 
-    def test_v2_ingest_dataset_method(
+    def test_ingest_dataset_method(
         self, test_db, db_session, sample_directory: Path
     ) -> None:
-        """V2 ingest_dataset() method works correctly."""
+        """ingest_dataset() method works correctly."""
         config = SourceDirectoryConfig(
             source_path=sample_directory,
-            dataset_name="test-docs-v2",
+            dataset_name="test-docs",
         )
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         result = pipeline.ingest_dataset(config)
 
         assert result.documents_created == 3
-        assert result.dataset_name == "test-docs-v2"
+        assert result.dataset_name == "test-docs"
 
-    def test_v2_respects_custom_embed_model(
+    def test_respects_custom_embed_model(
         self, test_db, sample_directory: Path
     ) -> None:
-        """V2 pipeline uses provided embed_model."""
+        """Pipeline uses provided embed_model."""
         mock_embed = MagicMock()
         mock_embed.return_value = [[0.1] * 384]
 
         config = SourceDirectoryConfig(
             source_path=sample_directory,
-            dataset_name="test-docs-v2",
+            dataset_name="test-docs",
         )
-        pipeline = DatasetIngestPipelineV2(
+        pipeline = DatasetIngestPipeline(
             ingest_config=config,
             embed_model=mock_embed,
         )
@@ -227,8 +227,8 @@ class TestDatasetIngestPipelineV2:
         assert pipeline._get_embed_model() is mock_embed
 
 
-class TestV2PipelineResilientBehavior:
-    """Tests for resilient behavior in V2 pipeline."""
+class TestPipelineResilientBehavior:
+    """Tests for resilient behavior in ingest pipeline."""
 
     @pytest.fixture(autouse=True)
     def clear_cache(self) -> None:
@@ -238,26 +238,26 @@ class TestV2PipelineResilientBehavior:
         _clear_pipeline_cache(["resilient-test"])
 
     def test_resilient_embedding_enabled_by_default(self) -> None:
-        """V2 pipeline has resilient_embedding enabled by default."""
-        pipeline = DatasetIngestPipelineV2()
+        """Pipeline has resilient_embedding enabled by default."""
+        pipeline = DatasetIngestPipeline()
         assert pipeline.resilient_embedding is True
 
     def test_resilient_embedding_can_be_disabled(self) -> None:
-        """V2 pipeline allows disabling resilient embedding."""
-        pipeline = DatasetIngestPipelineV2(resilient_embedding=False)
+        """Pipeline allows disabling resilient embedding."""
+        pipeline = DatasetIngestPipeline(resilient_embedding=False)
         assert pipeline.resilient_embedding is False
 
     def test_get_embed_model_uses_resilient_flag(self) -> None:
         """_get_embed_model() passes resilient flag to factory."""
-        with patch("catalog.ingest.pipelines_v2.get_embed_model") as mock_factory:
+        with patch("catalog.ingest.pipelines.get_embed_model") as mock_factory:
             mock_factory.return_value = MagicMock()
 
-            pipeline = DatasetIngestPipelineV2(resilient_embedding=True)
+            pipeline = DatasetIngestPipeline(resilient_embedding=True)
             pipeline._get_embed_model()
             mock_factory.assert_called_once_with(resilient=True)
 
             mock_factory.reset_mock()
 
-            pipeline2 = DatasetIngestPipelineV2(resilient_embedding=False)
+            pipeline2 = DatasetIngestPipeline(resilient_embedding=False)
             pipeline2._get_embed_model()
             mock_factory.assert_called_once_with(resilient=False)

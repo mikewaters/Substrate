@@ -55,7 +55,7 @@ def get_embed_model(resilient: bool = False) -> "BaseEmbedding":
         logger.info(f"HuggingFace embedding model loaded: {embed_settings.model_name}")
 
     if resilient:
-        batch_size = settings.rag_v2.embed_batch_size
+        batch_size = settings.rag.embed_batch_size
         logger.debug(
             f"Wrapping embedding model in ResilientEmbedding with batch_size={batch_size}"
         )

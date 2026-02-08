@@ -17,12 +17,12 @@ from pydantic import Field
 from sqlalchemy import text
 
 from catalog.ingest.directory import SourceDirectoryConfig
-from catalog.ingest.pipelines_v2 import DatasetIngestPipelineV2
+from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.integrations.obsidian import VaultSchema
 from catalog.integrations.obsidian.source import SourceObsidianConfig
 from catalog.search.fts import FTSSearch
-from catalog.search.hybrid import HybridSearch
 from catalog.search.models import SearchCriteria
+from catalog.search.service import SearchService
 from catalog.store.database import get_session
 from catalog.store.repositories import DocumentLinkRepository
 from catalog.store.session_context import use_session
@@ -57,7 +57,7 @@ class TestIngestAndSearch:
         sample_vault: Path,
     ) -> None:
         """Ingest a small vault via directory source and verify FTS works."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceDirectoryConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
@@ -87,7 +87,7 @@ class TestIngestAndSearch:
         hybrid_vault: Path,
     ) -> None:
         """Ingest Obsidian vault and verify keyword search finds expected doc."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=hybrid_vault,
             dataset_name="test-vault",
@@ -115,7 +115,7 @@ class TestHybridSearch:
         hybrid_vault: Path,
     ) -> None:
         """Hybrid search with real Qdrant returns RRF-scored results."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=hybrid_vault,
             dataset_name="test-vault",
@@ -124,15 +124,17 @@ class TestHybridSearch:
 
         with e2e.session() as session:
             with use_session(session):
-                vm = e2e.vector_manager()
-                hybrid = HybridSearch(vector_manager=vm)
-                results = hybrid.search("authentication", top_k=10)
+                service = SearchService(session)
+                search_results = service.search(
+                    SearchCriteria(
+                        query="authentication",
+                        mode="hybrid",
+                        limit=10,
+                    )
+                )
 
-        assert len(results) >= 1
-        assert all(isinstance(r.score, float) for r in results)
-        # RRF fusion assigns scores under the "rrf" key
-        for r in results:
-            assert "rrf" in r.scores
+        assert len(search_results.results) >= 1
+        assert all(isinstance(r.score, float) for r in search_results.results)
 
     @pytest.mark.asyncio
     async def test_full_pipeline_ingest_search_rerank(
@@ -144,7 +146,7 @@ class TestHybridSearch:
         from catalog.llm.reranker import Reranker
 
         # 1. Ingest
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceDirectoryConfig(
             source_path=sample_docs,
             dataset_name="test-vault",
@@ -153,31 +155,35 @@ class TestHybridSearch:
         result = pipeline.ingest_dataset(config)
         assert result.documents_created == 3
 
-        # 2. Hybrid search (real Qdrant + FTS, mock embedding)
+        # 2. Hybrid search via SearchService (real Qdrant + FTS, mock embedding)
         with e2e.session() as session:
             with use_session(session):
-                vm = e2e.vector_manager()
-                hybrid = HybridSearch(vector_manager=vm)
-                search_results = hybrid.search(
-                    query="authentication",
-                    top_k=10,
+                service = SearchService(session)
+                search_results = service.search(
+                    SearchCriteria(
+                        query="authentication",
+                        mode="hybrid",
+                        limit=10,
+                    )
                 )
 
-        assert len(search_results) >= 1
+        assert len(search_results.results) >= 1
+
+        result_list = search_results.results
 
         # Add chunk text for reranker if missing
-        for res in search_results:
+        for res in result_list:
             if not res.chunk_text:
                 res.chunk_text = f"Content from {res.path}"
 
         # 3. Rerank with mocked LLM
         mock_provider = MagicMock()
         mock_provider.generate = AsyncMock(
-            side_effect=["Yes"] * len(search_results)
+            side_effect=["Yes"] * len(result_list)
         )
 
         reranker = Reranker(provider=mock_provider)
-        reranked = await reranker.rerank("authentication", search_results)
+        reranked = await reranker.rerank("authentication", result_list)
 
         # 4. Verify reranked results
         assert len(reranked) >= 1
@@ -202,7 +208,7 @@ class TestObsidianLinks:
         linked_vault: Path,
     ) -> None:
         """Backlinks (incoming) are queryable after full pipeline ingestion."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=linked_vault,
             dataset_name="link-test-vault",
@@ -233,7 +239,7 @@ class TestFrontmatterOntology:
         ontology_vault: Path,
     ) -> None:
         """Ingested vault has ontology-shaped metadata in the database."""
-        pipeline = DatasetIngestPipelineV2()
+        pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=ontology_vault,
             dataset_name="ontology-test-vault",

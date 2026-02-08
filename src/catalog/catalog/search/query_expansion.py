@@ -1,4 +1,4 @@
-"""catalog.search.query_expansion - Query expansion for RAG v2.
+"""catalog.search.query_expansion - Query expansion for RAG search.
 
 Generates query expansions using an LLM to improve recall in hybrid search.
 Produces three types of expansions:
@@ -105,7 +105,7 @@ class QueryExpansionTransform:
     @property
     def _settings(self):
         """Lazy-load settings to allow test mocking."""
-        return get_settings().rag_v2
+        return get_settings().rag
 
     async def expand(self, query: str) -> QueryExpansionResult:
         """Expand a query into multiple variants.

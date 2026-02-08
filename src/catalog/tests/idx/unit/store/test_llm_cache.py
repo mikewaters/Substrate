@@ -328,10 +328,10 @@ class TestLLMCacheTTL:
     def test_ttl_defaults_to_settings(self, db_session, monkeypatch) -> None:
         """TTL defaults to settings value when not provided."""
         # Mock get_settings to return a known TTL
-        from catalog.core.settings import RAGv2Settings, Settings
+        from catalog.core.settings import RAGSettings, Settings
         import catalog.core.settings as settings_module
 
-        mock_settings = Settings(rag_v2=RAGv2Settings(cache_ttl_hours=72))
+        mock_settings = Settings(rag=RAGSettings(cache_ttl_hours=72))
 
         monkeypatch.setattr(settings_module, "get_settings", lambda: mock_settings)
 

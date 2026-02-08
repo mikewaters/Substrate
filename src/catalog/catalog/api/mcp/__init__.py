@@ -6,9 +6,9 @@ Includes tool definitions, resource handlers, and a stdio-based JSON-RPC server.
 Example usage:
     # Create tools for an agent
     from catalog.api.mcp import create_mcp_tools
-    from catalog.search.service_v2 import SearchServiceV2
+    from catalog.search.service import SearchService
 
-    service = SearchServiceV2(session)
+    service = SearchService(session)
     tools = create_mcp_tools(service)
 
     # Run the MCP server

@@ -41,8 +41,8 @@ class TestHeptabaseSourceRegistration:
         assert isinstance(source, HeptabaseVaultSource)
         assert source.type_name == "heptabase"
 
-    def test_create_ingest_config_with_vault_schema(self, tmp_path: Path):
-        """vault_schema option resolves to the class."""
+    def test_create_ingest_config_with_ontology_spec(self, tmp_path: Path):
+        """ontology_spec option resolves to the class."""
         from catalog.ingest.job import SourceConfig
 
         (tmp_path / "note.md").write_text("# Hello")
@@ -51,14 +51,14 @@ class TestHeptabaseSourceRegistration:
             source_path=tmp_path,
             dataset_name="test-export",
             options={
-                "vault_schema": "catalog.integrations.heptabase.vault_schema.HeptabaseVaultSchema",
+                "ontology_spec": "catalog.integrations.heptabase.ontology_spec.HeptabaseVaultSchema",
             },
         )
         config = create_ingest_config(source_config)
         assert isinstance(config, SourceHeptabaseConfig)
 
-        from catalog.integrations.heptabase.vault_schema import HeptabaseVaultSchema
-        assert config.vault_schema is HeptabaseVaultSchema
+        from catalog.integrations.heptabase.ontology_spec import HeptabaseVaultSchema
+        assert config.ontology_spec is HeptabaseVaultSchema
 
 
 class TestHeptabaseVaultSourceModifiedSince:

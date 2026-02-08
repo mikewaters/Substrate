@@ -212,7 +212,7 @@ class FrontmatterTransform(TransformComponent):
     For each node:
 
     1. Reads raw frontmatter from ``node.metadata[frontmatter_key]``.
-    2. If a ``vault_schema_cls`` is provided, validates through it and
+    2. If a ``ontology_spec_cls`` is provided, validates through it and
        converts to :class:`DocumentMeta` via ``to_document_meta()``.
     3. Otherwise constructs a best-effort ``DocumentMeta`` from raw keys.
     4. Derives ``title`` (frontmatter -> aliases[0] -> note_name).
@@ -225,7 +225,7 @@ class FrontmatterTransform(TransformComponent):
     9. Removes the raw ``frontmatter`` key from ``node.metadata``.
 
     Attributes:
-        vault_schema_cls: Optional FrontmatterSchema-compatible class for typed validation.
+        ontology_spec_cls: Optional FrontmatterSchema-compatible class for typed validation.
         frontmatter_key: Metadata key where raw frontmatter lives.
         promote_keys: DocumentMeta field names to write as top-level
             node.metadata keys for downstream embedding/vector use.
@@ -235,7 +235,7 @@ class FrontmatterTransform(TransformComponent):
         strict: If True, raise on validation errors instead of falling back.
     """
 
-    vault_schema_cls: type[FrontmatterSchema] | None = None
+    ontology_spec_cls: type[FrontmatterSchema] | None = None
     frontmatter_key: str = "frontmatter"
     strict: bool = False
 
@@ -245,7 +245,7 @@ class FrontmatterTransform(TransformComponent):
 
     def __init__(
         self,
-        vault_schema_cls: type[FrontmatterSchema] | None = None,
+        ontology_spec_cls: type[FrontmatterSchema] | None = None,
         *,
         frontmatter_key: str = "frontmatter",
         promote_keys: list[str] | None = None,
@@ -253,7 +253,7 @@ class FrontmatterTransform(TransformComponent):
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
-        self.vault_schema_cls = vault_schema_cls
+        self.ontology_spec_cls = ontology_spec_cls
         self.frontmatter_key = frontmatter_key
         self.strict = strict
 
@@ -324,9 +324,9 @@ class FrontmatterTransform(TransformComponent):
 
     def _build_document_meta(self, fm: dict[str, Any]) -> DocumentMeta:
         """Build a DocumentMeta from frontmatter, optionally via FrontmatterSchema."""
-        if self.vault_schema_cls is not None:
+        if self.ontology_spec_cls is not None:
             try:
-                schema = self.vault_schema_cls.from_frontmatter(fm)
+                schema = self.ontology_spec_cls.from_frontmatter(fm)
                 return schema.to_document_meta()
             except Exception:
                 if self.strict:

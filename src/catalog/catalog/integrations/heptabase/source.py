@@ -14,11 +14,11 @@ class SourceHeptabaseConfig(DatasetSourceConfig):
         source_path: Path to the Heptabase export directory.
         dataset_name: Name for the dataset (will be normalized).
         force: If True, reprocess all documents even if unchanged.
-        vault_schema: Optional VaultSchema subclass for typed frontmatter mapping.
+        ontology_spec: Optional VaultSchema subclass for typed frontmatter mapping.
     """
 
     type_name: str = "heptabase"
-    vault_schema: type | None = None
+    ontology_spec: type | None = None
 
     @model_validator(mode="after")
     def validate_source_path(self) -> "SourceHeptabaseConfig":

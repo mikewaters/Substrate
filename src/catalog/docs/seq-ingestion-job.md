@@ -28,10 +28,10 @@ Entry point: `DatasetJob.from_yaml(path)` via YAML configuration file.
    |                 |                 | lookup _ingest_config_factories[source_cfg.type]   |                |              |
    |                 |                 | call factory(source_cfg)         |                 |                |              |
    |                 |                 |  e.g. create_obsidian_ingest_config():             |                |              |
-   |                 |                 |    _import_class(vault_schema_path)                |                |              |
+   |                 |                 |    _import_class(ontology_spec_path)                |                |              |
    |                 |                 |    -> IngestObsidianConfig(                        |                |              |
    |                 |                 |         source_path, dataset_name,                 |                |              |
-   |                 |                 |         vault_schema, force, catalog_name)          |                |              |
+   |                 |                 |         ontology_spec, force, catalog_name)          |                |              |
    |                 |   <config>      |                |                |                 |                |              |
    |                 |<────────────────|                |                |                 |                |              |
    |    <config>     |                 |                |                |                 |                |              |
@@ -117,7 +117,7 @@ Entry point: `DatasetJob.from_yaml(path)` via YAML configuration file.
    |                 |                 |                |                |                 |                |              |
    |                 |                 |                | create_source(config)            |                |              |
    |                 |                 |                |  -> singledispatch on config type |                |              |
-   |                 |                 |                |  -> e.g. ObsidianVaultSource(path, vault_schema)  |              |
+   |                 |                 |                |  -> e.g. ObsidianVaultSource(path, ontology_spec)  |              |
    |                 |                 |                |                |                 |                |              |
    |                 |                 |                | source.get_transforms(dataset_id)                |              |
    |                 |                 |                |───────────────>|                 |                |              |

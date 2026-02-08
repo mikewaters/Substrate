@@ -1,4 +1,4 @@
-"""Tests for catalog.integrations.obsidian.vault_schema — VaultSchema mapping."""
+"""Tests for catalog.integrations.obsidian.ontology_spec — VaultSchema mapping."""
 
 import pytest
 from pydantic import Field

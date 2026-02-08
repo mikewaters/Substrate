@@ -11,7 +11,7 @@ Example YAML::
       type: obsidian
       source_path: /Users/mike/Obsidian/MyVault
       options:
-        vault_schema: catalog.integrations.obsidian.vault_schema.VaultSchema
+        ontology_spec: catalog.integrations.obsidian.ontology_spec.VaultSchema
 
     embedding:
       backend: mlx
@@ -64,7 +64,7 @@ def _import_class(dotted_path: str) -> type:
 
     Args:
         dotted_path: Fully-qualified class path, e.g.
-            ``"catalog.integrations.obsidian.vault_schema.VaultSchema"``.
+            ``"catalog.integrations.obsidian.ontology_spec.VaultSchema"``.
 
     Returns:
         The resolved class.
@@ -84,7 +84,7 @@ class SourceConfig(BaseModel):
     """Source configuration for a dataset job.
 
     Generic configuration that captures source type and an options dict.
-    Integration-specific details (e.g., vault_schema for obsidian) are
+    Integration-specific details (e.g., ontology_spec for obsidian) are
     stored in options and interpreted by the registered factory.
 
     Attributes:

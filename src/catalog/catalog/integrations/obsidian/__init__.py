@@ -35,7 +35,7 @@ def create_obsidian_ingest_config(source_config: "SourceConfig") -> SourceObsidi
     """Create IngestObsidianConfig from generic SourceConfig.
 
     Interprets obsidian-specific options:
-        - vault_schema: Dotted path to VaultSchema subclass for frontmatter mapping.
+        - ontology_spec: Dotted path to VaultSchema subclass for frontmatter mapping.
 
     Args:
         source_config: Generic source configuration from YAML job file.
@@ -45,8 +45,8 @@ def create_obsidian_ingest_config(source_config: "SourceConfig") -> SourceObsidi
     """
     from catalog.ingest.job import _import_class
 
-    vault_schema_path = source_config.options.get("vault_schema")
-    vault_schema_cls = _import_class(vault_schema_path) if vault_schema_path else None
+    ontology_spec_path = source_config.options.get("ontology_spec")
+    ontology_spec_cls = _import_class(ontology_spec_path) if ontology_spec_path else None
     dataset_name = source_config.dataset_name or source_config.source_path.name
 
     return SourceObsidianConfig(
@@ -56,7 +56,7 @@ def create_obsidian_ingest_config(source_config: "SourceConfig") -> SourceObsidi
         force=source_config.force,
         incremental=source_config.incremental,
         if_modified_since=source_config.if_modified_since,
-        vault_schema=vault_schema_cls,
+        ontology_spec=ontology_spec_cls,
     )
 
 
@@ -64,7 +64,7 @@ def create_obsidian_ingest_config(source_config: "SourceConfig") -> SourceObsidi
 def _(config: SourceObsidianConfig):
     return ObsidianVaultSource(
         config.source_path,
-        vault_schema=config.vault_schema,
+        ontology_spec=config.ontology_spec,
         if_modified_since=config.if_modified_since,
     )
 

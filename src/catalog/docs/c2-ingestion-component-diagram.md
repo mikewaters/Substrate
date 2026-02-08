@@ -34,7 +34,7 @@
 │  │  │  │IngestDirectory  │ │IngestObsidian    │  │  │       │ .rag_v2: RAGv2Settings       │     │
 │  │  │  │Config           │ │Config            │  │  │       │ .qdrant: QdrantSettings      │     │
 │  │  │  │                 │ │                  │  │  │       │ .database_path              │     │
-│  │  │  │.patterns        │ │.vault_schema     │  │  │       │ .vector_store_path          │     │
+│  │  │  │.patterns        │ │.ontology_spec     │  │  │       │ .vector_store_path          │     │
 │  │  │  │.encoding        │ │                  │  │  │       │ .cache_path                 │     │
 │  │  │  └─────────────────┘ └──────────────────┘  │  │       └──────────────┬───────────────┘     │
 │  │  └────────────────────────────────────────────┘  │                      │ read by all          │

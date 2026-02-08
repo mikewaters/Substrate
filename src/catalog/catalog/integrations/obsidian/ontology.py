@@ -1,4 +1,4 @@
-"""catalog.integrations.obsidian.vault_schema - Pydantic base for vault-specific frontmatter schemas.
+"""catalog.integrations.obsidian.ontology_spec - Pydantic base for vault-specific frontmatter schemas.
 
 Clients subclass ``VaultSchema`` and annotate fields with
 ``json_schema_extra={"maps_to": "<ontology_field>"}`` to declare how

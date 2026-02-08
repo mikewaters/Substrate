@@ -243,7 +243,7 @@ class TestFrontmatterOntology:
         config = SourceObsidianConfig(
             source_path=ontology_vault,
             dataset_name="ontology-test-vault",
-            vault_schema=SampleVaultSchema,
+            ontology_spec=SampleVaultSchema,
         )
         result = pipeline.ingest_dataset(config)
         assert result.documents_created == 5

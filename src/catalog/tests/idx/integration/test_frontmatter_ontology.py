@@ -147,7 +147,7 @@ def _run_pipeline(
     session: Session,
     vault_path: Path,
     dataset_name: str,
-    vault_schema_cls: type[VaultSchema] | None = None,
+    ontology_spec_cls: type[VaultSchema] | None = None,
 ) -> int:
     """Run a pipeline identical to DatasetIngestPipeline.ingest_dataset().
 
@@ -163,7 +163,7 @@ def _run_pipeline(
     )
 
     persist = PersistenceTransform(dataset_id=dataset.id)
-    frontmatter = FrontmatterTransform(vault_schema_cls=vault_schema_cls)
+    frontmatter = FrontmatterTransform(ontology_spec_cls=ontology_spec_cls)
 
     pipeline = IngestionPipeline(
         transformations=[frontmatter, persist],
@@ -192,7 +192,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 count = _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    vault_schema_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSchema,
                 )
 
         assert count == 5
@@ -224,7 +224,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    vault_schema_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSchema,
                 )
 
         with create_session(session_factory) as session:
@@ -259,7 +259,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    vault_schema_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSchema,
                 )
 
         with create_session(session_factory) as session:
@@ -284,7 +284,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    vault_schema_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSchema,
                 )
 
         with create_session(session_factory) as session:
@@ -309,7 +309,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    vault_schema_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSchema,
                 )
 
         with create_session(session_factory) as session:
@@ -335,7 +335,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    vault_schema_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSchema,
                 )
 
         with create_session(session_factory) as session:
@@ -360,7 +360,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    vault_schema_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSchema,
                 )
 
         with create_session(session_factory) as session:
@@ -393,7 +393,7 @@ class TestFrontmatterOntologyBestEffort:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-no-schema-vault",
-                    vault_schema_cls=None,
+                    ontology_spec_cls=None,
                 )
 
         with create_session(session_factory) as session:
@@ -422,7 +422,7 @@ class TestFrontmatterOntologyBestEffort:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-no-schema-vault",
-                    vault_schema_cls=None,
+                    ontology_spec_cls=None,
                 )
 
         with create_session(session_factory) as session:

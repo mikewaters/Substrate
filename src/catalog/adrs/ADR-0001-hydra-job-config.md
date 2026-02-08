@@ -17,7 +17,7 @@ Options considered:
 Use Hydra's `compose()` API (not `@hydra.main()`) to load YAML job configs into a `DatasetJob` Pydantic model. This is library code, not a CLI entry point, so we use the programmatic API.
 
 - `DatasetJob` is a Pydantic model that validates the loaded config.
-- `vault_schema` is stored as a dotted import path string in YAML, resolved to a Python class at runtime via `_import_class()` (same pattern as Hydra `_target_` and Django `import_string()`).
+- `ontology_spec` is stored as a dotted import path string in YAML, resolved to a Python class at runtime via `_import_class()` (same pattern as Hydra `_target_` and Django `import_string()`).
 - `DatasetJob` converts to `IngestObsidianConfig` via `to_ingest_config()` — clean separation between job config (superset with embedding + pipeline settings) and the existing ingest config hierarchy.
 
 ## Consequences

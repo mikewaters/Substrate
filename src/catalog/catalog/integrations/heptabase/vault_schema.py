@@ -1,4 +1,4 @@
-"""catalog.integrations.heptabase.vault_schema - Heptabase frontmatter schema.
+"""catalog.integrations.heptabase.ontology_spec - Heptabase frontmatter schema.
 
 Provides a Heptabase-specific VaultSchema. Currently inherits all behavior
 from the base VaultSchema -- customize fields here as Heptabase frontmatter

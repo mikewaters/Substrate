@@ -62,12 +62,12 @@ class TestSourceConfig:
             type="obsidian",
             source_path=tmp_path,
             dataset_name="my-vault",
-            options={"vault_schema": "catalog.integrations.obsidian.vault_schema.VaultSchema"},
+            options={"ontology_spec": "catalog.integrations.obsidian.ontology_spec.VaultSchema"},
             force=True,
         )
         assert cfg.dataset_name == "my-vault"
         assert cfg.force is True
-        assert cfg.options["vault_schema"] == "catalog.integrations.obsidian.vault_schema.VaultSchema"
+        assert cfg.options["ontology_spec"] == "catalog.integrations.obsidian.ontology_spec.VaultSchema"
 
     def test_with_options(self, tmp_path: Path):
         """Source config with integration-specific options."""
@@ -157,7 +157,7 @@ class TestDatasetJob:
                 "type": "obsidian",
                 "source_path": str(tmp_path),
                 "dataset_name": "test-vault",
-                "options": {"vault_schema": "pathlib.Path"},
+                "options": {"ontology_spec": "pathlib.Path"},
                 "force": True,
             },
             "embedding": {
@@ -172,7 +172,7 @@ class TestDatasetJob:
         })
         assert job.source.dataset_name == "test-vault"
         assert job.source.force is True
-        assert job.source.options["vault_schema"] == "pathlib.Path"
+        assert job.source.options["ontology_spec"] == "pathlib.Path"
         assert job.embedding.backend == "huggingface"
         assert job.pipeline.splitter_chunk_size == 512
 
@@ -195,7 +195,7 @@ class TestDatasetJob:
         assert config.source_path == vault_dir
         assert config.dataset_name == "my-vault"
         assert config.force is False
-        assert config.vault_schema is None
+        assert config.ontology_spec is None
 
     def test_to_ingest_config_derives_name(self, tmp_path: Path):
         """dataset_name is derived from source_path folder name."""
@@ -209,8 +209,8 @@ class TestDatasetJob:
         config = job.to_ingest_config()
         assert config.dataset_name == "MyVault"
 
-    def test_to_ingest_config_with_vault_schema(self, tmp_path: Path):
-        """vault_schema dotted path is resolved to a class."""
+    def test_to_ingest_config_with_ontology_spec(self, tmp_path: Path):
+        """ontology_spec dotted path is resolved to a class."""
         vault_dir = tmp_path / "MyVault"
         vault_dir.mkdir()
         (vault_dir / ".obsidian").mkdir()
@@ -218,11 +218,11 @@ class TestDatasetJob:
         job = DatasetJob.model_validate({
             "source": {
                 "source_path": str(vault_dir),
-                "options": {"vault_schema": "pathlib.Path"},
+                "options": {"ontology_spec": "pathlib.Path"},
             },
         })
         config = job.to_ingest_config()
-        assert config.vault_schema is Path
+        assert config.ontology_spec is Path
 
     def test_create_embed_model_falls_back_to_app_settings(self, tmp_path: Path):
         """create_embed_model delegates to get_embed_model() when embedding is omitted."""
@@ -289,7 +289,7 @@ source:
   dataset_name: test-vault
   force: true
   options:
-    vault_schema: pathlib.Path
+    ontology_spec: pathlib.Path
 
 embedding:
   backend: huggingface
@@ -306,7 +306,7 @@ pipeline:
         job = DatasetJob.from_yaml(config_file)
         assert job.source.dataset_name == "test-vault"
         assert job.source.force is True
-        assert job.source.options["vault_schema"] == "pathlib.Path"
+        assert job.source.options["ontology_spec"] == "pathlib.Path"
         assert job.embedding.backend == "huggingface"
         assert job.embedding.batch_size == 64
         assert job.pipeline.splitter_chunk_size == 512

@@ -47,11 +47,11 @@ class TestIngestHeptabaseConfig:
         config = SourceHeptabaseConfig(source_path=export_dir)
         assert config.dataset_name == "my-heptabase-export"
 
-    def test_vault_schema_default_none(self, tmp_path: Path):
-        """vault_schema defaults to None."""
+    def test_ontology_spec_default_none(self, tmp_path: Path):
+        """ontology_spec defaults to None."""
         (tmp_path / "note.md").write_text("# Hello")
         config = SourceHeptabaseConfig(
             source_path=tmp_path,
             dataset_name="test",
         )
-        assert config.vault_schema is None
+        assert config.ontology_spec is None

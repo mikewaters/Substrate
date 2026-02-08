@@ -135,8 +135,8 @@ class TestOntologyMetadata:
         assert ontology["title"] == "T"
         assert ontology["tags"] == ["a"]
 
-    def test_ontology_meta_with_vault_schema(self) -> None:
-        transform = FrontmatterTransform(vault_schema_cls=SampleVaultSchema)
+    def test_ontology_meta_with_ontology_spec(self) -> None:
+        transform = FrontmatterTransform(ontology_spec_cls=SampleVaultSchema)
         node = _make_node(
             frontmatter={
                 "tags": ["python"],
@@ -253,9 +253,9 @@ class TestPromoteKeys:
         assert "extra" not in result.metadata
         assert "bogus" not in result.metadata
 
-    def test_promote_with_vault_schema(self) -> None:
+    def test_promote_with_ontology_spec(self) -> None:
         transform = FrontmatterTransform(
-            vault_schema_cls=SampleVaultSchema,
+            ontology_spec_cls=SampleVaultSchema,
             promote_keys=["tags", "categories"],
         )
         node = _make_node(
@@ -311,7 +311,7 @@ class TestSchemaValidationFallback:
 
         # Missing required field 'tags' — Pydantic should raise.
         # But strict=False should catch and fall back.
-        transform = FrontmatterTransform(vault_schema_cls=StrictSchema, strict=False)
+        transform = FrontmatterTransform(ontology_spec_cls=StrictSchema, strict=False)
         node = _make_node(frontmatter={"random": "data"}, note_name="N")
         [result] = transform([node])
         # Should still produce _ontology_meta via best-effort.

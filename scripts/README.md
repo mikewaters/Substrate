@@ -50,6 +50,21 @@ just openapi-examples
 just openapi  # Runs both scripts in sequence
 ```
 
+#### `gen-catalog-jsonschema.py`
+Generates a lightweight JSON Schema document for the catalog store ORM models.
+
+**Usage:**
+```bash
+uv run --with . scripts/gen-catalog-jsonschema.py
+```
+
+**Outputs (default):**
+- `src/catalog/docs/catalog-store-schema.json` - combined JSON Schema document
+
+**Notes:**
+- Defaults to loading `src/catalog/catalog/store/models.py` by file path to avoid
+  conflicts with the `catalog.store.models` package.
+
 ### Data Loading
 
 #### `load-datasets.py`

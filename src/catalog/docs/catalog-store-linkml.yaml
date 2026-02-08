@@ -1,0 +1,293 @@
+id: https://example.org/catalog_store
+name: catalog_store
+title: Catalog Store Models
+description: LinkML schema mirroring SQLAlchemy models in src/catalog/catalog/store/models.py.
+imports:
+  - linkml:types
+prefixes:
+  linkml: https://w3id.org/linkml/
+  catalog: https://example.org/catalog_store/
+default_prefix: catalog
+default_range: string
+
+types:
+  sha256:
+    base: str
+    pattern: "^[A-Fa-f0-9]{64}$"
+    description: SHA-256 hex digest.
+  json_blob:
+    base: str
+    description: Serialized JSON string.
+
+enums:
+  ResourceKind:
+    permissible_values:
+      bookmark: {}
+      catalog: {}
+      collection: {}
+      dataset: {}
+      document: {}
+      repository: {}
+  DocumentKind:
+    permissible_values:
+      cached_page: {}
+      vault_export: {}
+      pdf: {}
+      other: {}
+  CatalogEntryRelationKind:
+    permissible_values:
+      bookmark: {}
+      collection: {}
+      dataset: {}
+      other: {}
+      repository: {}
+  BookmarkRelationKind:
+    permissible_values:
+      derived_from: {}
+      relevant_to: {}
+      source_for: {}
+  DocumentLinkKind:
+    permissible_values:
+      wikilink: {}
+
+classes:
+  Resource:
+    description: Base class for all catalog resources.
+    attributes:
+      id:
+        identifier: true
+        range: integer
+      kind:
+        required: true
+        range: ResourceKind
+      uri:
+        required: true
+        range: uriorcurie
+      title:
+        range: string
+      description:
+        range: string
+      created_at:
+        required: true
+        range: datetime
+      updated_at:
+        required: true
+        range: datetime
+      documents:
+        multivalued: true
+        range: Document
+        inverse: parent_resource
+    unique_keys:
+      resource_uri_key:
+        unique_key_slots:
+          - uri
+
+  Dataset:
+    is_a: Resource
+    attributes:
+      name:
+        required: true
+        range: string
+      source_type:
+        required: true
+        range: string
+      source_path:
+        required: true
+        range: string
+    unique_keys:
+      dataset_name_key:
+        unique_key_slots:
+          - name
+
+  Document:
+    is_a: Resource
+    attributes:
+      parent_resource:
+        required: true
+        range: Resource
+      doc_type:
+        required: true
+        range: DocumentKind
+      path:
+        required: true
+        range: string
+      active:
+        required: true
+        range: boolean
+      content_hash:
+        required: true
+        range: sha256
+      etag:
+        range: string
+      last_modified:
+        range: datetime
+      body:
+        required: true
+        range: string
+      metadata_json:
+        range: json_blob
+      outgoing_links:
+        multivalued: true
+        range: DocumentLink
+        inverse: source
+      incoming_links:
+        multivalued: true
+        range: DocumentLink
+        inverse: target
+    unique_keys:
+      parent_path_key:
+        unique_key_slots:
+          - parent_resource
+          - path
+
+  DocumentLink:
+    description: Directed link between two documents.
+    attributes:
+      source:
+        required: true
+        range: Document
+      target:
+        required: true
+        range: Document
+      relation:
+        required: true
+        range: DocumentLinkKind
+    unique_keys:
+      document_link_key:
+        unique_key_slots:
+          - source
+          - target
+
+  Catalog:
+    is_a: Resource
+    attributes:
+      homepage:
+        range: uri
+      entries:
+        multivalued: true
+        range: CatalogEntry
+        inverse: catalog
+
+  CatalogEntry:
+    attributes:
+      id:
+        identifier: true
+        range: integer
+      catalog:
+        required: true
+        range: Catalog
+      resource:
+        required: true
+        range: Resource
+      relation:
+        required: true
+        range: CatalogEntryRelationKind
+      created_at:
+        required: true
+        range: datetime
+      created_by:
+        range: string
+    unique_keys:
+      catalog_resource_key:
+        unique_key_slots:
+          - catalog
+          - resource
+
+  Collection:
+    is_a: Resource
+    attributes:
+      members:
+        multivalued: true
+        range: CollectionMember
+        inverse: collection
+
+  CollectionMember:
+    attributes:
+      id:
+        identifier: true
+        range: integer
+      collection:
+        required: true
+        range: Collection
+      resource:
+        required: true
+        range: Resource
+      created_at:
+        required: true
+        range: datetime
+    unique_keys:
+      collection_resource_key:
+        unique_key_slots:
+          - collection
+          - resource
+
+  Bookmark:
+    is_a: Resource
+    attributes:
+      url:
+        required: true
+        range: uri
+      favicon_url:
+        range: uri
+      owner:
+        required: true
+        range: string
+      folder:
+        range: string
+      is_archived:
+        required: true
+        range: boolean
+      resource_links:
+        multivalued: true
+        range: BookmarkLink
+        inverse: bookmark
+
+  BookmarkLink:
+    attributes:
+      bookmark:
+        required: true
+        range: Bookmark
+      resource:
+        required: true
+        range: Resource
+      relation:
+        required: true
+        range: BookmarkRelationKind
+    unique_keys:
+      bookmark_resource_key:
+        unique_key_slots:
+          - bookmark
+          - resource
+
+  Repository:
+    is_a: Resource
+    attributes:
+      host:
+        range: string
+      repo_full_name:
+        range: string
+      default_branch:
+        range: string
+      web_url:
+        range: uri
+      resource_links:
+        multivalued: true
+        range: RepositoryLink
+        inverse: repository
+
+  RepositoryLink:
+    attributes:
+      repository:
+        required: true
+        range: Repository
+      resource:
+        required: true
+        range: Resource
+      relation:
+        required: true
+        range: string
+    unique_keys:
+      repository_resource_key:
+        unique_key_slots:
+          - repository
+          - resource

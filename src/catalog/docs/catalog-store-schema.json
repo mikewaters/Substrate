@@ -1,0 +1,743 @@
+{
+  "$defs": {
+    "Bookmark": {
+      "description": "A catalogued external URL. Attributes: id: FK to ``resources.id``. url: The bookmarked URL. favicon_url: Optional favicon URL. owner: Owner of the bookmark. folder: Optional folder/category. is_archived: Whether the bookmark is archived. resource_links: Relationship to BookmarkLink association objects.",
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "documents": {
+          "items": {
+            "$ref": "#/$defs/Document"
+          },
+          "type": "array"
+        },
+        "favicon_url": {
+          "maxLength": 2048,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "folder": {
+          "maxLength": 512,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "integer"
+        },
+        "is_archived": {
+          "type": "boolean"
+        },
+        "kind": {
+          "enum": [
+            "bookmark",
+            "catalog",
+            "collection",
+            "dataset",
+            "document",
+            "repository"
+          ],
+          "type": "string"
+        },
+        "owner": {
+          "maxLength": 255,
+          "type": "string"
+        },
+        "resource_links": {
+          "items": {
+            "$ref": "#/$defs/BookmarkLink"
+          },
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 512,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "uri": {
+          "maxLength": 512,
+          "type": "string"
+        },
+        "url": {
+          "maxLength": 2048,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "owner",
+        "uri",
+        "url"
+      ],
+      "title": "Bookmark",
+      "type": "object"
+    },
+    "BookmarkLink": {
+      "description": "Relates a Bookmark to any Resource. Uses composite primary key (bookmark_id, resource_id). Attributes: bookmark_id: FK to ``bookmarks.id``. resource_id: FK to ``resources.id``. relation: The relationship type.",
+      "properties": {
+        "bookmark": {
+          "$ref": "#/$defs/Bookmark"
+        },
+        "bookmark_id": {
+          "type": "integer"
+        },
+        "relation": {
+          "enum": [
+            "derived_from",
+            "relevant_to",
+            "source_for"
+          ],
+          "type": "string"
+        },
+        "resource": {
+          "$ref": "#/$defs/Resource"
+        },
+        "resource_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "bookmark_id",
+        "relation",
+        "resource_id"
+      ],
+      "title": "BookmarkLink",
+      "type": "object"
+    },
+    "Catalog": {
+      "description": "A DCAT Catalog: a curated collection of resource descriptions. Attributes: id: FK to ``resources.id``. homepage: Optional homepage URL for the catalog. entries: Relationship to CatalogEntry association objects.",
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "documents": {
+          "items": {
+            "$ref": "#/$defs/Document"
+          },
+          "type": "array"
+        },
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/CatalogEntry"
+          },
+          "type": "array"
+        },
+        "homepage": {
+          "maxLength": 1024,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "bookmark",
+            "catalog",
+            "collection",
+            "dataset",
+            "document",
+            "repository"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 512,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "uri": {
+          "maxLength": 512,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "uri"
+      ],
+      "title": "Catalog",
+      "type": "object"
+    },
+    "CatalogEntry": {
+      "description": "Associates a Catalog with a Resource. Attributes: id: Primary key. catalog_id: FK to ``catalogs.id``. resource_id: FK to ``resources.id``. relation: The relationship type between catalog and resource. created_at: When this entry was created. created_by: Optional author of the entry.",
+      "properties": {
+        "catalog": {
+          "$ref": "#/$defs/Catalog"
+        },
+        "catalog_id": {
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "created_by": {
+          "maxLength": 255,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "integer"
+        },
+        "relation": {
+          "enum": [
+            "bookmark",
+            "collection",
+            "dataset",
+            "other",
+            "repository"
+          ],
+          "type": "string"
+        },
+        "resource": {
+          "$ref": "#/$defs/Resource"
+        },
+        "resource_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "catalog_id",
+        "id",
+        "relation",
+        "resource_id"
+      ],
+      "title": "CatalogEntry",
+      "type": "object"
+    },
+    "Collection": {
+      "description": "A referential grouping of resources. Does not own its members. Attributes: id: FK to ``resources.id``. members: Relationship to CollectionMember association objects.",
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "documents": {
+          "items": {
+            "$ref": "#/$defs/Document"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "bookmark",
+            "catalog",
+            "collection",
+            "dataset",
+            "document",
+            "repository"
+          ],
+          "type": "string"
+        },
+        "members": {
+          "items": {
+            "$ref": "#/$defs/CollectionMember"
+          },
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 512,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "uri": {
+          "maxLength": 512,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "uri"
+      ],
+      "title": "Collection",
+      "type": "object"
+    },
+    "CollectionMember": {
+      "description": "Associates a Collection with a Resource. Attributes: id: Primary key. collection_id: FK to ``collections.id``. resource_id: FK to ``resources.id``. created_at: When this membership was created.",
+      "properties": {
+        "collection": {
+          "$ref": "#/$defs/Collection"
+        },
+        "collection_id": {
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "resource": {
+          "$ref": "#/$defs/Resource"
+        },
+        "resource_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "collection_id",
+        "id",
+        "resource_id"
+      ],
+      "title": "CollectionMember",
+      "type": "object"
+    },
+    "Dataset": {
+      "description": "A data source (e.g. directory, Obsidian vault) that has been indexed. Attributes: id: FK to ``resources.id``. name: Unique slug identifier for the dataset. source_type: Type of source (\"directory\", \"obsidian\", etc.). source_path: Filesystem path to the source.",
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "documents": {
+          "items": {
+            "$ref": "#/$defs/Document"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "bookmark",
+            "catalog",
+            "collection",
+            "dataset",
+            "document",
+            "repository"
+          ],
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 255,
+          "type": "string"
+        },
+        "source_path": {
+          "maxLength": 1024,
+          "type": "string"
+        },
+        "source_type": {
+          "maxLength": 50,
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 512,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "uri": {
+          "maxLength": 512,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "source_path",
+        "source_type",
+        "uri"
+      ],
+      "title": "Dataset",
+      "type": "object"
+    },
+    "Document": {
+      "description": "An indexed document within a parent resource (typically a Dataset). ``parent_id`` replaces the old ``dataset_id`` and points to any owning Resource. Requires explicit ``inherit_condition`` because both ``id`` and ``parent_id`` are FKs to ``resources.id``. Attributes: id: FK to ``resources.id``. parent_id: FK to owning resource (Dataset, Catalog, etc.). doc_type: Classifies the document origin/format. path: Relative path within the parent source. active: Whether the document is active (False = soft-deleted). content_hash: SHA256 hash of the document content. etag: Source-provided etag for change detection. last_modified: Source-provided modification time. body: Full normalized text content for FTS and chunking. metadata_json: Extracted metadata as JSON. parent_resource: Relationship to owning Resource.",
+      "properties": {
+        "active": {
+          "type": "boolean"
+        },
+        "body": {
+          "type": "string"
+        },
+        "content_hash": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "doc_type": {
+          "enum": [
+            "cached_page",
+            "other",
+            "pdf",
+            "vault_export"
+          ],
+          "type": "string"
+        },
+        "documents": {
+          "items": {
+            "$ref": "#/$defs/Document"
+          },
+          "type": "array"
+        },
+        "etag": {
+          "maxLength": 255,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "integer"
+        },
+        "incoming_links": {
+          "items": {
+            "$ref": "#/$defs/DocumentLink"
+          },
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "bookmark",
+            "catalog",
+            "collection",
+            "dataset",
+            "document",
+            "repository"
+          ],
+          "type": "string"
+        },
+        "last_modified": {
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metadata_json": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "outgoing_links": {
+          "items": {
+            "$ref": "#/$defs/DocumentLink"
+          },
+          "type": "array"
+        },
+        "parent_id": {
+          "type": "integer"
+        },
+        "parent_resource": {
+          "$ref": "#/$defs/Resource"
+        },
+        "path": {
+          "maxLength": 1024,
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 512,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "uri": {
+          "maxLength": 512,
+          "type": "string"
+        }
+      },
+      "required": [
+        "body",
+        "content_hash",
+        "id",
+        "kind",
+        "parent_id",
+        "path",
+        "uri"
+      ],
+      "title": "Document",
+      "type": "object"
+    },
+    "DocumentLink": {
+      "description": "A directed link between two documents (e.g. an Obsidian wikilink). Uses composite primary key ``(source_id, target_id)`` matching the pattern established by ``BookmarkLink`` and ``RepositoryLink``. Attributes: source_id: FK to the linking document. target_id: FK to the linked-to document. relation: The kind of link (e.g. wikilink). source: Relationship to the source Document. target: Relationship to the target Document.",
+      "properties": {
+        "relation": {
+          "enum": [
+            "markdown_link",
+            "wikilink"
+          ],
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Document"
+        },
+        "source_id": {
+          "type": "integer"
+        },
+        "target": {
+          "$ref": "#/$defs/Document"
+        },
+        "target_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "relation",
+        "source_id",
+        "target_id"
+      ],
+      "title": "DocumentLink",
+      "type": "object"
+    },
+    "Repository": {
+      "description": "A code or content repository. Attributes: id: FK to ``resources.id``. host: Hosting platform (e.g. \"github\", \"gitlab\"). repo_full_name: Full repository name (e.g. \"owner/repo\"). default_branch: Default branch name. web_url: Web URL for the repository. resource_links: Relationship to RepositoryLink association objects.",
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "default_branch": {
+          "maxLength": 255,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "documents": {
+          "items": {
+            "$ref": "#/$defs/Document"
+          },
+          "type": "array"
+        },
+        "host": {
+          "maxLength": 100,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "bookmark",
+            "catalog",
+            "collection",
+            "dataset",
+            "document",
+            "repository"
+          ],
+          "type": "string"
+        },
+        "repo_full_name": {
+          "maxLength": 512,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resource_links": {
+          "items": {
+            "$ref": "#/$defs/RepositoryLink"
+          },
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 512,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "uri": {
+          "maxLength": 512,
+          "type": "string"
+        },
+        "web_url": {
+          "maxLength": 2048,
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "uri"
+      ],
+      "title": "Repository",
+      "type": "object"
+    },
+    "RepositoryLink": {
+      "description": "Relates a Repository to any Resource. Uses composite primary key (repository_id, resource_id). Attributes: repository_id: FK to ``repositories.id``. resource_id: FK to ``resources.id``. relation: The relationship type (free-form string).",
+      "properties": {
+        "relation": {
+          "maxLength": 100,
+          "type": "string"
+        },
+        "repository": {
+          "$ref": "#/$defs/Repository"
+        },
+        "repository_id": {
+          "type": "integer"
+        },
+        "resource": {
+          "$ref": "#/$defs/Resource"
+        },
+        "resource_id": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "relation",
+        "repository_id",
+        "resource_id"
+      ],
+      "title": "RepositoryLink",
+      "type": "object"
+    },
+    "Resource": {
+      "description": "Base class for all catalog resources using joined-table inheritance. Table ``resources`` stores the common fields shared by all resource types. Subclasses store type-specific columns in their own tables joined via FK. Attributes: id: Primary key. kind: Polymorphic discriminator. uri: Unique URI identifying the resource. title: Optional human-readable title. description: Optional longer description. created_at: When the resource was created. updated_at: When the resource was last modified. documents: Child documents linked via ``Document.parent_id``.",
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "documents": {
+          "items": {
+            "$ref": "#/$defs/Document"
+          },
+          "type": "array"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "bookmark",
+            "catalog",
+            "collection",
+            "dataset",
+            "document",
+            "repository"
+          ],
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 512,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "updated_at": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "uri": {
+          "maxLength": 512,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "uri"
+      ],
+      "title": "Resource",
+      "type": "object"
+    }
+  },
+  "$id": "https://example.org/catalog-store/schemas/catalog-store.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Catalog Store Models"
+}

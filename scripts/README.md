@@ -74,3 +74,19 @@ Interactive TUI for loading dataset fixtures into the database.
 ```bash
 uv run scripts/load-datasets.py
 ```
+
+### Search Evaluation
+
+#### `run_search_eval.py`
+Runs an isolated ingestion + golden-query eval and writes a run record JSON
+artifact for longitudinal comparison.
+
+**Usage:**
+```bash
+uv run python scripts/run_search_eval.py \
+  --corpus src/catalog/tests/corpus/vault-small \
+  --queries-file src/catalog/tests/rag_v2/fixtures/golden_queries.json
+```
+
+**Outputs (default):**
+- `reports/evals/<YYYY-MM-DD>/<timestamp>.json` - run record with metrics + metadata

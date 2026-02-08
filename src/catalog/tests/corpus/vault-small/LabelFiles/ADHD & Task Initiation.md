@@ -1,11 +1,11 @@
 # ADHD & Task Initiation
 
-## 3 Factors 
+## 3 Factors
 
 - Interest Novelty Challenge Urgency
 
-- Positive Mood State 
+- Positive Mood State
 
-- No Barriers (Easy Ist Step) 
+- No Barriers (Easy Ist Step)
 
-
+[[Adguard Home]]

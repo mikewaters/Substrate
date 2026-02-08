@@ -4,48 +4,8 @@ Defines the models used for configuring and reporting pipeline results.
 """
 
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict
 
-from pydantic import BaseModel, Field, model_validator
-
-class DatasetIngestConfig(BaseModel):
-    """Base configuration for dataset ingestion.
-
-    Attributes:
-        source_path: Path to the source data.
-        dataset_name: Name for the dataset (will be normalized).
-        catalog_name: Optional catalog name. If set, creates/links catalog to dataset.
-        force: If True, reprocess all documents even if unchanged.
-    """
-    type_name: str
-    source_path: Path
-    dataset_name: str
-    catalog_name: str | None = None
-    force: bool = False
-
-    model_config = {"arbitrary_types_allowed": True}
-
-class IngestDirectoryConfig(DatasetIngestConfig):
-    """Configuration for directory ingestion.
-
-    Attributes:
-        source_path: Path to the directory to ingest.
-        dataset_name: Name for the dataset (will be normalized).
-        patterns: Glob patterns for matching files (default: ["**/*.md"]).
-        encoding: File encoding to use (default: utf-8).
-        force: If True, reprocess all documents even if unchanged.
-    """
-    type_name: str = "directory"
-    patterns: list[str] = Field(default_factory=lambda: ["**/*.md"])
-    encoding: str = "utf-8"
-
-    @model_validator(mode="after")
-    def validate_source_path(self) -> "IngestDirectoryConfig":
-        """Validate that the source path exists and is a directory."""
-        from catalog.ingest.directory import DirectorySource
-        DirectorySource.validate(self.source_path)
-        return self
+from pydantic import BaseModel, Field
 
 
 class DocumentStats(BaseModel):
@@ -107,8 +67,6 @@ class IngestResult(BaseModel):
 
 
 __all__ = [
-    "DatasetIngestConfig",
     "DocumentStats",
-    "IngestDirectoryConfig",
     "IngestResult",
 ]

@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import List
+from urllib.parse import unquote
 
 __all__ = [
     "extract_heptabase_links",
@@ -38,6 +39,8 @@ def extract_heptabase_links(text: str) -> List[str]:
     matches = _HEPTABASE_LINK_RE.findall(text)
     links = []
     for _display, target in matches:
+        # URL-decode (e.g., LifeOS%20Utilities.md -> LifeOS Utilities.md)
+        target = unquote(target)
         # Strip fragment identifiers (e.g., Note.md#section -> Note.md)
         target = target.split("#", 1)[0]
         # Get the filename stem (strip .md and any directory components)

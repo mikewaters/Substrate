@@ -17,14 +17,8 @@ Architecture decisions:
 from __future__ import annotations
 
 import os
-import re
-from functools import cached_property
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-
-from catalog.integrations.obsidian.transforms import LinkResolutionTransform
-from catalog.transform.frontmatter import FrontmatterTransform
-from catalog.ingest.sources import BaseSource
+from typing import Tuple, Union
 
 import yaml
 from agentlayer.logging import get_logger
@@ -38,14 +32,8 @@ logger = get_logger(__name__)
 
 import re
 from typing import List, Any, Dict, Optional
-from llama_index.legacy.llms import MockLLM
-from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.schema import TransformComponent
-from llama_index.core.node_parser import (
-    MarkdownNodeParser,
-    MarkdownElementNodeParser,
-    SentenceSplitter,
-)
+
 # from llama_index.legacy.node_parser.relational.markdown_element import (
 #     MarkdownElementNodeParser,
 # )
@@ -344,7 +332,8 @@ class ObsidianVaultReader(SimpleDirectoryReader):
 
     def __init__(
         self,
-        input_dir: Path,
+        input_dir: Optional[Union[Path, str]] = None,
+        input_files: Optional[list] = None,
         extract_frontmatter: bool = True, # pull Document metadata from YAML frontmatter
         remove_frontmatter_from_text: bool = True, # strip frontmatter out of doc content if it was extracted
         extract_wikilinks: bool = True, # whether to extract wikilinks and backlinks
@@ -402,7 +391,8 @@ class ObsidianVaultReader(SimpleDirectoryReader):
         )
 
         super().__init__(
-            input_dir=str(input_dir),
+            input_dir=input_dir,
+            input_files=input_files,
             required_exts=[".md"],  # Markdown files only
             exclude_hidden=True,  # Exclude .obsidian and hidden files
             exclude_empty=False,  # An empty .md file in Obsidian still has a title
@@ -558,6 +548,7 @@ class ObsidianVaultReader(SimpleDirectoryReader):
             List of Document objects with Obsidian metadata.
         """
         # Filter input files through safety checks before loading
+        # Dont do this for explicit `input_files`, assume the caller knows best
         safe_files = []
         for file_path in self.input_files:
             if self._is_safe_file(file_path):
@@ -626,60 +617,3 @@ class ObsidianVaultReader(SimpleDirectoryReader):
         return docs
 
 
-class ObsidianVaultSource(BaseSource):
-    """Populates a Dataset from an Obsidian vault."""
-    type_name = "obsidian"
-
-    def __init__(
-            self, path: str | Path,
-            vault_schema: type | None = None,
-        ) -> None:
-        """Initialize Obsidian vault source.
-
-        Args:
-            path: Path to the Obsidian vault root directory.
-                Must contain a .obsidian subdirectory.
-            vault_schema: Optional VaultSchema subclass for frontmatter mapping.
-
-        Raises:
-            ValueError: If the path is not a valid Obsidian vault.
-        """
-        self.path = Path(path).resolve()
-        self.vault_schema = vault_schema
-        self.reader = ObsidianVaultReader(
-            input_dir=self.path,
-        )
-        logger.debug(f"Initialized ObsidianVaultSource for vault: {self.path}")
-
-    def get_transforms(self, dataset_id: int) -> list[type]:
-        """Get the list of transforms to apply for this source.
-
-        Returns:
-            Tuple of List of TransformComponent subclasses.
-            [0] is pre-persist, [1] is post-persist
-        """
-        parser = MarkdownNodeParser(
-            include_metadata=True,
-            include_prev_next_rel=True,
-            header_path_separator=" / ",
-        )
-        transforms = (
-            [
-                FrontmatterTransform(vault_schema_cls=self.vault_schema)
-            ],
-            [
-                LinkResolutionTransform(dataset_id=dataset_id),
-                ObsidianMarkdownNormalize(),
-                parser,
-
-            ]
-        )
-
-        return transforms
-
-    @cached_property
-    def documents(self) -> list[Document]:
-        """Load and return all documents from the Obsidian vault."""
-        logger.info(f"Loading documents from Obsidian vault at: {self.path}")
-        docs = self.reader.load_data()
-        return docs

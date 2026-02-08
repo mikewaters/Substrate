@@ -8,7 +8,7 @@ from pydantic import Field
 
 from catalog.ontology.schema import DocumentMeta
 from catalog.integrations.obsidian import VaultSchema
-from catalog.transform.frontmatter import FrontmatterTransform
+from catalog.integrations.obsidian.transforms import FrontmatterTransform
 
 
 def _make_node(**metadata: object) -> LlamaDocument:

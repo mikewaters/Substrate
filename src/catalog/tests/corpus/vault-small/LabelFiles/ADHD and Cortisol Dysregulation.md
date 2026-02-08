@@ -4,6 +4,8 @@ High cortisol at night (wired) and low cortisol in the morning (tired)
 
 Chatgpt4o
 
+[ADHD.md](./ADHD.md)
+
 Individuals with ADHD often experience cortisol dysregulation, which can exacerbate symptoms and lead to additional problems. Here's how cortisol dysregulation affects those with ADHD:
 
 1. **Increased Stress and Anxiety**: Cortisol is a stress hormone, and dysregulation can lead to heightened stress responses. Individuals with ADHD may experience increased anxiety, which can worsen attention and focus issues.

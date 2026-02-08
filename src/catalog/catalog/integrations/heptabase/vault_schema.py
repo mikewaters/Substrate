@@ -13,7 +13,7 @@ Example::
 
 from __future__ import annotations
 
-from catalog.integrations.obsidian.vault_schema import VaultSchema
+from catalog.integrations.obsidian.ontology import VaultSchema
 
 
 class HeptabaseVaultSchema(VaultSchema):

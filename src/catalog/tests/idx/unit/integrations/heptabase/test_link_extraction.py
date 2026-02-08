@@ -94,3 +94,15 @@ And this [relative](relative.md) link is not internal.
         text = "[readme](./readme)"
         result = extract_heptabase_links(text)
         assert result == ["readme"]
+
+    def test_url_encoded_spaces(self):
+        """URL-encoded spaces (%20) in targets are decoded."""
+        text = "[LifeOS Utilities.md](./LifeOS%20Utilities.md)"
+        result = extract_heptabase_links(text)
+        assert result == ["LifeOS Utilities"]
+
+    def test_url_encoded_special_chars(self):
+        """Various URL-encoded characters are decoded."""
+        text = "[Q&A Notes.md](./Q%26A%20Notes.md)"
+        result = extract_heptabase_links(text)
+        assert result == ["Q&A Notes"]

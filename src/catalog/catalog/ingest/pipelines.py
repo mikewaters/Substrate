@@ -39,8 +39,8 @@ from catalog.store.vector import VectorStoreManager
 from catalog.embedding import get_embed_model
 from catalog.ingest.cache import clear_cache
 from catalog.ingest.job import DatasetJob
-from catalog.ingest.schemas import IngestResult, DatasetIngestConfig
-from catalog.ingest.sources import BaseSource, create_source
+from catalog.ingest.schemas import IngestResult
+from catalog.ingest.sources import BaseSource, create_source, DatasetSourceConfig
 from catalog.store.database import get_session
 from catalog.store.dataset import DatasetInfo, DatasetService, normalize_dataset_name
 from catalog.store.session_context import use_session
@@ -74,7 +74,7 @@ class DatasetIngestPipeline(BaseModel):
         chunk_size: Size of text chunks for embedding.
         chunk_overlap: Overlap between adjacent chunks.
     """
-    ingest_config: DatasetIngestConfig
+    ingest_config: DatasetSourceConfig
     embed_model: Optional[BaseEmbedding] = Field(default_factory=get_embed_model)
     chunk_size: Optional[int] = Field(default=768)
     chunk_overlap: Optional[int] = Field(default=96)
@@ -222,7 +222,7 @@ class DatasetIngestPipeline(BaseModel):
             IngestResult with statistics about the operation.
         """
         job: DatasetJob = DatasetJob.from_yaml(config_path)
-        ingest_config: "DatasetIngestConfig" = job.to_ingest_config()
+        ingest_config: "DatasetSourceConfig" = job.to_ingest_config()
         embed_model: "BaseEmbedding" = job.create_embed_model()
         chunk_size: int = job.pipeline.splitter_chunk_size
         chunk_overlap: int = job.pipeline.splitter_chunk_overlap
@@ -250,8 +250,8 @@ if __name__ == "__main__":
     if target.suffix in (".yaml", ".yml"):
         pipeline = DatasetIngestPipeline.from_job_config(target)
     else:
-        from catalog.integrations.obsidian import IngestObsidianConfig
-        config = IngestObsidianConfig(source_path=target, force=force, catalog_name='pkm')
+        from catalog.integrations.obsidian import SourceObsidianConfig
+        config = SourceObsidianConfig(source_path=target, force=force, catalog_name='pkm')
         pipeline = DatasetIngestPipeline(ingest_config=config)
 
     result = pipeline.ingest()

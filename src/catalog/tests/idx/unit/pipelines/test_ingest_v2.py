@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from catalog.core.settings import get_settings
 from catalog.ingest.pipelines_v2 import DatasetIngestPipelineV2
-from catalog.ingest.schemas import IngestDirectoryConfig
+from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.fts import FTSManager, create_fts_table
 from catalog.store.fts_chunk import create_chunks_fts_table
@@ -125,7 +125,7 @@ class TestDatasetIngestPipelineV2:
         self, test_db, db_session, sample_directory: Path
     ) -> None:
         """V2 pipeline creates documents in the database."""
-        config = IngestDirectoryConfig(
+        config = SourceDirectoryConfig(
             source_path=sample_directory,
             dataset_name="test-docs-v2",
         )
@@ -144,7 +144,7 @@ class TestDatasetIngestPipelineV2:
         self, test_db, sample_directory: Path
     ) -> None:
         """V2 pipeline uses ResilientSplitter transform."""
-        config = IngestDirectoryConfig(
+        config = SourceDirectoryConfig(
             source_path=sample_directory,
             dataset_name="test-docs-v2",
         )
@@ -171,7 +171,7 @@ class TestDatasetIngestPipelineV2:
         self, test_db, sample_directory: Path
     ) -> None:
         """V2 pipeline uses EmbeddingPrefixTransform."""
-        config = IngestDirectoryConfig(
+        config = SourceDirectoryConfig(
             source_path=sample_directory,
             dataset_name="test-docs-v2",
         )
@@ -197,7 +197,7 @@ class TestDatasetIngestPipelineV2:
         self, test_db, db_session, sample_directory: Path
     ) -> None:
         """V2 ingest_dataset() method works correctly."""
-        config = IngestDirectoryConfig(
+        config = SourceDirectoryConfig(
             source_path=sample_directory,
             dataset_name="test-docs-v2",
         )
@@ -214,7 +214,7 @@ class TestDatasetIngestPipelineV2:
         mock_embed = MagicMock()
         mock_embed.return_value = [[0.1] * 384]
 
-        config = IngestDirectoryConfig(
+        config = SourceDirectoryConfig(
             source_path=sample_directory,
             dataset_name="test-docs-v2",
         )

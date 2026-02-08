@@ -160,7 +160,7 @@ class FTSChunkManager:
             """),
             {"node_id": node_id, "text": text, "source_doc_id": source_doc_id},
         )
-        logger.debug(f"FTS indexed chunk {node_id} from {source_doc_id}")
+        #logger.debug(f"FTS indexed chunk {node_id} from {source_doc_id}")
 
     def delete(self, node_id: str) -> None:
         """Delete a chunk from the FTS index.

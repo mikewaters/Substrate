@@ -1,5 +1,6 @@
 """Tests for catalog.ingest.job module."""
 
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -77,6 +78,27 @@ class TestSourceConfig:
         )
         assert cfg.options["patterns"] == ["**/*.txt"]
         assert cfg.options["encoding"] == "latin-1"
+
+    def test_if_modified_since_defaults_none(self, tmp_path: Path):
+        """if_modified_since defaults to None."""
+        cfg = SourceConfig(type="obsidian", source_path=tmp_path)
+        assert cfg.if_modified_since is None
+
+    def test_if_modified_since_accepts_datetime(self, tmp_path: Path):
+        """if_modified_since accepts a datetime value."""
+        ts = datetime(2025, 6, 1, tzinfo=timezone.utc)
+        cfg = SourceConfig(type="obsidian", source_path=tmp_path, if_modified_since=ts)
+        assert cfg.if_modified_since == ts
+
+    def test_incremental_defaults_false(self, tmp_path: Path):
+        """incremental defaults to False."""
+        cfg = SourceConfig(type="obsidian", source_path=tmp_path)
+        assert cfg.incremental is False
+
+    def test_incremental_true(self, tmp_path: Path):
+        """incremental can be set to True."""
+        cfg = SourceConfig(type="obsidian", source_path=tmp_path, incremental=True)
+        assert cfg.incremental is True
 
 
 class TestEmbeddingConfig:
@@ -168,8 +190,8 @@ class TestDatasetJob:
         })
         config = job.to_ingest_config()
 
-        from catalog.integrations.obsidian import IngestObsidianConfig
-        assert isinstance(config, IngestObsidianConfig)
+        from catalog.integrations.obsidian import SourceObsidianConfig
+        assert isinstance(config, SourceObsidianConfig)
         assert config.source_path == vault_dir
         assert config.dataset_name == "my-vault"
         assert config.force is False
@@ -326,7 +348,7 @@ class TestCreateIngestConfig:
     def test_directory_source_type(self, tmp_path: Path):
         """Directory source type creates IngestDirectoryConfig."""
         from catalog.ingest.sources import create_ingest_config
-        from catalog.ingest.schemas import IngestDirectoryConfig
+        from catalog.ingest.directory import SourceDirectoryConfig
 
         cfg = SourceConfig(
             type="directory",
@@ -336,7 +358,7 @@ class TestCreateIngestConfig:
         )
         config = create_ingest_config(cfg)
 
-        assert isinstance(config, IngestDirectoryConfig)
+        assert isinstance(config, SourceDirectoryConfig)
         assert config.source_path == tmp_path
         assert config.dataset_name == "test-dir"
         assert config.patterns == ["**/*.txt"]

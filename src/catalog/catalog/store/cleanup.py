@@ -276,8 +276,8 @@ def cleanup_stale_documents(
     # Enumerate source paths
     source = DirectorySource(source_path, patterns=patterns)
     source_paths: set[str] = set()
-    for doc in source.enumerate():
-        source_paths.add(doc.relative_path)
+    for doc in source.documents:
+        source_paths.add(doc.metadata["relative_path"])
 
     # Get indexed paths from database
     doc_repo = DocumentRepository(session)

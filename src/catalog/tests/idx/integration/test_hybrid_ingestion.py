@@ -171,7 +171,9 @@ class TestIdempotentIngestion:
         session_factory,
         sample_vault: Path,
     ) -> None:
-        """Node IDs follow the format {content_hash}:{chunk_seq}."""
+        """Node IDs are deterministic UUID5 values (Qdrant-compatible)."""
+        import uuid
+
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
@@ -185,18 +187,11 @@ class TestIdempotentIngestion:
             result = session.execute(sql_text("SELECT node_id FROM chunks_fts LIMIT 10"))
             node_ids = [row.node_id for row in result]
 
+        assert len(node_ids) > 0, "Should have at least one chunk"
         for node_id in node_ids:
-            # Format: {content_hash}:{chunk_seq}
-            assert ":" in node_id, f"Node ID should contain ':': {node_id}"
-            parts = node_id.rsplit(":", 1)
-            assert len(parts) == 2, f"Node ID should have two parts: {node_id}"
-
-            content_hash, chunk_seq = parts
-            # Content hash should be hex string
-            assert all(c in "0123456789abcdef" for c in content_hash.lower()), \
-                f"Content hash should be hex: {content_hash}"
-            # Chunk seq should be numeric
-            assert chunk_seq.isdigit(), f"Chunk seq should be numeric: {chunk_seq}"
+            # Node IDs are UUID5 (deterministic, Qdrant-compatible)
+            parsed = uuid.UUID(node_id)
+            assert parsed.version == 5, f"Node ID should be UUID5: {node_id}"
 
 
 class TestNoDuplicates:

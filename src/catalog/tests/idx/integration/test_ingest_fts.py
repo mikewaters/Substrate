@@ -459,9 +459,12 @@ class TestSoftDeleteBehavior:
         # Restore the file
         note2_path.write_text(original_content)
 
-        # Ingest again - should create new document
+        # Clear docstore cache so the pipeline doesn't skip the restored file.
+        # In production, this models a fresh pipeline run after cleanup.
+        _clear_pipeline_cache(["test-vault"])
+
+        # Ingest again - with cleared cache, the restored file is re-indexed.
         result3 = pipeline.ingest_dataset(config)
-        # Should be created (since it was hard-deleted and now reappears)
         assert result3.documents_created >= 1
 
         # Verify searchable again

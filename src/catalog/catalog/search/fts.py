@@ -100,7 +100,7 @@ class FTSSearch:
         raw_results = self._fts.search_with_scores(
             criteria.query,
             limit=criteria.limit,
-            dataset_filter=dataset_filter,
+            parent_filter=dataset_filter,
         )
 
         # Convert to SearchResult objects
@@ -168,7 +168,7 @@ class FTSSearch:
             text("""
                 SELECT ds.name
                 FROM documents d
-                JOIN datasets ds ON ds.id = d.dataset_id
+                JOIN datasets ds ON ds.id = d.parent_id
                 WHERE d.id = :doc_id
             """),
             {"doc_id": doc_id},

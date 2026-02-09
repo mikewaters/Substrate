@@ -1,11 +1,10 @@
 """Integration test: Obsidian vault with cross-linking notes → ingest → query links from DB.
 
-Exercises the full pipeline: ObsidianVaultReader → FrontmatterTransform →
+Exercises the full pipeline: ObsidianVaultReader → OntologyMapper →
 PersistenceTransform → LinkResolutionTransform, then queries DocumentLink
 rows to verify forward links and backlinks are queryable.
 """
 
-import json
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator
@@ -19,12 +18,12 @@ from catalog.integrations.obsidian import ObsidianVaultReader
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.dataset import DatasetService
 from catalog.store.fts import create_fts_table
-from catalog.store.models import DocumentLink, DocumentLinkKind
+from catalog.store.models import DocumentLinkKind
 from catalog.store.repositories import DocumentLinkRepository
 from catalog.store.session_context import use_session
-from catalog.integrations.obsidian.transforms import FrontmatterTransform
 from catalog.integrations.obsidian import LinkResolutionTransform
 from catalog.transform.llama import PersistenceTransform
+from catalog.transform.ontology import OntologyMapper
 
 
 # ---------------------------------------------------------------------------
@@ -129,11 +128,11 @@ def _run_pipeline(
     )
 
     persist = PersistenceTransform(dataset_id=dataset.id)
-    frontmatter = FrontmatterTransform()
+    mapper = OntologyMapper()
     link_resolve = LinkResolutionTransform(dataset_id=dataset.id)
 
     pipeline = IngestionPipeline(
-        transformations=[frontmatter, persist, link_resolve],
+        transformations=[mapper, persist, link_resolve],
     )
 
     reader = ObsidianVaultReader(vault_path)

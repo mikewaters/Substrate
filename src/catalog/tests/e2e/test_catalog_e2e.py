@@ -18,7 +18,7 @@ from sqlalchemy import text
 
 from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.ingest.pipelines import DatasetIngestPipeline
-from catalog.integrations.obsidian import VaultSchema
+from catalog.integrations.obsidian import VaultSpec
 from catalog.integrations.obsidian.source import SourceObsidianConfig
 from catalog.search.fts import FTSSearch
 from catalog.search.models import SearchCriteria
@@ -34,7 +34,7 @@ from .conftest import E2EInfra
 # Vault schema for ontology test
 # ---------------------------------------------------------------------------
 
-class SampleVaultSchema(VaultSchema):
+class SampleVaultSpec(VaultSpec):
     """Schema for the ontology test vault frontmatter."""
 
     tags: list[str] = Field(default_factory=list, json_schema_extra={"maps_to": "tags"})
@@ -243,7 +243,7 @@ class TestFrontmatterOntology:
         config = SourceObsidianConfig(
             source_path=ontology_vault,
             dataset_name="ontology-test-vault",
-            ontology_spec=SampleVaultSchema,
+            ontology_spec=SampleVaultSpec,
         )
         result = pipeline.ingest_dataset(config)
         assert result.documents_created == 5

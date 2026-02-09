@@ -10,8 +10,9 @@ from llama_index.core.node_parser import MarkdownNodeParser
 from pydantic import model_validator
 
 from catalog.ingest.sources import BaseSource, DatasetSourceConfig
+from catalog.ontology import OntologyMappingSpec
 from catalog.integrations.obsidian.reader import ObsidianVaultReader, logger, ObsidianMarkdownNormalize
-from catalog.integrations.obsidian.transforms import FrontmatterTransform, LinkResolutionTransform
+from catalog.integrations.obsidian.transforms import LinkResolutionTransform
 
 
 class ObsidianVaultSource(BaseSource):
@@ -20,7 +21,7 @@ class ObsidianVaultSource(BaseSource):
 
     def __init__(
             self, path: str | Path,
-            ontology_spec: type | None = None,
+            ontology_spec: type[OntologyMappingSpec] | None = None,
             if_modified_since: datetime | None = None,
         ) -> None:
         """Initialize Obsidian vault source.
@@ -28,7 +29,7 @@ class ObsidianVaultSource(BaseSource):
         Args:
             path: Path to the Obsidian vault root directory.
                 Must contain a .obsidian subdirectory.
-            ontology_spec: Optional VaultSchema subclass for frontmatter mapping.
+            ontology_spec: Optional OntologyMappingSpec subclass for frontmatter mapping.
             if_modified_since: If set, only ingest files modified at or after
                 this timestamp.
 
@@ -65,9 +66,7 @@ class ObsidianVaultSource(BaseSource):
             header_path_separator=" / ",
         )
         transforms = (
-            [
-                FrontmatterTransform(ontology_spec_cls=self.ontology_spec)
-            ],
+            [],
             [
                 LinkResolutionTransform(dataset_id=dataset_id),
                 ObsidianMarkdownNormalize(),
@@ -93,10 +92,10 @@ class SourceObsidianConfig(DatasetSourceConfig):
         source_path: Path to the Obsidian vault.
         dataset_name: Name for the dataset (will be normalized).
         force: If True, reprocess all documents even if unchanged.
-        ontology_spec: Optional VaultSchema subclass for typed frontmatter mapping.
+        ontology_spec: Optional VaultSpec subclass for typed frontmatter mapping.
     """
     type_name: str = "obsidian"
-    ontology_spec: type | None = None
+    ontology_spec: type[OntologyMappingSpec] | None = None
     @model_validator(mode="after")
     def validate_source_path(self) -> "SourceObsidianConfig":
         """Validate that the given path is a valid Obsidian vault."""

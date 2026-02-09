@@ -123,7 +123,7 @@ Entry point: `DatasetJob.from_yaml(path)` via YAML configuration file.
    |                 |                 |                |───────────────>|                 |                |              |
    |                 |                 |                |                |                 |                |              |
    |                 |                 |                |                | returns:        |                |              |
-   |                 |                 |                |                |  pre:  [FrontmatterTransform]    |              |
+   |                 |                 |                |                |  pre:  []                  |              |
    |                 |                 |                |                |  post: [LinkResolutionTransform, |              |
    |                 |                 |                |                |         ObsidianMarkdownNormalize,               |
    |                 |                 |                |                |         MarkdownNodeParser]      |              |
@@ -144,7 +144,7 @@ Entry point: `DatasetJob.from_yaml(path)` via YAML configuration file.
    |                 |                 |                |  embed_model (from _get_embed_model())            |              |
    |                 |                 |                |                |                 |                |              |
    |                 |                 |                |  transformations = [              |                |              |
-   |                 |                 |                |    *pre_transforms,   <-- source-specific         |              |
+   |                 |                 |                |    OntologyMapper,                |                |              |
    |                 |                 |                |    persist,                       |                |              |
    |                 |                 |                |    *post_transforms,  <-- source-specific         |              |
    |                 |                 |                |    splitter,                      |                |              |
@@ -197,7 +197,7 @@ Entry point: `DatasetJob.from_yaml(path)` via YAML configuration file.
    |                 |                 |                |                |                 |                |              |
    |                 |                 |                | For each document, transforms run in order:       |              |
    |                 |                 |                |                |                 |                |              |
-   |                 |                 |                | ---- 6a. FrontmatterTransform (pre-persist) ----  |              |
+   |                 |                 |                | ---- 6a. OntologyMapper (pre-persist) ----  |              |
    |                 |                 |                |   parse YAML frontmatter from metadata            |              |
    |                 |                 |                |   derive title (frontmatter -> aliases -> name)   |              |
    |                 |                 |                |   derive description                              |              |
@@ -361,4 +361,4 @@ Entry point: `DatasetJob.from_yaml(path)` via YAML configuration file.
 - **Change detection**: `PersistenceTransform` pre-fetches existing documents and compares SHA-256 content hashes. Unchanged docs (when `force=False`) are skipped but still passed downstream for vector embedding.
 - **Qdrant auto-persist**: `persist_vector_store()` is a no-op since Qdrant in local mode auto-persists. The call is kept for API compatibility.
 - **Pipeline cache**: `load_pipeline()` / `persist_pipeline()` save and restore the LlamaIndex docstore state to disk for incremental ingestion across runs.
-- **Obsidian-specific path**: When `source.type == "obsidian"`, the source provides extra pre/post transforms (FrontmatterTransform, LinkResolution, etc.). For `directory` sources, both transform lists are empty.
+- **Source-specific path**: Sources provide post-persist transforms (LinkResolution, normalization, parsing). OntologyMapper is injected by the pipeline using `source.ontology_spec`. For `directory` sources, both transform lists are empty.

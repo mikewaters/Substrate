@@ -51,14 +51,14 @@ class TestHeptabaseSourceRegistration:
             source_path=tmp_path,
             dataset_name="test-export",
             options={
-                "ontology_spec": "catalog.integrations.heptabase.ontology_spec.HeptabaseVaultSchema",
+                "ontology_spec": "catalog.integrations.heptabase.vault_schema.HeptabaseVaultSpec",
             },
         )
         config = create_ingest_config(source_config)
         assert isinstance(config, SourceHeptabaseConfig)
 
-        from catalog.integrations.heptabase.ontology_spec import HeptabaseVaultSchema
-        assert config.ontology_spec is HeptabaseVaultSchema
+        from catalog.integrations.heptabase.vault_schema import HeptabaseVaultSpec
+        assert config.ontology_spec is HeptabaseVaultSpec
 
 
 class TestHeptabaseVaultSourceModifiedSince:

@@ -6,7 +6,6 @@ for persistence and indexing.
 
 from catalog.transform.chunker import Chunk, ChunkerTransform, LineChunker
 from catalog.transform.embedding import EmbeddingPrefixTransform
-from catalog.integrations.obsidian.transforms import FrontmatterTransform
 from catalog.transform.llama import FTSIndexerTransform, TextNormalizerTransform
 from catalog.transform.normalize import (
                                      MimeDetector,
@@ -16,6 +15,7 @@ from catalog.transform.normalize import (
                                      is_text_file,
                                      is_text_mime,
 )
+from catalog.transform.ontology import OntologyMapper
 from catalog.transform.splitter import ResilientSplitter, SizeAwareChunkSplitter
 
 __all__ = [
@@ -25,6 +25,7 @@ __all__ = [
     "FTSIndexerTransform",
     "LineChunker",
     "MimeDetector",
+    "OntologyMapper",
     "ResilientSplitter",
     "SizeAwareChunkSplitter",
     "TextNormalizer",

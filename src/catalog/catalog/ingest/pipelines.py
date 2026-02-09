@@ -50,7 +50,7 @@ from catalog.store.fts import FTSManager
 from catalog.store.repositories import DatasetRepository, DocumentRepository
 from catalog.store.session_context import use_session
 from catalog.store.vector import VectorStoreManager
-from catalog.transform import EmbeddingPrefixTransform, ResilientSplitter
+from catalog.transform import EmbeddingPrefixTransform, OntologyMapper, ResilientSplitter
 from catalog.transform.llama import ChunkPersistenceTransform, PersistenceTransform
 
 __all__ = [
@@ -154,9 +154,13 @@ class DatasetIngestPipeline(BaseModel):
         # Embedding model
         embed_model = self._get_embed_model()
 
+        ontology_mapper = OntologyMapper(
+            ontology_spec_cls=getattr(self.source, "ontology_spec", None),
+        )
+
         # Build transformation chain
         transformations = [
-            *source_transforms[0],  # Pre-persist source transforms
+            ontology_mapper,
             persist,
             *source_transforms[1],  # Post-persist source transforms
             splitter,

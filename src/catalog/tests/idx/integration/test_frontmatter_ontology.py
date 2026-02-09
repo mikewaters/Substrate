@@ -1,6 +1,6 @@
 """Integration tests for frontmatter → ontology metadata through the ingestion pipeline.
 
-Exercises FrontmatterTransform within a LlamaIndex IngestionPipeline (the same
+Exercises OntologyMapper within a LlamaIndex IngestionPipeline (the same
 pipeline shape used by DatasetIngestPipeline.ingest_dataset()), verifying that raw
 YAML frontmatter is validated, converted to DocumentMeta, and persisted as
 structured ontology metadata in the database.
@@ -18,12 +18,12 @@ from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from catalog.integrations.obsidian import ObsidianVaultReader
-from catalog.integrations.obsidian import VaultSchema
+from catalog.integrations.obsidian import VaultSpec
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.dataset import DatasetService
 from catalog.store.fts import create_fts_table
 from catalog.store.session_context import use_session
-from catalog.integrations.obsidian.transforms import FrontmatterTransform
+from catalog.transform.ontology import OntologyMapper
 from catalog.transform.llama import PersistenceTransform
 
 
@@ -31,7 +31,7 @@ from catalog.transform.llama import PersistenceTransform
 # Test vault schema
 # ---------------------------------------------------------------------------
 
-class SampleVaultSchema(VaultSchema):
+class SampleVaultSpec(VaultSpec):
     """Schema for the test vault frontmatter."""
 
     tags: list[str] = Field(default_factory=list, json_schema_extra={"maps_to": "tags"})
@@ -147,12 +147,12 @@ def _run_pipeline(
     session: Session,
     vault_path: Path,
     dataset_name: str,
-    ontology_spec_cls: type[VaultSchema] | None = None,
+    ontology_spec_cls: type[VaultSpec] | None = None,
 ) -> int:
     """Run a pipeline identical to DatasetIngestPipeline.ingest_dataset().
 
     Reads documents with ObsidianVaultReader, transforms through
-    FrontmatterTransform + PersistenceTransform, and returns the count
+    OntologyMapper + PersistenceTransform, and returns the count
     of nodes produced.
     """
     dataset = DatasetService.create_or_update(
@@ -163,10 +163,10 @@ def _run_pipeline(
     )
 
     persist = PersistenceTransform(dataset_id=dataset.id)
-    frontmatter = FrontmatterTransform(ontology_spec_cls=ontology_spec_cls)
+    mapper = OntologyMapper(ontology_spec_cls=ontology_spec_cls)
 
     pipeline = IngestionPipeline(
-        transformations=[frontmatter, persist],
+        transformations=[mapper, persist],
     )
 
     reader = ObsidianVaultReader(vault_path)
@@ -176,11 +176,11 @@ def _run_pipeline(
 
 
 # ---------------------------------------------------------------------------
-# Tests — with VaultSchema
+# Tests — with VaultSpec
 # ---------------------------------------------------------------------------
 
 class TestFrontmatterOntologyWithSchema:
-    """Full pipeline run with a VaultSchema validates and maps frontmatter."""
+    """Full pipeline run with a VaultSpec validates and maps frontmatter."""
 
     def test_ingest_creates_documents_with_ontology_metadata(
         self,
@@ -192,7 +192,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 count = _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    ontology_spec_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSpec,
                 )
 
         assert count == 5
@@ -224,7 +224,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    ontology_spec_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSpec,
                 )
 
         with create_session(session_factory) as session:
@@ -259,7 +259,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    ontology_spec_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSpec,
                 )
 
         with create_session(session_factory) as session:
@@ -284,7 +284,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    ontology_spec_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSpec,
                 )
 
         with create_session(session_factory) as session:
@@ -309,7 +309,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    ontology_spec_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSpec,
                 )
 
         with create_session(session_factory) as session:
@@ -335,7 +335,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    ontology_spec_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSpec,
                 )
 
         with create_session(session_factory) as session:
@@ -360,7 +360,7 @@ class TestFrontmatterOntologyWithSchema:
             with use_session(session):
                 _run_pipeline(
                     session, ontology_vault, "ontology-test-vault",
-                    ontology_spec_cls=SampleVaultSchema,
+                    ontology_spec_cls=SampleVaultSpec,
                 )
 
         with create_session(session_factory) as session:
@@ -377,11 +377,11 @@ class TestFrontmatterOntologyWithSchema:
 
 
 # ---------------------------------------------------------------------------
-# Tests — without VaultSchema (best-effort mode)
+# Tests — without VaultSpec (best-effort mode)
 # ---------------------------------------------------------------------------
 
 class TestFrontmatterOntologyBestEffort:
-    """Pipeline without a VaultSchema still produces ontology metadata."""
+    """Pipeline without a VaultSpec still produces ontology metadata."""
 
     def test_best_effort_tags_and_title(
         self,

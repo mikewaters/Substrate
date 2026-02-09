@@ -11,7 +11,7 @@ Example YAML::
       type: obsidian
       source_path: /Users/mike/Obsidian/MyVault
       options:
-        ontology_spec: catalog.integrations.obsidian.ontology_spec.VaultSchema
+        ontology_spec: catalog.integrations.obsidian.ontology.VaultSpec
 
     embedding:
       backend: mlx
@@ -64,7 +64,7 @@ def _import_class(dotted_path: str) -> type:
 
     Args:
         dotted_path: Fully-qualified class path, e.g.
-            ``"catalog.integrations.obsidian.ontology_spec.VaultSchema"``.
+            ``"catalog.integrations.obsidian.ontology.VaultSpec"``.
 
     Returns:
         The resolved class.

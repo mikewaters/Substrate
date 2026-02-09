@@ -62,12 +62,12 @@ class TestSourceConfig:
             type="obsidian",
             source_path=tmp_path,
             dataset_name="my-vault",
-            options={"ontology_spec": "catalog.integrations.obsidian.ontology_spec.VaultSchema"},
+            options={"ontology_spec": "catalog.integrations.obsidian.ontology.VaultSpec"},
             force=True,
         )
         assert cfg.dataset_name == "my-vault"
         assert cfg.force is True
-        assert cfg.options["ontology_spec"] == "catalog.integrations.obsidian.ontology_spec.VaultSchema"
+        assert cfg.options["ontology_spec"] == "catalog.integrations.obsidian.ontology.VaultSpec"
 
     def test_with_options(self, tmp_path: Path):
         """Source config with integration-specific options."""

@@ -1,21 +1,21 @@
-"""Tests for catalog.integrations.obsidian.ontology_spec — VaultSchema mapping."""
+"""Tests for catalog.integrations.obsidian.ontology — VaultSpec mapping."""
 
 import pytest
 from pydantic import Field
 
 from catalog.ontology.schema import DocumentMeta
-from catalog.integrations.obsidian import VaultSchema
+from catalog.integrations.obsidian import VaultSpec
 
 
 # --- Test schemas ---
 
-class SimpleSchema(VaultSchema):
+class SimpleSchema(VaultSpec):
     """Minimal schema with basic mappings."""
     tags: list[str] = Field(default_factory=list, json_schema_extra={"maps_to": "tags"})
     aliases: list[str] = Field(default_factory=list)  # no maps_to -> extra
 
 
-class FullSchema(VaultSchema):
+class FullSchema(VaultSpec):
     """Schema exercising all ontology targets."""
     tags: list[str] = Field(default_factory=list, json_schema_extra={"maps_to": "tags"})
     note_type: str | None = Field(None, json_schema_extra={"maps_to": "categories"})

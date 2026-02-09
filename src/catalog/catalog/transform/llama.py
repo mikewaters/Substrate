@@ -458,12 +458,12 @@ class PersistenceTransform(TransformComponent):
         """Extract metadata as JSON string.
 
         Prefers structured ontology metadata if present (written by
-        FrontmatterTransform). Falls back to filtered raw metadata.
+        OntologyMapper). Falls back to filtered raw metadata.
         """
         if not node.metadata:
             return None
 
-        # Prefer structured ontology if FrontmatterTransform ran.
+        # Prefer structured ontology if OntologyMapper ran.
         ontology = node.metadata.get("_ontology_meta")
         if ontology is not None:
             return json.dumps(ontology)
@@ -869,5 +869,4 @@ class ChunkPersistenceTransform(TransformComponent):
         #logger.debug(
         #    f"Persisted chunk {node_id} (seq={chunk_seq}) from {source_doc_id}"
         #)
-
 

@@ -3,7 +3,7 @@
 ## Problem
 
 `PersistenceTransform` uses `SHA256(body)` to decide whether to skip a document. Because
-`FrontmatterTransform` strips frontmatter into `node.metadata` before persistence, metadata-only
+`OntologyMapper` strips frontmatter into `node.metadata` before persistence, metadata-only
 changes (tags, title, categories, description) produce the same body hash. The document is
 incorrectly skipped, and updated metadata is never re-ingested.
 

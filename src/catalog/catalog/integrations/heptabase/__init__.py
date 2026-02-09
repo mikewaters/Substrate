@@ -1,7 +1,7 @@
 """catalog.integrations.heptabase - Heptabase export integration.
 
 Reads markdown exports from Heptabase. Reuses Obsidian vault reading
-infrastructure with Heptabase-specific link extraction and vault schema.
+infrastructure with Heptabase-specific link extraction and ontology specs.
 """
 
 from typing import TYPE_CHECKING
@@ -12,7 +12,7 @@ from catalog.integrations.heptabase.reader import (
     HeptabaseVaultSource,
 )
 from catalog.integrations.heptabase.source import SourceHeptabaseConfig
-from catalog.integrations.heptabase.ontology_spec import HeptabaseVaultSchema
+from catalog.integrations.heptabase.vault_schema import HeptabaseVaultSpec
 
 from catalog.ingest.sources import (
     create_reader,
@@ -29,7 +29,7 @@ def create_heptabase_ingest_config(source_config: "SourceConfig") -> SourceHepta
     """Create IngestHeptabaseConfig from generic SourceConfig.
 
     Interprets heptabase-specific options:
-        - ontology_spec: Dotted path to VaultSchema subclass for frontmatter mapping.
+        - ontology_spec: Dotted path to VaultSpec subclass for frontmatter mapping.
 
     Args:
         source_config: Generic source configuration from YAML job file.
@@ -70,7 +70,7 @@ def _(config: SourceHeptabaseConfig):
 
 __all__ = [
     "HeptabaseVaultReader",
-    "HeptabaseVaultSchema",
+    "HeptabaseVaultSpec",
     "HeptabaseVaultSource",
     "SourceHeptabaseConfig",
     "extract_heptabase_links",

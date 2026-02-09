@@ -5,6 +5,7 @@ from typing import Any, Dict
 from pydantic import model_validator
 
 from catalog.ingest.sources import DatasetSourceConfig
+from catalog.ontology import OntologyMappingSpec
 
 
 class SourceHeptabaseConfig(DatasetSourceConfig):
@@ -14,11 +15,11 @@ class SourceHeptabaseConfig(DatasetSourceConfig):
         source_path: Path to the Heptabase export directory.
         dataset_name: Name for the dataset (will be normalized).
         force: If True, reprocess all documents even if unchanged.
-        ontology_spec: Optional VaultSchema subclass for typed frontmatter mapping.
+        ontology_spec: Optional OntologyMappingSpec subclass for typed frontmatter mapping.
     """
 
     type_name: str = "heptabase"
-    ontology_spec: type | None = None
+    ontology_spec: type[OntologyMappingSpec] | None = None
 
     @model_validator(mode="after")
     def validate_source_path(self) -> "SourceHeptabaseConfig":

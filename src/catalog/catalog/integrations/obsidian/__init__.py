@@ -18,7 +18,7 @@ from catalog.integrations.obsidian.transforms import (
     LinkResolutionStats,
     LinkResolutionTransform,
 )
-from catalog.integrations.obsidian.ontology import VaultSchema
+from catalog.integrations.obsidian.ontology import VaultSpec
 
 from catalog.ingest.sources import (
     create_reader,
@@ -35,7 +35,7 @@ def create_obsidian_ingest_config(source_config: "SourceConfig") -> SourceObsidi
     """Create IngestObsidianConfig from generic SourceConfig.
 
     Interprets obsidian-specific options:
-        - ontology_spec: Dotted path to VaultSchema subclass for frontmatter mapping.
+        - ontology_spec: Dotted path to VaultSpec subclass for frontmatter mapping.
 
     Args:
         source_config: Generic source configuration from YAML job file.
@@ -81,7 +81,7 @@ __all__ = [
     "ObsidianMarkdownReader",
     "ObsidianVaultReader",
     "ObsidianVaultSource",
-    "VaultSchema",
+    "VaultSpec",
     "extract_tasks",
     "extract_wikilinks",
     "parse_frontmatter",

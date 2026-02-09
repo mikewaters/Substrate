@@ -4,9 +4,9 @@ Defines the canonical DocumentMeta dataclass that all source-specific
 schemas map into. This is the structured metadata that gets persisted
 alongside documents in the catalog store.
 
-Also provides the ``FrontmatterSchema`` Protocol so that
-FrontmatterTransform can accept any schema implementation without
-depending on a concrete class like VaultSchema.
+Also provides the ``OntologyMappingSpec`` Protocol so that
+OntologyMapper can accept any mapping implementation without
+depending on a concrete class like VaultSpec.
 """
 
 from __future__ import annotations
@@ -69,15 +69,15 @@ class DocumentMeta:
 
 
 @runtime_checkable
-class FrontmatterSchema(Protocol):
-    """Protocol for frontmatter schema implementations.
+class OntologyMappingSpec(Protocol):
+    """Protocol for ontology mapping spec implementations.
 
     Any class that provides ``from_frontmatter()`` and ``to_document_meta()``
-    satisfies this protocol, decoupling FrontmatterTransform from VaultSchema's
+    satisfies this protocol, decoupling OntologyMapper from VaultSpec's
     concrete location.
     """
 
     @classmethod
-    def from_frontmatter(cls, raw: dict[str, Any]) -> FrontmatterSchema: ...
+    def from_frontmatter(cls, raw: dict[str, Any]) -> OntologyMappingSpec: ...
 
     def to_document_meta(self) -> DocumentMeta: ...

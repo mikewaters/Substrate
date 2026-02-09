@@ -21,8 +21,9 @@ from catalog.integrations.obsidian.reader import (
     ObsidianMarkdownNormalize,
     ObsidianVaultReader,
 )
-from catalog.integrations.obsidian.transforms import LinkResolutionTransform, FrontmatterTransform
+from catalog.integrations.obsidian.transforms import LinkResolutionTransform
 from catalog.ingest.sources import BaseSource
+from catalog.ontology import OntologyMappingSpec
 from catalog.store.models import DocumentLinkKind
 
 __all__ = [
@@ -69,14 +70,14 @@ class HeptabaseVaultSource(BaseSource):
     def __init__(
         self,
         path: str | Path,
-        ontology_spec: type | None = None,
+        ontology_spec: type[OntologyMappingSpec] | None = None,
         if_modified_since: datetime | None = None,
     ) -> None:
         """Initialize Heptabase source.
 
         Args:
             path: Path to the Heptabase export root directory.
-            ontology_spec: Optional VaultSchema subclass for frontmatter mapping.
+            ontology_spec: Optional OntologyMappingSpec subclass for frontmatter mapping.
             if_modified_since: If set, only ingest files modified at or after
                 this timestamp.
         """
@@ -109,7 +110,7 @@ class HeptabaseVaultSource(BaseSource):
             header_path_separator=" / ",
         )
         transforms = (
-            [FrontmatterTransform(ontology_spec_cls=self.ontology_spec)],
+            [],
             [
                 LinkResolutionTransform(
                     dataset_id=dataset_id,

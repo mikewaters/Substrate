@@ -1,4 +1,4 @@
-"""Tests for catalog.transform.frontmatter — FrontmatterTransform."""
+"""Tests for catalog.transform.ontology — OntologyMapper."""
 
 import json
 
@@ -6,9 +6,8 @@ import pytest
 from llama_index.core.schema import Document as LlamaDocument
 from pydantic import Field
 
-from catalog.ontology.schema import DocumentMeta
-from catalog.integrations.obsidian import VaultSchema
-from catalog.integrations.obsidian.transforms import FrontmatterTransform
+from catalog.integrations.obsidian import VaultSpec
+from catalog.transform.ontology import OntologyMapper
 
 
 def _make_node(**metadata: object) -> LlamaDocument:
@@ -18,7 +17,7 @@ def _make_node(**metadata: object) -> LlamaDocument:
 
 # --- Test vault schema for use in tests ---
 
-class SampleVaultSchema(VaultSchema):
+class SampleVaultSpec(VaultSpec):
     tags: list[str] = Field(default_factory=list, json_schema_extra={"maps_to": "tags"})
     note_type: str | None = Field(None, json_schema_extra={"maps_to": "categories"})
     aliases: list[str] = Field(default_factory=list)
@@ -31,10 +30,10 @@ class TestTitleDerivation:
     """Title is derived with correct priority ordering."""
 
     @pytest.fixture
-    def transform(self) -> FrontmatterTransform:
-        return FrontmatterTransform()
+    def transform(self) -> OntologyMapper:
+        return OntologyMapper()
 
-    def test_frontmatter_title_wins(self, transform: FrontmatterTransform) -> None:
+    def test_frontmatter_title_wins(self, transform: OntologyMapper) -> None:
         node = _make_node(
             frontmatter={"title": "FM Title", "aliases": ["Alias1"]},
             note_name="NoteName",
@@ -42,7 +41,7 @@ class TestTitleDerivation:
         [result] = transform([node])
         assert result.metadata["title"] == "FM Title"
 
-    def test_first_alias_when_no_title(self, transform: FrontmatterTransform) -> None:
+    def test_first_alias_when_no_title(self, transform: OntologyMapper) -> None:
         node = _make_node(
             frontmatter={"aliases": ["Alias1", "Alias2"]},
             note_name="NoteName",
@@ -50,17 +49,17 @@ class TestTitleDerivation:
         [result] = transform([node])
         assert result.metadata["title"] == "Alias1"
 
-    def test_note_name_fallback(self, transform: FrontmatterTransform) -> None:
+    def test_note_name_fallback(self, transform: OntologyMapper) -> None:
         node = _make_node(frontmatter={}, note_name="My Note Name")
         [result] = transform([node])
         assert result.metadata["title"] == "My Note Name"
 
-    def test_note_name_when_no_frontmatter(self, transform: FrontmatterTransform) -> None:
+    def test_note_name_when_no_frontmatter(self, transform: OntologyMapper) -> None:
         node = _make_node(note_name="Fallback Name")
         [result] = transform([node])
         assert result.metadata["title"] == "Fallback Name"
 
-    def test_empty_title_skipped(self, transform: FrontmatterTransform) -> None:
+    def test_empty_title_skipped(self, transform: OntologyMapper) -> None:
         node = _make_node(
             frontmatter={"title": "   ", "aliases": ["Good Alias"]},
             note_name="NoteName",
@@ -68,7 +67,7 @@ class TestTitleDerivation:
         [result] = transform([node])
         assert result.metadata["title"] == "Good Alias"
 
-    def test_title_is_stripped(self, transform: FrontmatterTransform) -> None:
+    def test_title_is_stripped(self, transform: OntologyMapper) -> None:
         node = _make_node(
             frontmatter={"title": "  Padded Title  "},
             note_name="NoteName",
@@ -83,10 +82,10 @@ class TestDescriptionDerivation:
     """Description is derived with correct priority ordering."""
 
     @pytest.fixture
-    def transform(self) -> FrontmatterTransform:
-        return FrontmatterTransform()
+    def transform(self) -> OntologyMapper:
+        return OntologyMapper()
 
-    def test_frontmatter_description_wins(self, transform: FrontmatterTransform) -> None:
+    def test_frontmatter_description_wins(self, transform: OntologyMapper) -> None:
         node = _make_node(
             frontmatter={"description": "FM Desc"},
             summary="Summary text",
@@ -95,7 +94,7 @@ class TestDescriptionDerivation:
         [result] = transform([node])
         assert result.metadata["description"] == "FM Desc"
 
-    def test_summary_fallback(self, transform: FrontmatterTransform) -> None:
+    def test_summary_fallback(self, transform: OntologyMapper) -> None:
         node = _make_node(
             frontmatter={},
             summary="Summary text",
@@ -104,12 +103,12 @@ class TestDescriptionDerivation:
         [result] = transform([node])
         assert result.metadata["description"] == "Summary text"
 
-    def test_none_when_nothing_available(self, transform: FrontmatterTransform) -> None:
+    def test_none_when_nothing_available(self, transform: OntologyMapper) -> None:
         node = _make_node(frontmatter={}, note_name="N")
         [result] = transform([node])
         assert result.metadata["description"] is None
 
-    def test_empty_description_skipped(self, transform: FrontmatterTransform) -> None:
+    def test_empty_description_skipped(self, transform: OntologyMapper) -> None:
         node = _make_node(
             frontmatter={"description": "   "},
             summary="Good Summary",
@@ -125,7 +124,7 @@ class TestOntologyMetadata:
     """_ontology_meta is written correctly."""
 
     def test_ontology_meta_present(self) -> None:
-        transform = FrontmatterTransform()
+        transform = OntologyMapper()
         node = _make_node(
             frontmatter={"title": "T", "tags": ["a"]},
             note_name="N",
@@ -136,7 +135,7 @@ class TestOntologyMetadata:
         assert ontology["tags"] == ["a"]
 
     def test_ontology_meta_with_ontology_spec(self) -> None:
-        transform = FrontmatterTransform(ontology_spec_cls=SampleVaultSchema)
+        transform = OntologyMapper(ontology_spec_cls=SampleVaultSpec)
         node = _make_node(
             frontmatter={
                 "tags": ["python"],
@@ -154,7 +153,7 @@ class TestOntologyMetadata:
         assert ontology["extra"]["cssclass"] == "wide"
 
     def test_ontology_meta_serializable(self) -> None:
-        transform = FrontmatterTransform()
+        transform = OntologyMapper()
         node = _make_node(
             frontmatter={"title": "T", "tags": ["a", "b"]},
             note_name="N",
@@ -171,7 +170,7 @@ class TestFrontmatterRemoval:
     """Raw frontmatter key is removed after processing."""
 
     def test_frontmatter_key_removed(self) -> None:
-        transform = FrontmatterTransform()
+        transform = OntologyMapper()
         node = _make_node(
             frontmatter={"title": "T"},
             note_name="N",
@@ -180,7 +179,7 @@ class TestFrontmatterRemoval:
         assert "frontmatter" not in result.metadata
 
     def test_custom_frontmatter_key_removed(self) -> None:
-        transform = FrontmatterTransform(frontmatter_key="fm")
+        transform = OntologyMapper(frontmatter_key="fm")
         node = _make_node(fm={"title": "T"}, note_name="N")
         [result] = transform([node])
         assert "fm" not in result.metadata
@@ -192,7 +191,7 @@ class TestPromoteKeys:
     """Selected ontology fields are promoted to top-level node.metadata."""
 
     def test_default_promotes_tags_and_categories(self) -> None:
-        transform = FrontmatterTransform()
+        transform = OntologyMapper()
         node = _make_node(
             frontmatter={"tags": ["a", "b"], "type": "tutorial"},
             note_name="N",
@@ -202,7 +201,7 @@ class TestPromoteKeys:
         assert result.metadata["categories"] == ["tutorial"]
 
     def test_default_does_not_promote_author(self) -> None:
-        transform = FrontmatterTransform()
+        transform = OntologyMapper()
         node = _make_node(
             frontmatter={"author": "Mike"},
             note_name="N",
@@ -211,7 +210,7 @@ class TestPromoteKeys:
         assert "author" not in result.metadata
 
     def test_custom_promote_keys(self) -> None:
-        transform = FrontmatterTransform(promote_keys=["tags", "author"])
+        transform = OntologyMapper(promote_keys=["tags", "author"])
         node = _make_node(
             frontmatter={"tags": ["x"], "author": "Mike", "type": "note"},
             note_name="N",
@@ -223,7 +222,7 @@ class TestPromoteKeys:
         assert "categories" not in result.metadata
 
     def test_empty_promote_keys(self) -> None:
-        transform = FrontmatterTransform(promote_keys=[])
+        transform = OntologyMapper(promote_keys=[])
         node = _make_node(
             frontmatter={"tags": ["a"]},
             note_name="N",
@@ -236,14 +235,14 @@ class TestPromoteKeys:
         assert result.metadata["_ontology_meta"]["tags"] == ["a"]
 
     def test_empty_values_not_promoted(self) -> None:
-        transform = FrontmatterTransform()
+        transform = OntologyMapper()
         node = _make_node(frontmatter={}, note_name="N")
         [result] = transform([node])
         assert "tags" not in result.metadata
         assert "categories" not in result.metadata
 
     def test_invalid_promote_key_ignored(self) -> None:
-        transform = FrontmatterTransform(promote_keys=["tags", "extra", "bogus"])
+        transform = OntologyMapper(promote_keys=["tags", "extra", "bogus"])
         node = _make_node(
             frontmatter={"tags": ["a"]},
             note_name="N",
@@ -254,8 +253,8 @@ class TestPromoteKeys:
         assert "bogus" not in result.metadata
 
     def test_promote_with_ontology_spec(self) -> None:
-        transform = FrontmatterTransform(
-            ontology_spec_cls=SampleVaultSchema,
+        transform = OntologyMapper(
+            ontology_spec_cls=SampleVaultSpec,
             promote_keys=["tags", "categories"],
         )
         node = _make_node(
@@ -273,19 +272,19 @@ class TestBestEffortMode:
     """Without a vault schema, frontmatter is mapped best-effort."""
 
     def test_tags_extracted(self) -> None:
-        transform = FrontmatterTransform()
+        transform = OntologyMapper()
         node = _make_node(frontmatter={"tags": ["a", "b"]}, note_name="N")
         [result] = transform([node])
         assert result.metadata["_ontology_meta"]["tags"] == ["a", "b"]
 
     def test_type_maps_to_categories(self) -> None:
-        transform = FrontmatterTransform()
+        transform = OntologyMapper()
         node = _make_node(frontmatter={"type": "tutorial"}, note_name="N")
         [result] = transform([node])
         assert result.metadata["_ontology_meta"]["categories"] == ["tutorial"]
 
     def test_unknown_keys_to_extra(self) -> None:
-        transform = FrontmatterTransform()
+        transform = OntologyMapper()
         node = _make_node(
             frontmatter={"cssclass": "wide", "custom": 42},
             note_name="N",
@@ -304,14 +303,14 @@ class TestSchemaValidationFallback:
     def test_fallback_on_validation_error(self) -> None:
         """A schema that might fail gracefully falls back."""
 
-        class StrictSchema(VaultSchema):
+        class StrictSchema(VaultSpec):
             tags: list[str] = Field(
                 json_schema_extra={"maps_to": "tags"},
             )
 
         # Missing required field 'tags' — Pydantic should raise.
         # But strict=False should catch and fall back.
-        transform = FrontmatterTransform(ontology_spec_cls=StrictSchema, strict=False)
+        transform = OntologyMapper(ontology_spec_cls=StrictSchema, strict=False)
         node = _make_node(frontmatter={"random": "data"}, note_name="N")
         [result] = transform([node])
         # Should still produce _ontology_meta via best-effort.
@@ -324,7 +323,7 @@ class TestBatchProcessing:
     """Transform handles multiple nodes correctly."""
 
     def test_multiple_nodes(self) -> None:
-        transform = FrontmatterTransform()
+        transform = OntologyMapper()
         nodes = [
             _make_node(frontmatter={"title": "A"}, note_name="a"),
             _make_node(note_name="b"),
@@ -338,7 +337,7 @@ class TestBatchProcessing:
         assert results[2].metadata["description"] == "Desc C"
 
     def test_empty_metadata_node_passed_through(self) -> None:
-        transform = FrontmatterTransform()
+        transform = OntologyMapper()
         node = LlamaDocument(text="bare node")
         node.metadata = {}
         results = transform([node])

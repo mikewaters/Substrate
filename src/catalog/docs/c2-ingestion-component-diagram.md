@@ -65,7 +65,7 @@
 │  │  │  post: []        │  │ Backlink graph          │    │                  │                      │
 │  │  │                  │  │                         │    │                  │                      │
 │  │  │                  │  │ get_transforms:         │    │                  │                      │
-│  │  │                  │  │  pre: [Frontmatter]     │    │                  │                      │
+│  │  │                  │  │  pre: []                │    │                  │                      │
 │  │  │                  │  │  post: [LinkResolution,  │    │                  │                      │
 │  │  │                  │  │   ObsidianNormalize,    │    │                  │                      │
 │  │  │                  │  │   MarkdownNodeParser]   │    │                  │                      │
@@ -102,12 +102,12 @@
 │  │                         TRANSFORM CHAIN                                                    │   │
 │  │                                                                                            │   │
 │  │  ┌─────────────────┐   ┌──────────────────┐   ┌─────────────────────────────┐             │   │
-│  │  │ FrontmatterXform│   │PersistenceXform  │   │ LinkResolutionXform         │             │   │
+│  │  │ OntologyMapper  │   │PersistenceXform  │   │ LinkResolutionXform         │             │   │
 │  │  │ (pre-persist)   │──▶│                  │──▶│ (post-persist, Obsidian)    │             │   │
 │  │  │                 │   │ SHA256 hashing   │   │                             │             │   │
-│  │  │ YAML parse      │   │ Doc create/update│   │ Wikilink -> doc_id mapping  │             │   │
+│  │  │ Frontmatter map │   │ Doc create/update│   │ Wikilink -> doc_id mapping  │             │   │
 │  │  │ DocumentMeta    │   │ Change detection │   │ Creates DocumentLink rows   │             │   │
-│  │  │ Tag promotion   │   │ FTS upsert       │   │                             │             │   │
+│  │  │ Field promotion │   │ FTS upsert       │   │                             │             │   │
 │  │  └─────────────────┘   │                  │   └──────────────┬──────────────┘             │   │
 │  │                        │ PersistenceStats │                  │                             │   │
 │  │                        └────────┬─────────┘                  │                             │   │

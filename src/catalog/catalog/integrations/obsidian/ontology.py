@@ -1,6 +1,6 @@
-"""catalog.integrations.obsidian.ontology_spec - Pydantic base for vault-specific frontmatter schemas.
+"""catalog.integrations.obsidian.ontology - Pydantic base for vault-specific frontmatter schemas.
 
-Clients subclass ``VaultSchema`` and annotate fields with
+Clients subclass ``VaultSpec`` and annotate fields with
 ``json_schema_extra={"maps_to": "<ontology_field>"}`` to declare how
 vault frontmatter keys map to the shared :class:`DocumentMeta` ontology.
 
@@ -8,7 +8,7 @@ Fields without ``maps_to`` flow into ``DocumentMeta.extra``.
 
 Example::
 
-    class MyVaultSchema(VaultSchema):
+    class MyVaultSpec(VaultSpec):
         tags: list[str] = Field(default_factory=list, json_schema_extra={"maps_to": "tags"})
         aliases: list[str] = Field(default_factory=list)  # -> extra
         type: str | None = Field(None, json_schema_extra={"maps_to": "categories"})
@@ -30,7 +30,7 @@ _LIST_ONTOLOGY_FIELDS = frozenset({"tags", "categories"})
 _VALID_ONTOLOGY_TARGETS = frozenset(DocumentMeta.__dataclass_fields__.keys()) - {"extra"}
 
 
-class VaultSchema(BaseModel):
+class VaultSpec(BaseModel):
     """Base Pydantic model for vault-specific frontmatter schemas.
 
     Subclasses declare typed fields matching their vault's frontmatter keys.
@@ -44,7 +44,7 @@ class VaultSchema(BaseModel):
     model_config = {"extra": "allow"}
 
     @classmethod
-    def from_frontmatter(cls, raw: dict[str, Any]) -> VaultSchema:
+    def from_frontmatter(cls, raw: dict[str, Any]) -> VaultSpec:
         """Validate raw frontmatter through this schema.
 
         Pydantic handles type coercion, defaults, and extra-field capture.

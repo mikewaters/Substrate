@@ -76,6 +76,17 @@ class DatasetIngestPipeline(BaseModel):
         ingest_config: Configuration for ingestion. Required for ingest().
         embed_model: Embedding model for generating vectors.
         resilient_embedding: Whether to use fallback on embedding errors.
+
+    The goals of an IngestionPipeline are:
+    1. Populate the Index to facilitate search;
+    2. Populate the Catalog with references to the new resources to facilitate retrieval;
+    3. Ensure that resource content metadata is abstracted from the original source application,
+    and is in a common format to be used broadly.
+
+    Non-goals are:
+    1. Performing rich classification up-front.
+    2. Translate documenht metadata into the Ontology
+    3. Asociate documents with non-dataset members.
     """
 
     ingest_config: Optional[DatasetSourceConfig] = None
@@ -127,11 +138,42 @@ class DatasetIngestPipeline(BaseModel):
             Configured IngestionPipeline ready to run.
         """
         settings = self._settings
+        #
+        # Stage 1: Dataset- and Document-level transformations, including persistence
+        #
+
+        # Build an ontology mapper based on the per-source spec
+        ontology_mapper = OntologyMapper(
+            ontology_spec_cls=getattr(self.source, "ontology_spec", None),
+        )
 
         # Document persistence transform
         persist = PersistenceTransform(
             dataset_id=dataset_id,
         )
+
+        # Stage 1.1: Document-level transformation, followed by document persistence
+        # First, we define the transformations that prepare the input documents for storage
+        document_prep_transforms = [ontology_mapper, persist]
+
+        # Stage 1.2: Post-persistence normalizers (dataset level)
+        # Next, we define any cross-dataset normalizations that need to be performed.
+        normalization_transforms = self.source.normalizers(dataset_id or None)
+
+        #
+        # Stage 2: Chunking of Documents into Nodes which may be unique ontologically
+        #
+
+        # Chunk persistence for FTS
+        chunk_persist = ChunkPersistenceTransform(
+            dataset_name=dataset_name,
+        )
+
+        # This is not implemented (see Issue # xxx). Once complete, the chunk_persistene should move here.
+        # Next, based on the source type, we define the chunking requirements.
+        # This may contain a router, and it may be defined by the source itself,
+        # the source class, source superclass, or the filetypes.
+        chunker_transforms = []
 
         # Resilient text chunking with fallback
         splitter = ResilientSplitter(
@@ -141,10 +183,14 @@ class DatasetIngestPipeline(BaseModel):
             fallback_enabled=settings.chunk_fallback_enabled,
         )
 
-        # Chunk persistence for FTS
-        chunk_persist = ChunkPersistenceTransform(
-            dataset_name=dataset_name,
-        )
+
+        # Next, we define any text splitter requirements, which may be based on
+        # the source, source class, source superclass, or the file type.
+
+        splitter_transforms = [splitter, chunk_persist]
+
+
+        chunk_persist_transforms = [chunk_persist]
 
         # Embedding prefix for improved retrieval
         prefix_transform = EmbeddingPrefixTransform(
@@ -154,9 +200,24 @@ class DatasetIngestPipeline(BaseModel):
         # Embedding model
         embed_model = self._get_embed_model()
 
-        ontology_mapper = OntologyMapper(
-            ontology_spec_cls=getattr(self.source, "ontology_spec", None),
-        )
+
+
+        #TODO(mikew)
+        # Do not remove this no-op block
+        # First, we define the transformations that prepare the input documents for storage
+        # document_prep_transforms = [ontology_mapper, persist]
+        # Next, we define any cross-dataset normalizations that need to be performed.
+        # normalization_transforms = source.normalizers(dataset_id or None)
+        # Next, based on the source type, we define the chunking requirements.
+        # This may contain a router, and it may be defined by the source itself,
+        # the source class, source superclass, or the filetypes.
+        # chunker_transforms = source.chunkers()
+        # Next, we define any text spliutter requirements, which may be based on
+        # the source, source class, source superclass, or the file type.
+        # splitter_transforms = source.splitters()
+        # Finally, we allow the source to override the embedding model or embedding parameters.
+        # embed_model = source.embed_model() or self._get_embed_model()
+        # end no-op block
 
         # Build transformation chain
         transformations = [

@@ -1,5 +1,6 @@
 .conductor/
 node_modules
+.private-journal/**
 
 .ropeproject/
 .ruff_cache/

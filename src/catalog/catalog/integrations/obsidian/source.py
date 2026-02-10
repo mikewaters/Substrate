@@ -65,15 +65,13 @@ class ObsidianVaultSource(BaseSource):
             include_prev_next_rel=True,
             header_path_separator=" / ",
         )
-        transforms = (
-            [],
-            [
+        transforms = [
                 LinkResolutionTransform(dataset_id=dataset_id),
                 ObsidianMarkdownNormalize(),
                 parser,
 
             ]
-        )
+
 
         return transforms
 

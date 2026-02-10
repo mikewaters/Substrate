@@ -1,4 +1,4 @@
-# CLAUDE.md
+`# CLAUDE.md
 
 Immediately read @AGENTS.md and @TASKS.md
 

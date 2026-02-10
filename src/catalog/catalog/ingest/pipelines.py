@@ -138,30 +138,28 @@ class DatasetIngestPipeline(BaseModel):
             Configured IngestionPipeline ready to run.
         """
         settings = self._settings
+
         #
         # Stage 1: Dataset- and Document-level transformations, including persistence
+        # Varies-by:
+        # - data source-specific Ontology mapping
         #
 
-        # Build an ontology mapper based on the per-source spec
-        ontology_mapper = OntologyMapper(
-            ontology_spec_cls=getattr(self.source, "ontology_spec", None),
-        )
-
-        # Document persistence transform
-        persist = PersistenceTransform(
-            dataset_id=dataset_id,
-        )
-
-        # Stage 1.1: Document-level transformation, followed by document persistence
-        # First, we define the transformations that prepare the input documents for storage
-        document_prep_transforms = [ontology_mapper, persist]
-
-        # Stage 1.2: Post-persistence normalizers (dataset level)
-        # Next, we define any cross-dataset normalizations that need to be performed.
-        normalization_transforms = self.source.normalizers(dataset_id or None)
+        # Document-level transformation, followed by document persistence and cross-dataset normalization
+        document_transforms = [
+            OntologyMapper(
+                ontology_spec_cls=getattr(self.source, "ontology_spec", None),
+            ),
+            PersistenceTransform(
+                dataset_id=dataset_id,
+            )
+            ] + self.source.transforms(dataset_id)
 
         #
-        # Stage 2: Chunking of Documents into Nodes which may be unique ontologically
+        # Stage 2: Chunking of Documents into Nodes which may be unique ontologically,
+        # followed by the FTS chunk persistence
+        # Varies-by:
+        # - document-specific chunking requirements, which may be based on the source, source class, source superclass, or the file type.
         #
 
         # Chunk persistence for FTS
@@ -175,60 +173,30 @@ class DatasetIngestPipeline(BaseModel):
         # the source class, source superclass, or the filetypes.
         chunker_transforms = []
 
-        # Resilient text chunking with fallback
-        splitter = ResilientSplitter(
-            chunk_size_tokens=settings.chunk_size,
-            chunk_overlap_tokens=settings.chunk_overlap,
-            chars_per_token=settings.chunk_chars_per_token,
-            fallback_enabled=settings.chunk_fallback_enabled,
-        )
+        #
+        # Stage 3: Text splitting and embedding
+        # Varies-by:
+        # - splitting may vary by the type of information present in a node/chunk
+        # - embedding model may vary by the data source configuration, or by the source type itself
+        #
 
+        split_and_embed_transforms = [
+            ResilientSplitter(
+                chunk_size_tokens=settings.chunk_size,
+                chunk_overlap_tokens=settings.chunk_overlap,
+                chars_per_token=settings.chunk_chars_per_token,
+                fallback_enabled=settings.chunk_fallback_enabled,
+            ),
+            chunk_persist,
+            EmbeddingPrefixTransform(
+                prefix_template=settings.embed_prefix_doc,
+            ),
+            self._get_embed_model()
+        ]
 
-        # Next, we define any text splitter requirements, which may be based on
-        # the source, source class, source superclass, or the file type.
-
-        splitter_transforms = [splitter, chunk_persist]
-
-
-        chunk_persist_transforms = [chunk_persist]
-
-        # Embedding prefix for improved retrieval
-        prefix_transform = EmbeddingPrefixTransform(
-            prefix_template=settings.embed_prefix_doc,
-        )
-
-        # Embedding model
-        embed_model = self._get_embed_model()
-
-
-
-        #TODO(mikew)
-        # Do not remove this no-op block
-        # First, we define the transformations that prepare the input documents for storage
-        # document_prep_transforms = [ontology_mapper, persist]
-        # Next, we define any cross-dataset normalizations that need to be performed.
-        # normalization_transforms = source.normalizers(dataset_id or None)
-        # Next, based on the source type, we define the chunking requirements.
-        # This may contain a router, and it may be defined by the source itself,
-        # the source class, source superclass, or the filetypes.
-        # chunker_transforms = source.chunkers()
-        # Next, we define any text spliutter requirements, which may be based on
-        # the source, source class, source superclass, or the file type.
-        # splitter_transforms = source.splitters()
-        # Finally, we allow the source to override the embedding model or embedding parameters.
-        # embed_model = source.embed_model() or self._get_embed_model()
-        # end no-op block
 
         # Build transformation chain
-        transformations = [
-            ontology_mapper,
-            persist,
-            *source_transforms[1],  # Post-persist source transforms
-            splitter,
-            chunk_persist,
-            prefix_transform,
-            embed_model,
-        ]
+        transformations = document_transforms + chunker_transforms + split_and_embed_transforms
 
         # Create pipeline with docstore for change detection and deduplication.
         # LlamaIndex's docstore uses SHA256(text + metadata) for change detection,

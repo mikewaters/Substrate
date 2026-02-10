@@ -30,7 +30,7 @@ class BaseSource:
         pass
 
     def transforms(self, *args, **kwargs):
-        return ([], [])
+        return []
 
 
 # Registry: source_type string -> factory function

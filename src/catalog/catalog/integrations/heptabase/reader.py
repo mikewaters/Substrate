@@ -98,7 +98,7 @@ class HeptabaseVaultSource(BaseSource):
 
         logger.debug(f"Initialized HeptabaseVaultSource for path: {self.path}")
 
-    def transforms(self, dataset_id: int) -> tuple[list, list]:
+    def transforms(self, dataset_id: int) -> list[type]:
         """Get the list of transforms to apply for this source.
 
         Returns:
@@ -109,17 +109,15 @@ class HeptabaseVaultSource(BaseSource):
             include_prev_next_rel=True,
             header_path_separator=" / ",
         )
-        transforms = (
-            [],
-            [
+        transforms = [
                 LinkResolutionTransform(
                     dataset_id=dataset_id,
                     link_kind=DocumentLinkKind.MARKDOWN_LINK,
                 ),
                 ObsidianMarkdownNormalize(),
                 parser,
-            ],
-        )
+            ]
+
         return transforms
 
     @cached_property

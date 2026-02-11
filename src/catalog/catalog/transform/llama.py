@@ -509,9 +509,12 @@ class PersistenceTransform(TransformComponent):
             except (ValueError, TypeError):
                 pass
 
-        # Extract title and description from node metadata if available
+        # Extract title, description, and resource-level fields from node metadata
         title = node.metadata.get("title") if node.metadata else None
         description = node.metadata.get("description") if node.metadata else None
+        format_ = node.metadata.get("_format") if node.metadata else None
+        media_type = node.metadata.get("_media_type") if node.metadata else None
+        subject = node.metadata.get("_subject") if node.metadata else None
 
         existing = existing_docs.get(path)
 
@@ -527,6 +530,12 @@ class PersistenceTransform(TransformComponent):
                 existing.title = title
             if description is not None:
                 existing.description = description
+            if format_ is not None:
+                existing.format = format_
+            if media_type is not None:
+                existing.media_type = media_type
+            if subject is not None:
+                existing.subject = subject
             session.flush()
 
             fts.upsert(existing.id, path, body)
@@ -544,6 +553,9 @@ class PersistenceTransform(TransformComponent):
                 body=body,
                 title=title,
                 description=description,
+                format=format_,
+                media_type=media_type,
+                subject=subject,
                 etag=etag,
                 last_modified=last_modified,
                 metadata_json=metadata_payload,

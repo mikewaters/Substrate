@@ -6,6 +6,7 @@ and produces LlamaIndex Documents for the ingestion pipeline.
 
 from __future__ import annotations
 
+import mimetypes
 from functools import cached_property
 from pathlib import Path
 
@@ -159,12 +160,15 @@ class DirectorySource(BaseSource):
                     logger.warning(f"Skipping unreadable file {file_path}: {exc}")
                     continue
 
+                mime_type, _ = mimetypes.guess_type(str(file_path))
                 doc = Document(
                     text=text,
                     metadata={
                         "relative_path": str(rel),
                         "file_path": str(file_path),
                         "file_name": file_path.name,
+                        "_format": _extension_to_format(file_path.suffix.lower()),
+                        "_media_type": mime_type,
                     },
                 )
                 doc.id_ = str(rel)
@@ -202,6 +206,27 @@ class DirectorySource(BaseSource):
             return False
         p = Path(rel_path)
         return any(p.match(pat) for pat in self._excludes)
+
+
+_EXTENSION_FORMAT_MAP: dict[str, str] = {
+    ".md": "Markdown",
+    ".markdown": "Markdown",
+    ".txt": "Plain Text",
+    ".pdf": "PDF",
+    ".html": "HTML",
+    ".htm": "HTML",
+    ".json": "JSON",
+    ".csv": "CSV",
+    ".xml": "XML",
+    ".rst": "reStructuredText",
+    ".yaml": "YAML",
+    ".yml": "YAML",
+}
+
+
+def _extension_to_format(ext: str) -> str | None:
+    """Map a file extension to a human-readable format name."""
+    return _EXTENSION_FORMAT_MAP.get(ext)
 
 
 __all__ = ["DirectorySource"]

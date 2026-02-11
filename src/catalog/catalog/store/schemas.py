@@ -42,6 +42,9 @@ class DatasetCreate(BaseModel):
     source_path: str = Field(..., description="Filesystem path to the source")
     title: str | None = Field(None, description="Optional human-readable title")
     description: str | None = Field(None, description="Optional longer description")
+    format: str | None = Field(None, description="File format (e.g. Markdown, PDF)")
+    media_type: str | None = Field(None, description="MIME type (e.g. text/markdown)")
+    subject: str | None = Field(None, description="Subject or topic of the resource")
     metadata: dict[str, Any] = Field(default_factory=dict)
     model_config = {"frozen": True}
 
@@ -56,6 +59,9 @@ class DatasetInfo(BaseModel):
     source_path: str
     title: str | None = None
     description: str | None = None
+    format: str | None = None
+    media_type: str | None = None
+    subject: str | None = None
     created_at: datetime
     updated_at: datetime
     last_ingested_at: datetime | None = None
@@ -77,6 +83,9 @@ class DocumentCreate(BaseModel):
     body: str
     title: str | None = Field(None, description="Optional human-readable title")
     description: str | None = Field(None, description="Optional longer description")
+    format: str | None = Field(None, description="File format (e.g. Markdown, PDF)")
+    media_type: str | None = Field(None, description="MIME type (e.g. text/markdown)")
+    subject: str | None = Field(None, description="Subject or topic of the resource")
     doc_type: DocumentKind = Field(
         default=DocumentKind.OTHER,
         description="Classifies the document origin/format",
@@ -92,6 +101,9 @@ class DocumentUpdate(BaseModel):
 
     title: str | None = None
     description: str | None = None
+    format: str | None = None
+    media_type: str | None = None
+    subject: str | None = None
     content_hash: str | None = None
     body: str | None = None
     doc_type: DocumentKind | None = None
@@ -110,6 +122,9 @@ class DocumentInfo(BaseModel):
     path: str
     title: str | None = None
     description: str | None = None
+    format: str | None = None
+    media_type: str | None = None
+    subject: str | None = None
     active: bool
     doc_type: DocumentKind
     content_hash: str
@@ -139,6 +154,9 @@ class DocumentInfo(BaseModel):
             path=doc.path,
             title=doc.title,
             description=doc.description,
+            format=doc.format,
+            media_type=doc.media_type,
+            subject=doc.subject,
             active=doc.active,
             doc_type=doc.doc_type,
             content_hash=doc.content_hash,
@@ -161,6 +179,9 @@ class CatalogCreate(BaseModel):
 
     title: str = Field(..., description="Human-readable title for the catalog")
     description: str | None = Field(None, description="Optional longer description")
+    format: str | None = Field(None, description="File format (e.g. Markdown, PDF)")
+    media_type: str | None = Field(None, description="MIME type (e.g. text/markdown)")
+    subject: str | None = Field(None, description="Subject or topic of the resource")
     homepage: str | None = Field(None, description="Optional homepage URL")
     model_config = {"frozen": True}
 
@@ -172,6 +193,9 @@ class CatalogInfo(BaseModel):
     uri: str
     title: str | None = None
     description: str | None = None
+    format: str | None = None
+    media_type: str | None = None
+    subject: str | None = None
     homepage: str | None = None
     created_at: datetime
     updated_at: datetime
@@ -189,6 +213,9 @@ class CollectionCreate(BaseModel):
 
     title: str = Field(..., description="Human-readable title for the collection")
     description: str | None = Field(None, description="Optional longer description")
+    format: str | None = Field(None, description="File format (e.g. Markdown, PDF)")
+    media_type: str | None = Field(None, description="MIME type (e.g. text/markdown)")
+    subject: str | None = Field(None, description="Subject or topic of the resource")
     model_config = {"frozen": True}
 
 
@@ -199,6 +226,9 @@ class CollectionInfo(BaseModel):
     uri: str
     title: str | None = None
     description: str | None = None
+    format: str | None = None
+    media_type: str | None = None
+    subject: str | None = None
     created_at: datetime
     updated_at: datetime
     member_count: int = 0
@@ -216,6 +246,9 @@ class BookmarkCreate(BaseModel):
     url: str = Field(..., description="The URL to bookmark")
     title: str | None = Field(None, description="Optional human-readable title")
     description: str | None = Field(None, description="Optional longer description")
+    format: str | None = Field(None, description="File format (e.g. Markdown, PDF)")
+    media_type: str | None = Field(None, description="MIME type (e.g. text/html)")
+    subject: str | None = Field(None, description="Subject or topic of the resource")
     favicon_url: str | None = Field(None, description="Optional favicon URL")
     owner: str = Field(..., description="Owner of the bookmark")
     folder: str | None = Field(None, description="Optional folder/category")
@@ -232,6 +265,9 @@ class BookmarkInfo(BaseModel):
     url: str
     title: str | None = None
     description: str | None = None
+    format: str | None = None
+    media_type: str | None = None
+    subject: str | None = None
     favicon_url: str | None = None
     owner: str
     folder: str | None = None
@@ -252,6 +288,9 @@ class RepositoryCreate(BaseModel):
 
     title: str | None = Field(None, description="Optional human-readable title")
     description: str | None = Field(None, description="Optional longer description")
+    format: str | None = Field(None, description="File format (e.g. Markdown, PDF)")
+    media_type: str | None = Field(None, description="MIME type (e.g. text/html)")
+    subject: str | None = Field(None, description="Subject or topic of the resource")
     host: str | None = Field(None, description="Hosting platform (github, gitlab, etc.)")
     repo_full_name: str | None = Field(None, description="Full name, e.g. owner/repo")
     default_branch: str | None = Field(None, description="Default branch name")
@@ -266,6 +305,9 @@ class RepositoryInfo(BaseModel):
     uri: str
     title: str | None = None
     description: str | None = None
+    format: str | None = None
+    media_type: str | None = None
+    subject: str | None = None
     host: str | None = None
     repo_full_name: str | None = None
     default_branch: str | None = None

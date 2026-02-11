@@ -25,6 +25,7 @@ class DocumentMeta:
     Attributes:
         title: Document title.
         description: Short document description or summary.
+        subject: Subject or topic of the document.
         tags: Free-form tags / labels.
         categories: Categorical classifications (e.g. note type).
         author: Document author.
@@ -33,6 +34,7 @@ class DocumentMeta:
 
     title: str | None = None
     description: str | None = None
+    subject: str | None = None
     tags: list[str] = field(default_factory=list)
     categories: list[str] = field(default_factory=list)
     author: str | None = None
@@ -45,6 +47,8 @@ class DocumentMeta:
             out["title"] = self.title
         if self.description is not None:
             out["description"] = self.description
+        if self.subject is not None:
+            out["subject"] = self.subject
         if self.tags:
             out["tags"] = self.tags
         if self.categories:
@@ -61,6 +65,7 @@ class DocumentMeta:
         return cls(
             title=data.get("title"),
             description=data.get("description"),
+            subject=data.get("subject"),
             tags=data.get("tags", []),
             categories=data.get("categories", []),
             author=data.get("author"),

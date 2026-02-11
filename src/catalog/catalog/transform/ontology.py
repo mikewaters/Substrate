@@ -131,9 +131,11 @@ class OntologyMapper(TransformComponent):
         elif doc_meta.description and not doc_meta.description.strip():
             doc_meta.description = None
 
-        # Write title and description to node metadata for PersistenceTransform.
+        # Write title, description, subject to node metadata for PersistenceTransform.
         meta["title"] = doc_meta.title
         meta["description"] = doc_meta.description
+        if doc_meta.subject is not None:
+            meta["_subject"] = doc_meta.subject
 
         # Promote selected ontology fields to top-level metadata so they
         # are visible to embedding models and available as vector store
@@ -167,12 +169,13 @@ class OntologyMapper(TransformComponent):
         tags = _coerce_list(fm.get("tags"))
         categories = _coerce_list(fm.get("categories") or fm.get("type"))
 
-        known_keys = {"title", "description", "tags", "categories", "type", "author"}
+        known_keys = {"title", "description", "subject", "tags", "categories", "type", "author"}
         extra = {k: v for k, v in fm.items() if k not in known_keys and v is not None}
 
         return DocumentMeta(
             title=fm.get("title") if isinstance(fm.get("title"), str) else None,
             description=fm.get("description") if isinstance(fm.get("description"), str) else None,
+            subject=fm.get("subject") if isinstance(fm.get("subject"), str) else None,
             tags=tags,
             categories=categories,
             author=fm.get("author") if isinstance(fm.get("author"), str) else None,

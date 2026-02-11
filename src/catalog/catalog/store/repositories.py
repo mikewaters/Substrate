@@ -180,6 +180,9 @@ class DocumentRepository(_BaseRepository):
         *,
         title: str | None = None,
         description: str | None = None,
+        format: str | None = None,
+        media_type: str | None = None,
+        subject: str | None = None,
         doc_type: DocumentKind = DocumentKind.OTHER,
         etag: str | None = None,
         last_modified: datetime | None = None,
@@ -195,6 +198,9 @@ class DocumentRepository(_BaseRepository):
             body: Full normalized text content.
             title: Optional human-readable title.
             description: Optional description.
+            format: File format (e.g. Markdown, PDF).
+            media_type: MIME type (e.g. text/markdown).
+            subject: Subject or topic.
             doc_type: Document type classification.
             etag: Optional source etag.
             last_modified: Optional source modification time.
@@ -211,6 +217,9 @@ class DocumentRepository(_BaseRepository):
             body=body,
             title=title,
             description=description,
+            format=format,
+            media_type=media_type,
+            subject=subject,
             doc_type=doc_type,
             etag=etag,
             last_modified=last_modified,
@@ -293,6 +302,9 @@ class DocumentRepository(_BaseRepository):
         *,
         title: str | None = None,
         description: str | None = None,
+        format: str | None = None,
+        media_type: str | None = None,
+        subject: str | None = None,
         content_hash: str | None = None,
         body: str | None = None,
         etag: str | None = None,
@@ -306,6 +318,9 @@ class DocumentRepository(_BaseRepository):
             doc: The document to update.
             title: New title if changed.
             description: New description if changed.
+            format: New file format if changed.
+            media_type: New MIME type if changed.
+            subject: New subject if changed.
             content_hash: New content hash if changed.
             body: New text content if changed.
             etag: New etag if changed.
@@ -320,6 +335,12 @@ class DocumentRepository(_BaseRepository):
             doc.title = title
         if description is not None:
             doc.description = description
+        if format is not None:
+            doc.format = format
+        if media_type is not None:
+            doc.media_type = media_type
+        if subject is not None:
+            doc.subject = subject
         if content_hash is not None:
             doc.content_hash = content_hash
         if body is not None:

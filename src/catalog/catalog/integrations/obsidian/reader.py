@@ -463,6 +463,8 @@ class ObsidianVaultReader(SimpleDirectoryReader):
 
         metadata['folder_name'] = folder_name
         metadata['file_type'] = "text/markdown"
+        metadata['_format'] = "Markdown"
+        metadata['_media_type'] = "text/markdown"
 
         # Add relative_path for PersistenceTransform compatibility
         try:

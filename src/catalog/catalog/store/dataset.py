@@ -171,8 +171,13 @@ class DatasetService:
                 uri=uri,
                 source_type=data.source_type,
                 source_path=data.source_path,
+                title=data.title,
+                description=data.description,
                 metadata_json=metadata_json,
             )
+            dataset.format = data.format
+            dataset.media_type = data.media_type
+            dataset.subject = data.subject
             session.flush()
 
             logger.info(f"Created dataset: {normalized_name}")
@@ -257,6 +262,11 @@ class DatasetService:
             uri=dataset.uri,
             source_type=dataset.source_type,
             source_path=dataset.source_path,
+            title=dataset.title,
+            description=dataset.description,
+            format=dataset.format,
+            media_type=dataset.media_type,
+            subject=dataset.subject,
             created_at=dataset.created_at,
             updated_at=dataset.updated_at,
             last_ingested_at=dataset.last_ingested_at,
@@ -273,6 +283,11 @@ class DatasetService:
             uri=dataset.uri,
             source_type=dataset.source_type,
             source_path=dataset.source_path,
+            title=dataset.title,
+            description=dataset.description,
+            format=dataset.format,
+            media_type=dataset.media_type,
+            subject=dataset.subject,
             created_at=dataset.created_at,
             updated_at=dataset.updated_at,
             last_ingested_at=dataset.last_ingested_at,
@@ -390,6 +405,9 @@ class DatasetService:
                 last_modified=data.last_modified,
                 metadata_json=metadata_json,
             )
+            doc.format = data.format
+            doc.media_type = data.media_type
+            doc.subject = data.subject
             session.flush()
 
             logger.debug(f"Created document: {data.path} in dataset {dataset_id}")
@@ -467,6 +485,9 @@ class DatasetService:
                 doc,
                 title=data.title,
                 description=data.description,
+                format=data.format,
+                media_type=data.media_type,
+                subject=data.subject,
                 content_hash=data.content_hash,
                 body=data.body,
                 etag=data.etag,

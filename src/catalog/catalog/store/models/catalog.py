@@ -105,6 +105,9 @@ class Resource(CatalogBase):
         uri: Unique URI identifying the resource.
         title: Optional human-readable title.
         description: Optional longer description.
+        format: File format (e.g. Markdown, PDF).
+        media_type: MIME type (e.g. text/markdown, video/mp4).
+        subject: Subject or topic of the resource.
         created_at: When the resource was created.
         updated_at: When the resource was last modified.
         metadata_json: Optional structured metadata for the resource.
@@ -118,6 +121,9 @@ class Resource(CatalogBase):
     uri: Mapped[str] = mapped_column(String(512), unique=True, nullable=False)
     title: Mapped[str | None] = mapped_column(String(512), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    format: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    media_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    subject: Mapped[str | None] = mapped_column(String(255), nullable=True)
     metadata_json: Mapped[dict[str, Any] | None] = mapped_column(
         JSON, nullable=True
     )

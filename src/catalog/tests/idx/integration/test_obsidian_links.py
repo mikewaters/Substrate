@@ -127,7 +127,7 @@ def _run_pipeline(
         source_path=str(vault_path),
     )
 
-    persist = PersistenceTransform(dataset_id=dataset.id)
+    persist = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
     mapper = OntologyMapper()
     link_resolve = LinkResolutionTransform(dataset_id=dataset.id)
 

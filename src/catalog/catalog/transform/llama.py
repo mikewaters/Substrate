@@ -28,6 +28,7 @@ from agentlayer.logging import get_logger
 from llama_index.core.schema import BaseNode, TransformComponent
 from sqlalchemy.orm import Session
 
+from catalog.store.dataset import make_document_uri
 from catalog.store.fts import FTSManager
 from catalog.store.fts_chunk import FTSChunkManager
 from catalog.store.models import Document
@@ -342,12 +343,14 @@ class PersistenceTransform(TransformComponent):
 
     # Private attributes (not Pydantic fields)
     _dataset_id: int = 0
+    _dataset_name: str = ""
     _path_key: str = "relative_path"
     _stats: PersistenceStats | None = None
 
     def __init__(
         self,
         dataset_id: int,
+        dataset_name: str = "",
         *,
         path_key: str = "relative_path",
         **kwargs: Any,
@@ -356,11 +359,13 @@ class PersistenceTransform(TransformComponent):
 
         Args:
             dataset_id: ID of the dataset to persist documents to.
+            dataset_name: Normalized name of the dataset (used for URI generation).
             path_key: Metadata key for the document path (default: "relative_path").
             **kwargs: Additional arguments passed to TransformComponent.
         """
         super().__init__(**kwargs)
         self._dataset_id = dataset_id
+        self._dataset_name = dataset_name
         self._path_key = path_key
         self._stats = PersistenceStats()
 
@@ -548,7 +553,7 @@ class PersistenceTransform(TransformComponent):
             doc = doc_repo.create(
                 parent_id=self._dataset_id,
                 path=path,
-                uri=f"document:{self._dataset_id}/{path}",
+                uri=make_document_uri(self._dataset_name, path),
                 content_hash=content_hash,
                 body=body,
                 title=title,

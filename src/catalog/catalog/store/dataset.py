@@ -30,6 +30,8 @@ __all__ = [
     "DatasetExistsError",
     "DocumentNotFoundError",
     "normalize_dataset_name",
+    "slugify",
+    "make_document_uri",
 ]
 
 logger = get_logger(__name__)
@@ -63,11 +65,35 @@ class DocumentNotFoundError(Exception):
             super().__init__(f"Document not found: {identifier}")
 
 
+def slugify(text: str) -> str:
+    """Convert text into a URL-safe slug.
+
+    Converts to lowercase, replaces all non-alphanumeric characters with
+    hyphens, collapses consecutive hyphens, and strips leading/trailing
+    hyphens.
+
+    Args:
+        text: The raw text to slugify.
+
+    Returns:
+        The slugified string.
+
+    Example:
+        >>> slugify("A SQLite client lib that understands Heptabase.md")
+        'a-sqlite-client-lib-that-understands-heptabase-md'
+        >>> slugify("My Obsidian Vault")
+        'my-obsidian-vault'
+    """
+    slug = text.lower()
+    # Replace any non-alphanumeric character with a hyphen
+    slug = re.sub(r"[^a-z0-9]+", "-", slug)
+    # Strip leading/trailing hyphens
+    slug = slug.strip("-")
+    return slug
+
+
 def normalize_dataset_name(name: str) -> str:
     """Normalize a dataset name to URI-acceptable format.
-
-    Converts the name to lowercase, replaces spaces and special characters
-    with hyphens, and removes any leading/trailing hyphens.
 
     Args:
         name: The raw dataset name.
@@ -79,17 +105,30 @@ def normalize_dataset_name(name: str) -> str:
         >>> normalize_dataset_name("My Obsidian Vault")
         'my-obsidian-vault'
     """
-    # Lowercase
-    normalized = name.lower()
-    # Replace spaces and underscores with hyphens
-    normalized = re.sub(r"[\s_]+", "-", normalized)
-    # Remove any characters that aren't alphanumeric or hyphens
-    normalized = re.sub(r"[^a-z0-9-]", "", normalized)
-    # Collapse multiple hyphens
-    normalized = re.sub(r"-+", "-", normalized)
-    # Strip leading/trailing hyphens
-    normalized = normalized.strip("-")
-    return normalized
+    return slugify(name)
+
+
+def make_document_uri(dataset_name: str, path: str) -> str:
+    """Build a document URI from dataset name and document path.
+
+    Slugifies the full relative path (directory separators become hyphens)
+    and combines with the dataset name. This preserves uniqueness for
+    documents with the same filename in different directories.
+
+    Args:
+        dataset_name: Normalized dataset name.
+        path: Document path (may include directory components).
+
+    Returns:
+        URI in the format ``document:<dataset_name>:<slugified-path>``.
+
+    Example:
+        >>> make_document_uri("vault-small", "LabelFiles/A SQLite client lib that understands Heptabase.md")
+        'document:vault-small:labelfiles-a-sqlite-client-lib-that-understands-heptabase-md'
+        >>> make_document_uri("vault-small", "A SQLite client lib that understands Heptabase.md")
+        'document:vault-small:a-sqlite-client-lib-that-understands-heptabase-md'
+    """
+    return f"document:{dataset_name}:{slugify(path)}"
 
 class DatasetService:
     """Service for managing datasets and documents.
@@ -391,7 +430,7 @@ class DatasetService:
 
             doc_repo = DocumentRepository(session)
             metadata_json = data.metadata if data.metadata else None
-            uri = f"document:{dataset.name}/{data.path}"
+            uri = make_document_uri(dataset.name, data.path)
 
             doc = doc_repo.create(
                 parent_id=dataset_id,

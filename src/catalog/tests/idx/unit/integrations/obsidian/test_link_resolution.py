@@ -49,10 +49,10 @@ def _make_node(path: str, wikilinks: list[str] | None = None, **extra_meta) -> L
     return LlamaDocument(text=f"Content of {path}", metadata=meta)
 
 
-def _persist_nodes(db_session, dataset_id: int, nodes: list[LlamaDocument]) -> list[LlamaDocument]:
+def _persist_nodes(db_session, dataset_id: int, nodes: list[LlamaDocument], dataset_name: str = "") -> list[LlamaDocument]:
     """Run PersistenceTransform on nodes to create DB records and assign doc_id."""
     with use_session(db_session):
-        persist = PersistenceTransform(dataset_id=dataset_id)
+        persist = PersistenceTransform(dataset_id=dataset_id, dataset_name=dataset_name)
         result = persist(nodes)
         db_session.commit()
     return result

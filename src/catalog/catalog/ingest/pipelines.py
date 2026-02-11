@@ -152,6 +152,7 @@ class DatasetIngestPipeline(BaseModel):
             ),
             PersistenceTransform(
                 dataset_id=dataset_id,
+                dataset_name=dataset_name,
             )
             ] + self.source.transforms(dataset_id)
 

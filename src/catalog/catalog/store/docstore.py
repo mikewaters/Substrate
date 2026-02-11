@@ -71,6 +71,7 @@ class SQLiteDocumentStore(BaseDocumentStore):
     def __init__(
         self,
         dataset_id: int,
+        dataset_name: str = "",
         #database_path: Optional[Path],
         #session_factory: Callable[[], Session],
         *,
@@ -80,11 +81,13 @@ class SQLiteDocumentStore(BaseDocumentStore):
 
         Args:
             dataset_id: The dataset ID to scope all operations to.
+            dataset_name: Normalized name of the dataset (used for URI generation).
             session_factory: Callable that returns a SQLAlchemy Session.
                 The caller is responsible for session lifecycle management.
             batch_size: Default batch size for bulk operations.
         """
         self._parent_id = dataset_id
+        self._dataset_name = dataset_name
         #self._database_path = database_path
         #self._session_factory = session_factory
         self._batch_size = batch_size
@@ -134,9 +137,10 @@ class SQLiteDocumentStore(BaseDocumentStore):
             existing_doc.active = True
             return existing_doc
 
+        from catalog.store.dataset import make_document_uri
         return SQLDocument(
             parent_id=self._parent_id,
-            uri=f"document:{self._parent_id}/{node.node_id}",
+            uri=make_document_uri(self._dataset_name, node.node_id),
             path=node.node_id,  # Use node_id as the unique path
             body=body,
             content_hash=node.hash,

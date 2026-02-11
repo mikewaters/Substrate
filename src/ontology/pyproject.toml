@@ -1,5 +1,5 @@
 [project]
-name = "ontolgy"
+name = "ontology"
 version = "0.1.0"
 description = "blah"
 authors = [{ name = "Mike Waters", email = "mike@mikewaters.net" }]

@@ -27,7 +27,7 @@ class TestNormalizeDatasetName:
             ("My Vault", "my-vault"),
             ("MY_VAULT", "my-vault"),
             ("My Obsidian Vault", "my-obsidian-vault"),
-            ("vault@2024", "vault2024"),
+            ("vault@2024", "vault-2024"),
             ("  spaces  ", "spaces"),
             ("multiple---hyphens", "multiple-hyphens"),
             ("MixedCase123", "mixedcase123"),

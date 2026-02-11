@@ -73,7 +73,7 @@ class TestPersistenceTransform:
 
     def test_first_ingest_returns_all_nodes(self, db_session, dataset):
         """First ingestion returns all nodes (all created)."""
-        transform = PersistenceTransform(dataset_id=dataset.id)
+        transform = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs = _make_docs({"a.md": "AAA", "b.md": "BBB", "c.md": "CCC"})
 
         with use_session(db_session):
@@ -84,14 +84,14 @@ class TestPersistenceTransform:
 
     def test_reingest_same_content_updates_all(self, db_session, dataset):
         """Re-ingestion of same docs updates all (no skip logic)."""
-        transform = PersistenceTransform(dataset_id=dataset.id)
+        transform = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs = _make_docs({"a.md": "AAA", "b.md": "BBB", "c.md": "CCC"})
 
         with use_session(db_session):
             transform(docs)
 
         # Second pass with same content -- all should be updated
-        transform2 = PersistenceTransform(dataset_id=dataset.id)
+        transform2 = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs2 = _make_docs({"a.md": "AAA", "b.md": "BBB", "c.md": "CCC"})
 
         with use_session(db_session):
@@ -103,14 +103,14 @@ class TestPersistenceTransform:
 
     def test_changed_docs_are_updated(self, db_session, dataset):
         """Re-ingestion with changed content updates those documents."""
-        transform = PersistenceTransform(dataset_id=dataset.id)
+        transform = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs = _make_docs({"a.md": "AAA", "b.md": "BBB", "c.md": "CCC"})
 
         with use_session(db_session):
             transform(docs)
 
         # Change one document, re-ingest all
-        transform2 = PersistenceTransform(dataset_id=dataset.id)
+        transform2 = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs2 = _make_docs({"a.md": "AAA", "b.md": "CHANGED", "c.md": "CCC"})
 
         with use_session(db_session):
@@ -122,14 +122,14 @@ class TestPersistenceTransform:
 
     def test_all_nodes_always_pass_through(self, db_session, dataset):
         """All nodes pass downstream regardless of content changes."""
-        transform = PersistenceTransform(dataset_id=dataset.id)
+        transform = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs = _make_docs({"a.md": "AAA", "b.md": "BBB"})
 
         with use_session(db_session):
             transform(docs)
 
         # Re-ingest same content
-        transform2 = PersistenceTransform(dataset_id=dataset.id)
+        transform2 = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs2 = _make_docs({"a.md": "AAA", "b.md": "BBB"})
 
         with use_session(db_session):
@@ -140,7 +140,7 @@ class TestPersistenceTransform:
 
     def test_metadata_change_produces_different_hash(self, db_session, dataset):
         """Metadata-only changes produce a different content_hash in the DB."""
-        transform = PersistenceTransform(dataset_id=dataset.id)
+        transform = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs = _make_docs(
             {"a.md": "Hello"},
             metadata={"a.md": {"_ontology_meta": {"tags": ["foo"]}}},
@@ -153,7 +153,7 @@ class TestPersistenceTransform:
             hash1 = doc1.content_hash
 
         # Same body, different metadata
-        transform2 = PersistenceTransform(dataset_id=dataset.id)
+        transform2 = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs2 = _make_docs(
             {"a.md": "Hello"},
             metadata={"a.md": {"_ontology_meta": {"tags": ["foo", "bar"]}}},
@@ -207,7 +207,7 @@ class TestDeactivateMissing:
 
     def test_deactivates_missing_paths(self, db_session, dataset):
         """Documents not in active_paths are deactivated."""
-        transform = PersistenceTransform(dataset_id=dataset.id)
+        transform = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs = _make_docs({"a.md": "AAA", "b.md": "BBB", "c.md": "CCC"})
 
         with use_session(db_session):
@@ -229,7 +229,7 @@ class TestDeactivateMissing:
 
     def test_deactivates_all_when_empty_set(self, db_session, dataset):
         """Empty active_paths deactivates all documents."""
-        transform = PersistenceTransform(dataset_id=dataset.id)
+        transform = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs = _make_docs({"a.md": "AAA", "b.md": "BBB"})
 
         with use_session(db_session):
@@ -241,7 +241,7 @@ class TestDeactivateMissing:
 
     def test_no_deactivation_when_all_present(self, db_session, dataset):
         """No deactivation when all paths are in active_paths."""
-        transform = PersistenceTransform(dataset_id=dataset.id)
+        transform = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
         docs = _make_docs({"a.md": "AAA", "b.md": "BBB"})
 
         with use_session(db_session):

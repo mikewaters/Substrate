@@ -2993,6 +2993,20 @@ wheels = [
 ]
 
 [[package]]
+name = "ontology"
+version = "0.1.0"
+source = { editable = "src/ontology" }
+dependencies = [
+    { name = "agentlayer" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "agentlayer" }]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=9.0.2" }]
+
+[[package]]
 name = "openai"
 version = "2.7.2"
 source = { registry = "https://pypi.org/simple" }
@@ -4596,6 +4610,7 @@ dependencies = [
     { name = "llama-index-vector-stores-qdrant" },
     { name = "loguru" },
     { name = "marimo" },
+    { name = "ontology" },
     { name = "pydantic-settings" },
     { name = "qdrant-client" },
 ]
@@ -4630,6 +4645,7 @@ requires-dist = [
     { name = "llama-index-vector-stores-qdrant", specifier = ">=0.9.1" },
     { name = "loguru", specifier = ">=0.7.0" },
     { name = "marimo", specifier = "==0.15.5" },
+    { name = "ontology", editable = "src/ontology" },
     { name = "pydantic-settings", specifier = ">=2.11.0" },
     { name = "qdrant-client", specifier = ">=1.16.2" },
 ]

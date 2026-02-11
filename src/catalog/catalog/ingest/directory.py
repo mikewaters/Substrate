@@ -178,11 +178,11 @@ class DirectorySource(BaseSource):
         return all_docs
 
     def transforms(self, dataset_id: int):
-        """Return (pre_persist, post_persist) transform lists.
+        """Return source-specific transforms.
 
         Directory sources have no source-specific transforms.
         """
-        return ([], [])
+        return []
 
     # ------------------------------------------------------------------
     # Validation

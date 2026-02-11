@@ -13,16 +13,16 @@ from typing import Annotated
 from pathlib import Path
 from sqlalchemy.orm import sessionmaker
 
-from ontology.relational.database import Base
-from ontology.information.services import (
+from ontologizer.relational.database import Base
+from ontologizer.information.services import (
     TopicTaxonomyService,
     TaxonomyService,
 )
-from ontology.loader.loader import load_yaml_dataset
+from ontologizer.loader.loader import load_yaml_dataset
 from rich.console import Console
 import typer
 from tempfile import NamedTemporaryFile
-from ontology.relational.database import get_engine
+from ontologizer.relational.database import get_engine
 
 app = typer.Typer()
 console = Console()

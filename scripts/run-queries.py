@@ -23,7 +23,7 @@ from rich.prompt import Prompt
 from rich.table import Table
 from sqlalchemy import text
 
-from ontology.relational.database import get_async_session
+from ontologizer.relational.database import get_async_session
 
 app = typer.Typer(
     add_completion=False,

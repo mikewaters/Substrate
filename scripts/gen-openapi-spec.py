@@ -20,7 +20,7 @@ import yaml
 from pathlib import Path
 from typing import Any
 
-from ontology.api.app import create_app
+from ontologizer.api.app import create_app
 
 
 def enhance_openapi_spec(spec: dict[str, Any]) -> dict[str, Any]:

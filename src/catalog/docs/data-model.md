@@ -117,3 +117,33 @@ Key patterns:
 ## Secondary Database
 
 There is a `ContentBase` declared for a separate content database (designed to be ATTACHed to the main catalog DB). It is currently empty -- planned for future use to separate large content blobs from the relational metadata.
+
+---
+
+## Store Abstractions (Data Catalog vs Index)
+
+The `catalog.store` module currently mixes two distinct abstractions:
+
+- **Data Catalog**: structured representation of content and metadata.
+- **Index**: search and retrieval infrastructure (FTS, vector search, LLM cache, LlamaIndex glue).
+
+Below is a file-by-file classification to guide a future split.
+
+| File | Classification | Notes / split guidance |
+| --- | --- | --- |
+| `catalog.store.__init__` | Mixed | Re-exports both catalog and index APIs. If splitting, keep catalog exports (models, repositories, schemas, DatasetService, database/session helpers) in Data Catalog and move index exports (FTS managers, vector store, LLM cache, docstore, cleanup) to Index. |
+| `catalog.store.cleanup` | Mixed | `IndexCleanup` and `cleanup_fts_*` are Index; `cleanup_stale_documents` and the DirectorySource-based stale document discovery are Data Catalog maintenance. Split into an Index cleanup module and a Data Catalog stale-content cleanup module. |
+| `catalog.store.database` | Mixed / Shared infra | Core DB registry/session management is shared. Index-specific pieces are `create_fts_table` and `create_chunks_fts_table` calls during initialization. Move those to Index bootstrap or an Index DB-initialization hook. |
+| `catalog.store.dataset` | Data Catalog | Dataset and document CRUD service for catalog data. |
+| `catalog.store.docstore` | Index | `SQLiteDocumentStore` is LlamaIndex integration for retrieval; depends on catalog documents but conceptually Index. |
+| `catalog.store.fts` | Index | Document-level FTS indexing/search. |
+| `catalog.store.fts_chunk` | Index | Chunk-level FTS indexing/search. |
+| `catalog.store.llm_cache` | Index | RAG cache (`LLMCache`, `LLMCacheEntry`) is index-related. If splitting, move model/table into Index schema or Index DB. |
+| `catalog.store.models` | Data Catalog (legacy/duplicate) | Catalog ORM models; overlaps with `catalog.store.models.catalog`. Keep in Data Catalog or remove in favor of the package version when splitting. |
+| `catalog.store.repositories` | Data Catalog | Repositories for catalog resources. |
+| `catalog.store.schemas` | Data Catalog | Pydantic I/O schemas for catalog resources. |
+| `catalog.store.session_context` | Shared infra | Ambient session plumbing used by both. Place in shared persistence infrastructure or keep as cross-cutting utility. |
+| `catalog.store.vector` | Index | Vector store management and retrieval. |
+| `catalog.store.models.__init__` | Data Catalog | Re-exports catalog/content models and base. |
+| `catalog.store.models.catalog` | Data Catalog | Primary catalog ORM models. |
+| `catalog.store.models.content` | Data Catalog | Content DB base for catalog storage. |

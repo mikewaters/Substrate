@@ -68,7 +68,7 @@ All configuration is done via environment variables with the `SUBSTRATE_LLM_` pr
 You can also configure the service programmatically:
 
 ```python
-from ontology.information.services import DocumentClassificationService
+from ontologizer.information.services import DocumentClassificationService
 
 # With default settings from environment
 service = DocumentClassificationService(

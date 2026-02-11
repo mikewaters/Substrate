@@ -22,7 +22,7 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from rich.text import Text
 
-from ontology.loader import (
+from ontologizer.loader import (
     DEFAULT_DATA_DIRECTORY,
     DatasetLoadStatus,
     list_dataset_files,

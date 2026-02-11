@@ -97,15 +97,15 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich.text import Text
 
-from ontology.relational.services.document_classification import (
+from ontologizer.relational.services.document_classification import (
     DocumentClassificationService,
 )
-from ontology.relational.database import Base
-from ontology.relational.repository import (
+from ontologizer.relational.database import Base
+from ontologizer.relational.repository import (
     TopicRepository,
 )
-from ontology.relational.repository import TaxonomyRepository
-from ontology.schema import DocumentClassificationRequest
+from ontologizer.relational.repository import TaxonomyRepository
+from ontologizer.schema import DocumentClassificationRequest
 
 app = typer.Typer(
     help="Classify documents into taxonomies and topics using the ontology system",
@@ -120,7 +120,7 @@ def setup_database():
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
 
-    from ontology.settings import get_settings
+    from ontologizer.settings import get_settings
 
     settings = get_settings()
 

@@ -48,7 +48,7 @@ from rich.console import Console
 from rich.table import Table
 
 # Note: This shouuld work without path munging:
-from ontology import utils
+from ontologizer import utils
 
 app = typer.Typer(
     help="This is a utility script",
@@ -56,24 +56,25 @@ app = typer.Typer(
 )
 console = Console()
 
-
 THINGS = {
-  'thing1': "Thing number one",
-  'thing2': "Thing number two"
+    'thing1': "Thing number one",
+    'thing2': "Thing number two"
 }
 
+
 def valid_name(thing_name: str) -> bool:
-  """Validate the name of a thing isnt too short"""
-  if len(thing_name) < 2:
-    return False
-  return True
+    """Validate the name of a thing isnt too short"""
+    if len(thing_name) < 2:
+        return False
+    return True
+
 
 ## Typer CLI Function with one argument
 @app.command()
 def get(
-    thing_name: Annotated[
-        str, typer.Argument(help="Thing to get"),
-    ]
+        thing_name: Annotated[
+            str, typer.Argument(help="Thing to get"),
+        ]
 ):
     """
     Get and display details about a thing.

@@ -16,20 +16,20 @@ import asyncio
 from pathlib import Path
 
 import typer
-from ontology.information.services import (
+from ontologizer.information.services import (
     TaxonomyService,
     TopicTaxonomyService,
 )
 from rich.console import Console
 
-from ontology.settings import get_settings
-from ontology.relational.database import (
+from ontologizer.settings import get_settings
+from ontologizer.relational.database import (
     create_all_tables_async,
     drop_all_tables_async,
     get_async_session,
 )
-from ontology.loader.loader import load_yaml_dataset
-from ontology.relational.services import TopicSuggestionService
+from ontologizer.loader.loader import load_yaml_dataset
+from ontologizer.relational.services import TopicSuggestionService
 
 app = typer.Typer()
 console = Console()
@@ -71,7 +71,7 @@ async def main(
                 taxonomy.identifier
             ):
                 console.print(f"\t{topic.identifier} {topic.title}")
-            from ontology.schema import TopicSuggestionRequest
+            from ontologizer.schema import TopicSuggestionRequest
 
             response = await classifier_service.suggest_topics(
                 TopicSuggestionRequest(

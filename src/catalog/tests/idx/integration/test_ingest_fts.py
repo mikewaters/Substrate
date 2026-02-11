@@ -498,13 +498,24 @@ class TestObsidianIngest:
         # Verify metadata was stored
         with create_session(session_factory) as session:
             query_result = session.execute(
-                text("SELECT metadata_json FROM documents WHERE path LIKE '%note1.md'")
+                text(
+                    "SELECT r.metadata_json FROM documents d "
+                    "JOIN resources r ON d.id = r.id "
+                    "WHERE d.path LIKE '%note1.md'"
+                )
             )
             row = query_result.fetchone()
             assert row is not None
             # Metadata should contain frontmatter under "frontmatter" key
             import json
-            metadata = json.loads(row[0]) if row[0] else {}
+            if row[0] is None:
+                metadata = {}
+            elif isinstance(row[0], str):
+                metadata = json.loads(row[0])
+            elif isinstance(row[0], dict):
+                metadata = row[0]
+            else:
+                metadata = {}
             assert "title" in metadata or "tags" in metadata
 
     def test_obsidian_excludes_obsidian_dir(

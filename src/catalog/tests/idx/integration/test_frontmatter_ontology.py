@@ -9,7 +9,7 @@ structured ontology metadata in the database.
 import json
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator
+from typing import Any, Generator
 
 import pytest
 from llama_index.core.ingestion import IngestionPipeline
@@ -25,6 +25,21 @@ from catalog.store.fts import create_fts_table
 from catalog.store.session_context import use_session
 from catalog.transform.ontology import OntologyMapper
 from catalog.transform.llama import PersistenceTransform
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _parse_metadata(value: Any) -> dict[str, Any]:
+    """Normalize metadata payloads from SQLite."""
+    if value is None:
+        return {}
+    if isinstance(value, str):
+        return json.loads(value)
+    if isinstance(value, dict):
+        return value
+    return {}
 
 
 # ---------------------------------------------------------------------------
@@ -200,7 +215,7 @@ class TestFrontmatterOntologyWithSchema:
         with create_session(session_factory) as session:
             rows = session.execute(
                 text(
-                    "SELECT d.path, r.title, r.description, d.metadata_json "
+                    "SELECT d.path, r.title, r.description, r.metadata_json "
                     "FROM documents d JOIN resources r ON d.id = r.id "
                     "ORDER BY d.path"
                 )
@@ -209,7 +224,7 @@ class TestFrontmatterOntologyWithSchema:
         assert len(rows) == 5
         for row in rows:
             assert row.metadata_json is not None
-            meta = json.loads(row.metadata_json)
+            meta = _parse_metadata(row.metadata_json)
             assert "title" in meta or "tags" in meta, (
                 f"Missing ontology keys in {row.path}"
             )
@@ -230,7 +245,7 @@ class TestFrontmatterOntologyWithSchema:
         with create_session(session_factory) as session:
             row = session.execute(
                 text(
-                    "SELECT r.title, r.description, d.metadata_json "
+                    "SELECT r.title, r.description, r.metadata_json "
                     "FROM documents d JOIN resources r ON d.id = r.id "
                     "WHERE d.path LIKE '%full_meta%'"
                 )
@@ -240,7 +255,7 @@ class TestFrontmatterOntologyWithSchema:
         assert row.title == "Full Metadata Note"
         assert row.description == "A note with every ontology field populated."
 
-        meta = json.loads(row.metadata_json)
+        meta = _parse_metadata(row.metadata_json)
         assert meta["title"] == "Full Metadata Note"
         assert meta["description"] == "A note with every ontology field populated."
         assert meta["tags"] == ["python", "testing"]
@@ -315,13 +330,14 @@ class TestFrontmatterOntologyWithSchema:
         with create_session(session_factory) as session:
             row = session.execute(
                 text(
-                    "SELECT d.metadata_json FROM documents d "
+                    "SELECT r.metadata_json FROM documents d "
+                    "JOIN resources r ON d.id = r.id "
                     "WHERE d.path LIKE '%extra_keys%'"
                 )
             ).fetchone()
 
         assert row is not None
-        meta = json.loads(row.metadata_json)
+        meta = _parse_metadata(row.metadata_json)
         assert meta["extra"]["custom_field"] == 42
         assert meta["extra"]["project"] == "lifeos"
 
@@ -340,11 +356,14 @@ class TestFrontmatterOntologyWithSchema:
 
         with create_session(session_factory) as session:
             rows = session.execute(
-                text("SELECT d.path, d.metadata_json FROM documents d")
+                text(
+                    "SELECT d.path, r.metadata_json FROM documents d "
+                    "JOIN resources r ON d.id = r.id"
+                )
             ).fetchall()
 
         for row in rows:
-            meta = json.loads(row.metadata_json)
+            meta = _parse_metadata(row.metadata_json)
             # Should be ontology-shaped, not raw frontmatter.
             assert "frontmatter" not in meta, f"raw frontmatter leaked in {row.path}"
             assert "note_name" not in meta, f"note_name leaked in {row.path}"
@@ -399,7 +418,7 @@ class TestFrontmatterOntologyBestEffort:
         with create_session(session_factory) as session:
             row = session.execute(
                 text(
-                    "SELECT r.title, d.metadata_json FROM documents d "
+                    "SELECT r.title, r.metadata_json FROM documents d "
                     "JOIN resources r ON d.id = r.id "
                     "WHERE d.path LIKE '%full_meta%'"
                 )
@@ -408,7 +427,7 @@ class TestFrontmatterOntologyBestEffort:
         assert row is not None
         assert row.title == "Full Metadata Note"
 
-        meta = json.loads(row.metadata_json)
+        meta = _parse_metadata(row.metadata_json)
         assert meta["tags"] == ["python", "testing"]
         assert meta["title"] == "Full Metadata Note"
 
@@ -428,11 +447,12 @@ class TestFrontmatterOntologyBestEffort:
         with create_session(session_factory) as session:
             row = session.execute(
                 text(
-                    "SELECT d.metadata_json FROM documents d "
+                    "SELECT r.metadata_json FROM documents d "
+                    "JOIN resources r ON d.id = r.id "
                     "WHERE d.path LIKE '%extra_keys%'"
                 )
             ).fetchone()
 
         assert row is not None
-        meta = json.loads(row.metadata_json)
+        meta = _parse_metadata(row.metadata_json)
         assert meta["extra"]["custom_field"] == 42

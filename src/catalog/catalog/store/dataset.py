@@ -4,7 +4,6 @@ The DatasetService provides a Pydantic model-based API for managing
 datasets and documents, delegating to repositories for persistence.
 """
 
-import json
 import re
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -166,11 +165,13 @@ class DatasetService:
             if repo.exists_by_name(normalized_name):
                 raise DatasetExistsError(normalized_name)
 
+            metadata_json = data.metadata if data.metadata else None
             dataset = repo.create(
                 name=normalized_name,
                 uri=uri,
                 source_type=data.source_type,
                 source_path=data.source_path,
+                metadata_json=metadata_json,
             )
             session.flush()
 
@@ -260,6 +261,7 @@ class DatasetService:
             updated_at=dataset.updated_at,
             last_ingested_at=dataset.last_ingested_at,
             document_count=doc_count,
+            metadata=dataset.get_metadata(),
         )
 
     @staticmethod
@@ -274,6 +276,7 @@ class DatasetService:
             created_at=dataset.created_at,
             updated_at=dataset.updated_at,
             last_ingested_at=dataset.last_ingested_at,
+            metadata=dataset.get_metadata(),
         )
 
     @staticmethod
@@ -372,7 +375,7 @@ class DatasetService:
                 raise DatasetNotFoundError(dataset_id)
 
             doc_repo = DocumentRepository(session)
-            metadata_json = json.dumps(data.metadata) if data.metadata else None
+            metadata_json = data.metadata if data.metadata else None
             uri = f"document:{dataset.name}/{data.path}"
 
             doc = doc_repo.create(
@@ -458,9 +461,7 @@ class DatasetService:
             if doc is None:
                 raise DocumentNotFoundError(doc_id)
 
-            metadata_json = None
-            if data.metadata is not None:
-                metadata_json = json.dumps(data.metadata)
+            metadata_json = data.metadata if data.metadata is not None else None
 
             repo.update(
                 doc,

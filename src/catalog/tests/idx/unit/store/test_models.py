@@ -1,6 +1,5 @@
 """Tests for catalog.store.models module."""
 
-import json
 from datetime import datetime
 from pathlib import Path
 
@@ -345,14 +344,14 @@ class TestDocument:
         assert doc.last_modified == modified
 
     def test_document_get_metadata(self, db_session, dataset: Dataset) -> None:
-        """Document get_metadata parses JSON."""
+        """Document get_metadata returns metadata dict."""
         doc = Document(
             uri="document:test-dataset/metadata-get.md",
             parent_id=dataset.id,
             path="test.md",
             content_hash="hash",
             body="content",
-            metadata_json='{"tags": ["foo", "bar"], "author": "test"}',
+            metadata_json={"tags": ["foo", "bar"], "author": "test"},
         )
         db_session.add(doc)
         db_session.commit()
@@ -360,7 +359,7 @@ class TestDocument:
         assert doc.get_metadata() == {"tags": ["foo", "bar"], "author": "test"}
 
     def test_document_set_metadata(self, db_session, dataset: Dataset) -> None:
-        """Document set_metadata serializes to JSON."""
+        """Document set_metadata stores metadata."""
         doc = Document(
             uri="document:test-dataset/metadata-set.md",
             parent_id=dataset.id,
@@ -372,7 +371,7 @@ class TestDocument:
         db_session.add(doc)
         db_session.commit()
 
-        assert json.loads(doc.metadata_json) == {"key": "value", "number": 42}
+        assert doc.metadata_json == {"key": "value", "number": 42}
 
     def test_document_get_metadata_empty_when_null(
         self, db_session, dataset: Dataset

@@ -5,6 +5,7 @@ Supports both explicit session injection and ambient session via contextvars.
 """
 
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -72,6 +73,7 @@ class DatasetRepository(_BaseRepository):
         *,
         title: str | None = None,
         description: str | None = None,
+        metadata_json: dict[str, Any] | None = None,
     ) -> Dataset:
         """Create a new dataset.
 
@@ -82,6 +84,7 @@ class DatasetRepository(_BaseRepository):
             source_path: Filesystem path to the source.
             title: Optional human-readable title.
             description: Optional description.
+            metadata_json: Optional metadata payload.
 
         Returns:
             The created Dataset instance.
@@ -93,6 +96,7 @@ class DatasetRepository(_BaseRepository):
             source_path=source_path,
             title=title,
             description=description,
+            metadata_json=metadata_json,
         )
         self._session.add(dataset)
         return dataset
@@ -179,7 +183,7 @@ class DocumentRepository(_BaseRepository):
         doc_type: DocumentKind = DocumentKind.OTHER,
         etag: str | None = None,
         last_modified: datetime | None = None,
-        metadata_json: str | None = None,
+        metadata_json: dict[str, Any] | None = None,
     ) -> Document:
         """Create a new document.
 
@@ -194,7 +198,7 @@ class DocumentRepository(_BaseRepository):
             doc_type: Document type classification.
             etag: Optional source etag.
             last_modified: Optional source modification time.
-            metadata_json: Optional JSON metadata string.
+            metadata_json: Optional metadata payload.
 
         Returns:
             The created Document instance.
@@ -293,7 +297,7 @@ class DocumentRepository(_BaseRepository):
         body: str | None = None,
         etag: str | None = None,
         last_modified: datetime | None = None,
-        metadata_json: str | None = None,
+        metadata_json: dict[str, Any] | None = None,
         active: bool | None = None,
     ) -> Document:
         """Update a document.
@@ -306,7 +310,7 @@ class DocumentRepository(_BaseRepository):
             body: New text content if changed.
             etag: New etag if changed.
             last_modified: New modification time if changed.
-            metadata_json: New metadata JSON if changed.
+            metadata_json: New metadata payload if changed.
             active: New active status if changed.
 
         Returns:
@@ -855,6 +859,7 @@ class BookmarkRepository(_BaseRepository):
         favicon_url: str | None = None,
         folder: str | None = None,
         is_archived: bool = False,
+        metadata_json: dict[str, Any] | None = None,
     ) -> Bookmark:
         """Create a new bookmark.
 
@@ -867,6 +872,7 @@ class BookmarkRepository(_BaseRepository):
             favicon_url: Optional favicon URL.
             folder: Optional folder/category.
             is_archived: Whether the bookmark is archived.
+            metadata_json: Optional metadata payload.
 
         Returns:
             The created Bookmark instance.
@@ -880,6 +886,7 @@ class BookmarkRepository(_BaseRepository):
             favicon_url=favicon_url,
             folder=folder,
             is_archived=is_archived,
+            metadata_json=metadata_json,
         )
         self._session.add(bm)
         return bm

@@ -454,8 +454,8 @@ class PersistenceTransform(TransformComponent):
         # Fall back to node_id (which we set to relative_path)
         return node.node_id
 
-    def _get_metadata_json(self, node: BaseNode) -> str | None:
-        """Extract metadata as JSON string.
+    def _get_metadata(self, node: BaseNode) -> dict[str, Any] | None:
+        """Extract metadata payload.
 
         Prefers structured ontology metadata if present (written by
         OntologyMapper). Falls back to filtered raw metadata.
@@ -466,14 +466,14 @@ class PersistenceTransform(TransformComponent):
         # Prefer structured ontology if OntologyMapper ran.
         ontology = node.metadata.get("_ontology_meta")
         if ontology is not None:
-            return json.dumps(ontology)
+            return ontology
 
         # Fallback: original behavior.
         filtered = {
             k: v for k, v in node.metadata.items()
             if not k.startswith("_") and k not in ("file_path",)
         }
-        return json.dumps(filtered) if filtered else None
+        return filtered if filtered else None
 
     def _process_node(
         self,
@@ -494,7 +494,8 @@ class PersistenceTransform(TransformComponent):
         """
         path = self._get_path(node)
         body = node.get_content()
-        metadata_json = self._get_metadata_json(node)
+        metadata_payload = self._get_metadata(node)
+        metadata_json = json.dumps(metadata_payload) if metadata_payload else None
         content_hash = _compute_content_hash(body, metadata_json)
 
         # Extract source metadata for etag/last_modified
@@ -521,7 +522,7 @@ class PersistenceTransform(TransformComponent):
             existing.etag = etag
             existing.last_modified = last_modified
             existing.active = True
-            existing.metadata_json = metadata_json
+            existing.metadata_json = metadata_payload
             if title is not None:
                 existing.title = title
             if description is not None:
@@ -545,7 +546,7 @@ class PersistenceTransform(TransformComponent):
                 description=description,
                 etag=etag,
                 last_modified=last_modified,
-                metadata_json=metadata_json,
+                metadata_json=metadata_payload,
             )
             session.flush()
 
@@ -869,4 +870,3 @@ class ChunkPersistenceTransform(TransformComponent):
         #logger.debug(
         #    f"Persisted chunk {node_id} (seq={chunk_seq}) from {source_doc_id}"
         #)
-

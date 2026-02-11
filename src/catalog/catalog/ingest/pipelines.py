@@ -159,7 +159,7 @@ class DatasetIngestPipeline(BaseModel):
         # Stage 2: Chunking of Documents into Nodes which may be unique ontologically,
         # followed by the FTS chunk persistence
         # Varies-by:
-        # - document-specific chunking requirements, which may be based on the source, source class, source superclass, or the file type.
+        # - (TODO) document-specific chunking requirements, which may be based on the source, source class, source superclass, or the file type.
         #
 
         # Chunk persistence for FTS
@@ -167,7 +167,7 @@ class DatasetIngestPipeline(BaseModel):
             dataset_name=dataset_name,
         )
 
-        # This is not implemented (see Issue # xxx). Once complete, the chunk_persistene should move here.
+        # (TODO) This is not implemented (see Issue # xxx). Once complete, the chunk_persistence should move here.
         # Next, based on the source type, we define the chunking requirements.
         # This may contain a router, and it may be defined by the source itself,
         # the source class, source superclass, or the filetypes.
@@ -176,8 +176,8 @@ class DatasetIngestPipeline(BaseModel):
         #
         # Stage 3: Text splitting and embedding
         # Varies-by:
-        # - splitting may vary by the type of information present in a node/chunk
-        # - embedding model may vary by the data source configuration, or by the source type itself
+        # - (TODO)splitting may vary by the type of information present in a node/chunk
+        # - (TODO) embedding model may vary by the data source configuration, or by the source type itself
         #
 
         split_and_embed_transforms = [

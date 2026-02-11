@@ -124,8 +124,8 @@ class SQLiteDocumentStore(BaseDocumentStore):
         node_json = doc_to_json(node)
         body = json.dumps(node_json)
 
-        # Extract metadata as JSON string
-        metadata_json = json.dumps(node.metadata) if node.metadata else None
+        # Extract metadata payload
+        metadata_json = node.metadata if node.metadata else None
 
         if existing_doc is not None:
             existing_doc.body = body

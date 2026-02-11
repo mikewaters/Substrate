@@ -10,7 +10,7 @@ import json
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from catalog.store.database import Base
@@ -100,6 +100,7 @@ class Resource(Base):
         description: Optional longer description.
         created_at: When the resource was created.
         updated_at: When the resource was last modified.
+        metadata_json: Optional structured metadata for the resource.
         documents: Child documents linked via ``Document.parent_id``.
     """
 
@@ -110,6 +111,9 @@ class Resource(Base):
     uri: Mapped[str] = mapped_column(String(512), unique=True, nullable=False)
     title: Mapped[str | None] = mapped_column(String(512), nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column(
+        JSON, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )
@@ -130,6 +134,31 @@ class Resource(Base):
 
     def __repr__(self) -> str:
         return f"<Resource(id={self.id}, kind='{self.kind}', uri='{self.uri}')>"
+
+    def get_metadata(self) -> dict[str, Any]:
+        """Return metadata as a dictionary.
+
+        Returns:
+            Metadata dictionary, or empty dict if none is set.
+        """
+        if not self.metadata_json:
+            return {}
+        if isinstance(self.metadata_json, str):
+            try:
+                return json.loads(self.metadata_json)
+            except json.JSONDecodeError:
+                return {}
+        if isinstance(self.metadata_json, dict):
+            return self.metadata_json
+        return {}
+
+    def set_metadata(self, value: dict[str, Any]) -> None:
+        """Set metadata from a dictionary.
+
+        Args:
+            value: Metadata dictionary to store.
+        """
+        self.metadata_json = value
 
 
 # ---------------------------------------------------------------------------
@@ -184,7 +213,6 @@ class Document(Resource):
         etag: Source-provided etag for change detection.
         last_modified: Source-provided modification time.
         body: Full normalized text content for FTS and chunking.
-        metadata_json: Extracted metadata as JSON.
         parent_resource: Relationship to owning Resource.
     """
 
@@ -203,7 +231,6 @@ class Document(Resource):
     etag: Mapped[str | None] = mapped_column(String(255), nullable=True)
     last_modified: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     body: Mapped[str] = mapped_column(Text, nullable=False)
-    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     parent_resource: Mapped["Resource"] = relationship(
         "Resource",
@@ -236,26 +263,6 @@ class Document(Resource):
     def __repr__(self) -> str:
         return f"<Document(id={self.id}, path='{self.path}', active={self.active})>"
 
-    def get_metadata(self) -> dict[str, Any]:
-        """Parse and return metadata as a dictionary.
-
-        Returns:
-            Parsed metadata dictionary, or empty dict if no metadata.
-        """
-        if not self.metadata_json:
-            return {}
-        try:
-            return json.loads(self.metadata_json)
-        except json.JSONDecodeError:
-            return {}
-
-    def set_metadata(self, value: dict[str, Any]) -> None:
-        """Set metadata from a dictionary.
-
-        Args:
-            value: Metadata dictionary to serialize.
-        """
-        self.metadata_json = json.dumps(value)
 
 
 # ---------------------------------------------------------------------------

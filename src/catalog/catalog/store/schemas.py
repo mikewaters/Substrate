@@ -42,6 +42,7 @@ class DatasetCreate(BaseModel):
     source_path: str = Field(..., description="Filesystem path to the source")
     title: str | None = Field(None, description="Optional human-readable title")
     description: str | None = Field(None, description="Optional longer description")
+    metadata: dict[str, Any] = Field(default_factory=dict)
     model_config = {"frozen": True}
 
 
@@ -59,6 +60,7 @@ class DatasetInfo(BaseModel):
     updated_at: datetime
     last_ingested_at: datetime | None = None
     document_count: int = 0
+    metadata: dict[str, Any] = Field(default_factory=dict)
     model_config = {"from_attributes": True}
 
 
@@ -218,6 +220,7 @@ class BookmarkCreate(BaseModel):
     owner: str = Field(..., description="Owner of the bookmark")
     folder: str | None = Field(None, description="Optional folder/category")
     is_archived: bool = Field(False, description="Whether the bookmark is archived")
+    metadata: dict[str, Any] = Field(default_factory=dict)
     model_config = {"frozen": True}
 
 
@@ -235,6 +238,7 @@ class BookmarkInfo(BaseModel):
     is_archived: bool
     created_at: datetime
     updated_at: datetime
+    metadata: dict[str, Any] = Field(default_factory=dict)
     model_config = {"from_attributes": True}
 
 

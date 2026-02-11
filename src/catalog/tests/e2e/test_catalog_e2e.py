@@ -10,6 +10,7 @@ through production code paths with no patching.
 
 import json
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -42,6 +43,17 @@ class SampleVaultSpec(VaultSpec):
     author: str | None = Field(None, json_schema_extra={"maps_to": "author"})
     aliases: list[str] = Field(default_factory=list)
     cssclass: str | None = None
+
+
+def _parse_metadata(value: Any) -> dict[str, Any]:
+    """Normalize metadata payloads from SQLite."""
+    if value is None:
+        return {}
+    if isinstance(value, str):
+        return json.loads(value)
+    if isinstance(value, dict):
+        return value
+    return {}
 
 
 # ---------------------------------------------------------------------------
@@ -251,7 +263,7 @@ class TestFrontmatterOntology:
         with e2e.session() as session:
             rows = session.execute(
                 text(
-                    "SELECT d.path, r.title, r.description, d.metadata_json "
+                    "SELECT d.path, r.title, r.description, r.metadata_json "
                     "FROM documents d JOIN resources r ON d.id = r.id "
                     "ORDER BY d.path"
                 )
@@ -262,7 +274,7 @@ class TestFrontmatterOntology:
         # All documents should have ontology-shaped metadata
         for row in rows:
             assert row.metadata_json is not None
-            meta = json.loads(row.metadata_json)
+            meta = _parse_metadata(row.metadata_json)
             assert "title" in meta or "tags" in meta, (
                 f"Missing ontology keys in {row.path}"
             )
@@ -272,7 +284,7 @@ class TestFrontmatterOntology:
         assert full_meta_row.title == "Full Metadata Note"
         assert full_meta_row.description == "A note with every ontology field populated."
 
-        meta = json.loads(full_meta_row.metadata_json)
+        meta = _parse_metadata(full_meta_row.metadata_json)
         assert meta["tags"] == ["python", "testing"]
         assert meta["categories"] == ["tutorial"]
         assert meta["author"] == "Mike"

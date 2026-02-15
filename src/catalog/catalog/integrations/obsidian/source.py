@@ -42,10 +42,14 @@ class ObsidianVaultSource(BaseSource):
 
         if if_modified_since is not None:
             ts = if_modified_since.timestamp()
-            self.reader.input_files = [
-                p for p in self.path.rglob("*.md")
-                if p.stat().st_mtime >= ts
-            ]
+            self.reader.input_files = sorted(
+                (
+                    p
+                    for p in self.path.rglob("*.md")
+                    if p.stat().st_mtime >= ts
+                ),
+                key=lambda p: str(p),
+            )
             logger.info(
                 f"Filtered to {len(self.reader.input_files)} files "
                 f"modified since {if_modified_since}"

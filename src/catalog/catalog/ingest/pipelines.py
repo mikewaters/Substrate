@@ -31,8 +31,11 @@ from functools import cached_property
 from typing import Any, Optional
 
 from agentlayer.logging import get_logger
+from catalog.ingest.tracing import SnapshotTransform
 from llama_index.core.ingestion import DocstoreStrategy, IngestionPipeline
 from llama_index.core.storage.docstore import SimpleDocumentStore
+from llama_index.core.schema import BaseNode, TransformComponent
+
 from pydantic import BaseModel, Field
 
 from catalog.core.settings import get_settings
@@ -52,6 +55,7 @@ from catalog.store.session_context import use_session
 from catalog.store.vector import VectorStoreManager
 from catalog.transform import EmbeddingPrefixTransform, OntologyMapper, ResilientSplitter
 from catalog.transform.llama import ChunkPersistenceTransform, PersistenceTransform
+from catalog.ingest.tracing import TracingDocstore
 
 __all__ = [
     "DatasetIngestPipeline",
@@ -93,6 +97,9 @@ class DatasetIngestPipeline(BaseModel):
     embed_model: Optional[Any] = None  # BaseEmbedding, but Any for Pydantic compat
     resilient_embedding: bool = Field(default=True)
 
+    dataset_id: Optional[int] = None
+    dataset_name: Optional[str] = None
+
     model_config = {"arbitrary_types_allowed": True}
 
     @cached_property
@@ -115,46 +122,24 @@ class DatasetIngestPipeline(BaseModel):
             return self.embed_model
         return get_embed_model(resilient=self.resilient_embedding)
 
-    def build_pipeline(
-        self,
-        dataset_id: int,
-        dataset_name: str,
-        vector_manager: VectorStoreManager,
-        source_transforms: tuple[list, list],
-        incremental: bool = False,
-    ) -> IngestionPipeline:
-        """Build the ingestion pipeline.
-
-        Args:
-            dataset_id: Database ID of the dataset.
-            dataset_name: Name of the dataset.
-            vector_manager: Vector store manager for embeddings.
-            source_transforms: Tuple of (pre-persist, post-persist) transforms.
-            incremental: If True, use UPSERTS strategy instead of
-                UPSERTS_AND_DELETE to avoid deleting unchanged documents
-                that are absent from the partial batch.
-
-        Returns:
-            Configured IngestionPipeline ready to run.
-        """
-        settings = self._settings
-
+    def _get_transforms(self) -> list[TransformComponent]:
+        """Get source-specific transforms for the dataset."""
         #
         # Stage 1: Dataset- and Document-level transformations, including persistence
         # Varies-by:
         # - data source-specific Ontology mapping
         #
-
+        #from catalog.ingest.tracing import DebugPipeline, TracingDocstore, SnapshotTransform
         # Document-level transformation, followed by document persistence and cross-dataset normalization
         document_transforms = [
             OntologyMapper(
                 ontology_spec_cls=getattr(self.source, "ontology_spec", None),
             ),
             PersistenceTransform(
-                dataset_id=dataset_id,
-                dataset_name=dataset_name,
+                dataset_id=self.dataset_id,
+                dataset_name=self.dataset_name,
             )
-            ] + self.source.transforms(dataset_id)
+            ] + self.source.transforms(dataset_id=self.dataset_id)
 
         #
         # Stage 2: Chunking of Documents into Nodes which may be unique ontologically,
@@ -165,7 +150,7 @@ class DatasetIngestPipeline(BaseModel):
 
         # Chunk persistence for FTS
         chunk_persist = ChunkPersistenceTransform(
-            dataset_name=dataset_name,
+            dataset_name=self.dataset_name,
         )
 
         # (TODO) This is not implemented (see Issue # xxx). Once complete, the chunk_persistence should move here.
@@ -183,26 +168,43 @@ class DatasetIngestPipeline(BaseModel):
 
         split_and_embed_transforms = [
             ResilientSplitter(
-                chunk_size_tokens=settings.chunk_size,
-                chunk_overlap_tokens=settings.chunk_overlap,
-                chars_per_token=settings.chunk_chars_per_token,
-                fallback_enabled=settings.chunk_fallback_enabled,
+                chunk_size_tokens=self._settings.chunk_size,
+                chunk_overlap_tokens=self._settings.chunk_overlap,
+                chars_per_token=self._settings.chunk_chars_per_token,
+                fallback_enabled=self._settings.chunk_fallback_enabled,
             ),
             chunk_persist,
             EmbeddingPrefixTransform(
-                prefix_template=settings.embed_prefix_doc,
+                prefix_template=self._settings.embed_prefix_doc,
             ),
             self._get_embed_model()
         ]
 
-
         # Build transformation chain
-        transformations = document_transforms + chunker_transforms + split_and_embed_transforms
+        return document_transforms + chunker_transforms + split_and_embed_transforms
+
+    def build_pipeline(
+        self,
+        vector_manager: VectorStoreManager,
+        incremental: bool = False,
+    ) -> IngestionPipeline:
+        """Build the ingestion pipeline.
+
+        Args:
+            vector_manager: Vector store manager for embeddings.
+            incremental: If True, use UPSERTS strategy instead of
+                UPSERTS_AND_DELETE to avoid deleting unchanged documents
+                that are absent from the partial batch.
+
+        Returns:
+            Configured IngestionPipeline ready to run.
+        """
+        transformations = self._get_transforms()
 
         # Create pipeline with docstore for change detection and deduplication.
         # LlamaIndex's docstore uses SHA256(text + metadata) for change detection,
         # which catches frontmatter-only changes that our old body-only hash missed.
-        docstore = SimpleDocumentStore()
+        docstore = SimpleDocumentStore(namespace=self.dataset_name)
         vector_store = vector_manager.get_vector_store()
 
         # In incremental mode, use UPSERTS to avoid deleting docstore/vector
@@ -228,7 +230,15 @@ class DatasetIngestPipeline(BaseModel):
         )
 
         # Load cached pipeline state if available
-        load_pipeline(dataset_name, pipeline)
+        load_pipeline(self.dataset_name, pipeline)
+
+        if self._settings.tracing:
+            # Wrap the pipeline's docstore with a trace
+            pipeline.docstore = TracingDocstore(
+                pipeline.docstore,
+                label=self.dataset_name,
+                sample_mod=1,  # set to 1 to verify logs
+            )
 
         return pipeline
 
@@ -271,6 +281,8 @@ class DatasetIngestPipeline(BaseModel):
                     source_path=str(self.ingest_config.source_path),
                     catalog_name=self.ingest_config.catalog_name,
                 )
+                self.dataset_id = dataset.id
+                self.dataset_name = dataset.name
 
                 # Resolve incremental flag to if_modified_since before
                 # accessing self.source (which triggers file filtering).
@@ -299,15 +311,9 @@ class DatasetIngestPipeline(BaseModel):
                         )
                     clear_cache(self._cache_key(dataset.name))
 
-                # Get source-specific transforms
-                source_transforms = self.source.transforms(dataset_id=dataset.id)
-
                 # Build and run pipeline
                 pipeline = self.build_pipeline(
-                    dataset_id=dataset.id,
-                    dataset_name=dataset.name,
                     vector_manager=vector_manager,
-                    source_transforms=source_transforms,
                     incremental=is_incremental,
                 )
 

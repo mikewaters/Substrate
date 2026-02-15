@@ -37,7 +37,8 @@ def extract_heptabase_links(text: str) -> List[str]:
         List of unique link target names (note stems, without .md extension).
     """
     matches = _HEPTABASE_LINK_RE.findall(text)
-    links = []
+    links: List[str] = []
+    seen: set[str] = set()
     for _display, target in matches:
         # URL-decode (e.g., LifeOS%20Utilities.md -> LifeOS Utilities.md)
         target = unquote(target)
@@ -45,5 +46,8 @@ def extract_heptabase_links(text: str) -> List[str]:
         target = target.split("#", 1)[0]
         # Get the filename stem (strip .md and any directory components)
         stem = Path(target).stem
+        if stem in seen:
+            continue
         links.append(stem)
-    return list(set(links))
+        seen.add(stem)
+    return links

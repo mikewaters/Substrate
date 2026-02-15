@@ -12,6 +12,11 @@ Architecture decisions:
     and should be extracted as early as possible for indexing and filtering.
     Furthermore, Extractors are designed to work on arbitrary nodes, and a frontmatter
     extractor would only work on complete non-split Markdown documents.
+
+Learnings:
+1. (LLamaindex Caching) Its critical for a Reader to be deterministic. Some python behavior results in non-determinism,
+like list order. If the reader doesnt return the same content plus metadata, pipelines will not
+cache between runs.
 """
 
 from __future__ import annotations
@@ -293,12 +298,16 @@ def extract_wikilinks(text: str) -> List[str]:
     """
     pattern = r"\[\[([^\]]+)\]\]"
     matches = re.findall(pattern, text)
-    links = []
+    links: List[str] = []
+    seen: set[str] = set()
     for match in matches:
         # If a pipe is present (e.g. [[Note|Alias]]), take only the part before it.
         target = match.split("|")[0].strip()
+        if target in seen:
+            continue
         links.append(target)
-    return list(set(links))
+        seen.add(target)
+    return links
 
 
 class ObsidianVaultReader(SimpleDirectoryReader):
@@ -574,7 +583,7 @@ class ObsidianVaultReader(SimpleDirectoryReader):
         }
 
         # Build backlinks map: {target_note: [source_note1, source_note2, ...]}
-        backlinks_map: Dict[str, List[str]] = {}
+        backlinks_map: Dict[str, set[str]] = {}
 
         # First pass
         for i, doc in enumerate(docs):
@@ -601,7 +610,7 @@ class ObsidianVaultReader(SimpleDirectoryReader):
                 doc.metadata["wikilinks"] = final_wikilinks
 
                 for link in final_wikilinks:
-                    backlinks_map.setdefault(link, []).append(note_name)
+                    backlinks_map.setdefault(link, set()).add(note_name)
 
             # Optionally extract tasks
             if self._should_extract_tasks:
@@ -614,8 +623,9 @@ class ObsidianVaultReader(SimpleDirectoryReader):
         if self._should_extract_links:
             for doc in docs:
                 note_name = doc.metadata.get("note_name", "")
-                doc.metadata["backlinks"] = backlinks_map.get(note_name, [])
+                doc.metadata["backlinks"] = sorted(
+                    backlinks_map.get(note_name, set())
+                )
 
         return docs
-
 

@@ -72,7 +72,7 @@ def persist_documents(dataset_name: str, nodes: list[Document]) -> int:
     return len(nodes)
 
 
-def load_pipeline(dataset_name: str, pipeline: IngestionPipeline) -> IngestionPipeline:
+def load_pipeline(dataset_name: str, pipeline: IngestionPipeline) -> bool:
     """Load a persisted pipeline's docstore state.
 
     Restores the pipeline's internal docstore which tracks document hashes
@@ -84,14 +84,14 @@ def load_pipeline(dataset_name: str, pipeline: IngestionPipeline) -> IngestionPi
         pipeline: Pipeline instance to load state into.
 
     Returns:
-        The pipeline with restored docstore state.
+        Whether cache was found and loaded successfully.
     """
     cache_path = _get_cache_path(dataset_name)
     if cache_path.exists():
         logger.info(f"Loading persisted pipeline from {cache_path}")
         pipeline.load(persist_dir=str(cache_path))
-
-    return pipeline
+        return True
+    return False
 
 
 def load_vector_store(dataset_name: str) -> SimpleVectorStore | None:

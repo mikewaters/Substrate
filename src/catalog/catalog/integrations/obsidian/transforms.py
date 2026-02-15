@@ -194,7 +194,7 @@ class LinkResolutionTransform(TransformComponent):
         for target_name in wikilinks:
             target_id = stem_to_id.get(target_name)
             if target_id is None:
-                logger.debug(f"Unresolved wikilink: '{target_name}' from doc {doc_id} '{name}'")
+                logger.trace(f"Unresolved wikilink: '{target_name}' from doc {doc_id} '{name}'")
                 self.stats.unresolved += 1
                 continue
 

@@ -1,4 +1,7 @@
 {
-    "plansDirectory": ".claude/plans",
-    "prefersReducedMotion": true
+  "plansDirectory": ".claude/plans",
+  "prefersReducedMotion": true,
+  "enabledPlugins": {
+    "worktrunk@worktrunk": true
+  }
 }

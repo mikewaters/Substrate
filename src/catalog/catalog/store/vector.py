@@ -53,6 +53,8 @@ class _ZvecClient:
 
     def __init__(self, index_path: Path) -> None:
         self._index_path = index_path.expanduser()
+        self._cached_entries: list[dict[str, Any]] | None = None
+        self._cached_mtime: float | None = None
 
     def query(
         self,
@@ -109,11 +111,23 @@ class _ZvecClient:
         return list(seen.values())
 
     def _load_collection_entries(self, collection_name: str) -> list[dict[str, Any]]:
-        """Load and normalize vector entries from the configured local file."""
+        """Load and normalize vector entries from the configured local file.
+
+        Caches parsed entries and invalidates on file modification to avoid
+        redundant I/O and JSON parsing during multi-step search operations.
+        """
         if not self._index_path.exists():
             raise FileNotFoundError(
                 f"Zvec index file does not exist: {self._index_path}"
             )
+
+        current_mtime = self._index_path.stat().st_mtime
+        if (
+            self._cached_entries is not None
+            and self._cached_mtime is not None
+            and self._cached_mtime == current_mtime
+        ):
+            return self._cached_entries
 
         with self._index_path.open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
@@ -199,6 +213,8 @@ class _ZvecClient:
                 }
             )
 
+        self._cached_entries = entries
+        self._cached_mtime = current_mtime
         return entries
 
     @staticmethod

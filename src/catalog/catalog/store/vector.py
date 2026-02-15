@@ -13,6 +13,7 @@ Example usage:
 """
 
 from pathlib import Path
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 import qdrant_client
@@ -31,6 +32,50 @@ if TYPE_CHECKING:
 __all__ = ["VectorStoreManager"]
 
 logger = get_logger(__name__)
+
+
+@lru_cache(maxsize=8)
+def _build_embed_model(
+    backend: str,
+    model_name: str,
+    batch_size: int,
+):
+    """Build and cache embedding models per process.
+
+    The catalog CLI often creates multiple ``VectorStoreManager`` instances
+    during a single run (e.g. comparing fts/vector/hybrid modes). Loading the
+    embedding model each time dominates latency, so this cache keeps one model
+    instance per unique backend/model/batch configuration in the current
+    process.
+
+    Args:
+        backend: Embedding backend name (``mlx`` or ``huggingface``).
+        model_name: Embedding model identifier.
+        batch_size: Embedding batch size.
+
+    Returns:
+        Configured embedding model.
+    """
+    if backend == "mlx":
+        from catalog.embedding.mlx import MLXEmbedding
+
+        logger.debug(f"Loading MLX embedding model: {model_name}")
+        model = MLXEmbedding(
+            model_name=model_name,
+            embed_batch_size=batch_size,
+        )
+        logger.info(f"MLX embedding model loaded: {model_name}")
+        return model
+
+    from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+
+    logger.debug(f"Loading HuggingFace embedding model: {model_name}")
+    model = HuggingFaceEmbedding(
+        model_name=model_name,
+        embed_batch_size=batch_size,
+    )
+    logger.info(f"HuggingFace embedding model loaded: {model_name}")
+    return model
 
 
 class VectorStoreManager:
@@ -136,24 +181,11 @@ class VectorStoreManager:
             BaseEmbedding instance configured from settings.
         """
         if self._embed_model is None:
-            if self._embed_settings.backend == "mlx":
-                from catalog.embedding.mlx import MLXEmbedding
-
-                logger.debug(f"Loading MLX embedding model: {self._embed_settings.model_name}")
-                self._embed_model = MLXEmbedding(
-                    model_name=self._embed_settings.model_name,
-                    embed_batch_size=self._embed_settings.batch_size,
-                )
-                logger.info(f"MLX embedding model loaded: {self._embed_settings.model_name}")
-            else:
-                from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-
-                logger.debug(f"Loading HuggingFace embedding model: {self._embed_settings.model_name}")
-                self._embed_model = HuggingFaceEmbedding(
-                    model_name=self._embed_settings.model_name,
-                    embed_batch_size=self._embed_settings.batch_size,
-                )
-                logger.info(f"HuggingFace embedding model loaded: {self._embed_settings.model_name}")
+            self._embed_model = _build_embed_model(
+                backend=self._embed_settings.backend,
+                model_name=self._embed_settings.model_name,
+                batch_size=self._embed_settings.batch_size,
+            )
 
         return self._embed_model
 

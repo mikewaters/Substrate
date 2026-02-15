@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from catalog.search.formatting import Snippet, extract_snippet
+from catalog.search.formatting import Snippet, build_snippet, extract_snippet
 
 
 class TestSnippet:
@@ -276,3 +276,41 @@ class TestExtractSnippet:
         assert len(lines) == 3  # "second", "third", ""
         assert snippet.start_line == 2
         assert snippet.end_line == 4
+
+
+class TestBuildSnippet:
+    """Tests for build_snippet (no doc_content variant)."""
+
+    def test_basic(self) -> None:
+        """Test basic snippet building from chunk text."""
+        snippet = build_snippet("hello world", "notes/test.md", max_lines=10)
+        assert snippet.text == "hello world"
+        assert snippet.start_line == 1
+        assert snippet.end_line == 1
+        assert snippet.header == "@@ -1,1 +1,1 @@ notes/test.md"
+
+    def test_multiline(self) -> None:
+        """Test multiline chunk text."""
+        text = "line 1\nline 2\nline 3"
+        snippet = build_snippet(text, "doc.md", max_lines=10)
+        assert snippet.text == text
+        assert snippet.start_line == 1
+        assert snippet.end_line == 3
+        assert snippet.header == "@@ -1,3 +1,3 @@ doc.md"
+
+    def test_truncation(self) -> None:
+        """Test that max_lines truncates correctly."""
+        text = "\n".join(f"line {i}" for i in range(1, 20))
+        snippet = build_snippet(text, "doc.md", max_lines=5)
+        assert len(snippet.text.split("\n")) == 5
+        assert snippet.end_line == 5
+        assert snippet.header == "@@ -1,5 +1,5 @@ doc.md"
+
+    @patch("catalog.core.settings.get_settings")
+    def test_default_max_lines_from_settings(self, mock_settings) -> None:
+        """Test that max_lines defaults to settings when not provided."""
+        mock_settings.return_value.rag.snippet_max_lines = 3
+        text = "a\nb\nc\nd\ne"
+        snippet = build_snippet(text, "doc.md")
+        assert len(snippet.text.split("\n")) == 3
+        assert snippet.end_line == 3

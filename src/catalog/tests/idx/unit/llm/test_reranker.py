@@ -11,7 +11,7 @@ from catalog.llm.reranker import (
     blend_scores,
     get_position_weight,
 )
-from catalog.search.models import SearchResult
+from catalog.search.models import SearchResult, SnippetResult
 
 
 class TestGetPositionWeight:
@@ -281,9 +281,9 @@ class TestReranker:
         reranker.provider.generate = AsyncMock(side_effect=["Yes", "No", "Yes"])
 
         results = [
-            SearchResult(path="a.md", dataset_name="vault", score=0.9, chunk_text="chunk a"),
-            SearchResult(path="b.md", dataset_name="vault", score=0.8, chunk_text="chunk b"),
-            SearchResult(path="c.md", dataset_name="vault", score=0.7, chunk_text="chunk c"),
+            SearchResult(path="a.md", dataset_name="vault", score=0.9, snippet=SnippetResult(text="chunk a", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test")),
+            SearchResult(path="b.md", dataset_name="vault", score=0.8, snippet=SnippetResult(text="chunk b", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test")),
+            SearchResult(path="c.md", dataset_name="vault", score=0.7, snippet=SnippetResult(text="chunk c", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test")),
         ]
 
         scores = await reranker.get_rerank_scores("test query", results)
@@ -299,8 +299,8 @@ class TestReranker:
         reranker.provider.generate = AsyncMock(side_effect=["No", "Yes"])
 
         results = [
-            SearchResult(path="a.md", dataset_name="vault", score=0.9, chunk_text="chunk a"),
-            SearchResult(path="b.md", dataset_name="vault", score=0.5, chunk_text="chunk b"),
+            SearchResult(path="a.md", dataset_name="vault", score=0.9, snippet=SnippetResult(text="chunk a", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test")),
+            SearchResult(path="b.md", dataset_name="vault", score=0.5, snippet=SnippetResult(text="chunk b", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test")),
         ]
 
         reranked = await reranker.rerank("test query", results)

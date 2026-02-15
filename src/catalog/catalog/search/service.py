@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     )
     from catalog.search.query_expansion import QueryExpansionTransform
     from catalog.search.vector import VectorSearch
+    from catalog.store.vector import VectorStoreManager
 
 __all__ = ["SearchService", "search"]
 
@@ -89,6 +90,19 @@ class SearchService:
         self._cached_reranker: "CachedReranker | None" = None
         self._fts_search: "FTSChunkRetriever | None" = None
         self._vector_search: "VectorSearch | None" = None
+        self._vector_manager: "VectorStoreManager | None" = None
+
+    def _ensure_vector_manager(self) -> "VectorStoreManager":
+        """Lazy-load shared VectorStoreManager.
+
+        A single manager instance avoids creating multiple local Qdrant clients
+        in one process, which would contend on the same on-disk lock file.
+        """
+        if self._vector_manager is None:
+            from catalog.store.vector import VectorStoreManager
+
+            self._vector_manager = VectorStoreManager()
+        return self._vector_manager
 
     @property
     def cache(self) -> LLMCache:
@@ -106,7 +120,7 @@ class SearchService:
             from catalog.search.query_expansion import QueryExpansionTransform
 
             logger.debug("Lazy-loading QueryExpansionTransform")
-            self._query_expander = QueryExpansionTransform(cache=self.cache)
+            self._query_expander = QueryExpansionTransform(session=self.session)
         return self._query_expander
 
     def _ensure_hybrid_retriever(self) -> "HybridRetriever":
@@ -115,13 +129,17 @@ class SearchService:
             from catalog.search.hybrid import HybridRetriever
 
             logger.debug("Lazy-loading HybridRetriever")
-            self._hybrid_retriever_factory = HybridRetriever(self.session)
+            self._hybrid_retriever_factory = HybridRetriever(
+                self.session,
+                vector_manager=self._ensure_vector_manager(),
+            )
         return self._hybrid_retriever_factory
 
     def _ensure_cached_reranker(self) -> "CachedReranker":
         """Lazy-load CachedReranker."""
         if self._cached_reranker is None:
-            from catalog.llm.reranker import CachedReranker, Reranker
+            from catalog.llm.reranker import CachedReranker
+            from catalog.search.rerank import Reranker
 
             logger.debug("Lazy-loading CachedReranker")
             base_reranker = Reranker()
@@ -146,7 +164,9 @@ class SearchService:
             from catalog.search.vector import VectorSearch
 
             logger.debug("Lazy-loading VectorSearch")
-            self._vector_search = VectorSearch()
+            self._vector_search = VectorSearch(
+                vector_manager=self._ensure_vector_manager()
+            )
         return self._vector_search
 
     def search(self, criteria: SearchCriteria) -> SearchResults:
@@ -366,6 +386,30 @@ class SearchService:
             timing_ms=0,
         )
 
+    def _build_snippet(self, chunk_text: str | None, doc_path: str) -> "SnippetResult | None":
+        """Build a SnippetResult from chunk text.
+
+        Args:
+            chunk_text: The chunk text content. Returns None if empty/None.
+            doc_path: Document path for the diff header.
+
+        Returns:
+            SnippetResult or None if no text available.
+        """
+        if not chunk_text:
+            return None
+
+        from catalog.search.formatting import build_snippet
+        from catalog.search.models import SnippetResult
+
+        s = build_snippet(chunk_text, doc_path)
+        return SnippetResult(
+            text=s.text,
+            start_line=s.start_line,
+            end_line=s.end_line,
+            header=s.header,
+        )
+
     def _nodes_to_search_results(self, nodes: list) -> list[SearchResult]:
         """Convert LlamaIndex nodes to SearchResult objects.
 
@@ -387,12 +431,15 @@ class SearchService:
                 dataset_name = metadata.get("dataset_name", "")
                 path = metadata.get("file_path", metadata.get("path", ""))
 
+            chunk_text = node.node.get_content()
+            snippet = self._build_snippet(chunk_text, path)
+
             results.append(
                 SearchResult(
                     path=path,
                     dataset_name=dataset_name,
                     score=node.score or 0.0,
-                    chunk_text=node.node.get_content(),
+                    snippet=snippet,
                     chunk_seq=metadata.get("chunk_seq"),
                     chunk_pos=metadata.get("chunk_pos"),
                     metadata=metadata,
@@ -426,7 +473,7 @@ class SearchService:
                     path=result.path,
                     dataset_name=result.dataset_name,
                     score=result.score + bonus,
-                    chunk_text=result.chunk_text,
+                    snippet=result.snippet,
                     chunk_seq=result.chunk_seq,
                     chunk_pos=result.chunk_pos,
                     metadata=result.metadata,
@@ -480,7 +527,7 @@ class SearchService:
 
             node = TextNode(
                 id_=node_id,
-                text=result.chunk_text or "",
+                text=result.snippet.text if result.snippet else "",
                 metadata=metadata,
             )
             nodes.append(NodeWithScore(node=node, score=result.score))
@@ -501,7 +548,7 @@ class SearchService:
                         path=original.path,
                         dataset_name=original.dataset_name,
                         score=node.score or 0.0,
-                        chunk_text=original.chunk_text,
+                        snippet=original.snippet,
                         chunk_seq=original.chunk_seq,
                         chunk_pos=original.chunk_pos,
                         metadata=original.metadata,

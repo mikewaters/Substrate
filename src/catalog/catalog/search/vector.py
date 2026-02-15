@@ -22,7 +22,8 @@ from typing import TYPE_CHECKING
 
 from agentlayer.logging import get_logger
 
-from catalog.search.models import SearchResult
+from catalog.search.formatting import build_snippet
+from catalog.search.models import SearchResult, SnippetResult
 from catalog.store.vector import VectorStoreManager
 
 if TYPE_CHECKING:
@@ -31,6 +32,14 @@ if TYPE_CHECKING:
 __all__ = ["VectorSearch"]
 
 logger = get_logger(__name__)
+
+
+def _build_snippet_result(chunk_text: str | None, doc_path: str) -> SnippetResult | None:
+    """Build a SnippetResult from chunk text, or None if empty."""
+    if not chunk_text:
+        return None
+    s = build_snippet(chunk_text, doc_path)
+    return SnippetResult(text=s.text, start_line=s.start_line, end_line=s.end_line, header=s.header)
 
 
 class VectorSearch:
@@ -218,12 +227,14 @@ class VectorSearch:
                            "_node_type", "document_id", "ref_doc_id", "dataset_name")
             }
 
+            snippet = _build_snippet_result(chunk_text, path)
+
             results.append(
                 SearchResult(
                     path=path,
                     dataset_name=ds_name,
                     score=score,
-                    chunk_text=chunk_text,
+                    snippet=snippet,
                     chunk_seq=chunk_seq,
                     chunk_pos=chunk_pos,
                     metadata=result_metadata,

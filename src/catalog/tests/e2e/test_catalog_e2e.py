@@ -183,10 +183,11 @@ class TestHybridSearch:
 
         result_list = search_results.results
 
-        # Add chunk text for reranker if missing
+        # Add snippet for reranker if missing
         for res in result_list:
-            if not res.chunk_text:
-                res.chunk_text = f"Content from {res.path}"
+            if not res.snippet:
+                from catalog.search.models import SnippetResult
+                res.snippet = SnippetResult(text=f"Content from {res.path}", start_line=1, end_line=1, header=f"@@ -1,1 +1,1 @@ {res.path}")
 
         # 3. Rerank with mocked LLM
         mock_provider = MagicMock()

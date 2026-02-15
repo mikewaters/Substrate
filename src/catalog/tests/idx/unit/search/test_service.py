@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from catalog.search.models import SearchCriteria, SearchResult, SearchResults
+from catalog.search.models import SearchCriteria, SearchResult, SearchResults, SnippetResult
 from catalog.search.service import SearchService
 
 
@@ -118,7 +118,7 @@ class TestSearchServiceSearch:
                 path="test.md",
                 dataset_name="test",
                 score=1.0,
-                chunk_text="test content",
+                snippet=SnippetResult(text="test content", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                 scores={"retrieval": 1.0},
             )
         ]
@@ -147,7 +147,7 @@ class TestSearchServiceSearch:
                 path="test.md",
                 dataset_name="test",
                 score=1.0,
-                chunk_text="test content",
+                snippet=SnippetResult(text="test content", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                 scores={"retrieval": 1.0},
             )
         ]
@@ -174,7 +174,7 @@ class TestSearchServiceSearch:
                 path="test.md",
                 dataset_name="test",
                 score=1.0,
-                chunk_text="test content",
+                snippet=SnippetResult(text="test content", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                 scores={"retrieval": 1.0},
             )
         ]
@@ -212,14 +212,14 @@ class TestSearchServiceTopRankBonus:
                     path="a.md",
                     dataset_name="test",
                     score=1.0,
-                    chunk_text="a",
+                    snippet=SnippetResult(text="a", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                     scores={"retrieval": 1.0},
                 ),
                 SearchResult(
                     path="b.md",
                     dataset_name="test",
                     score=0.9,
-                    chunk_text="b",
+                    snippet=SnippetResult(text="b", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                     scores={"retrieval": 0.9},
                 ),
             ],
@@ -242,7 +242,7 @@ class TestSearchServiceTopRankBonus:
                     path=f"{i}.md",
                     dataset_name="test",
                     score=1.0 - i * 0.1,
-                    chunk_text=str(i),
+                    snippet=SnippetResult(text=str(i), start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                     scores={"retrieval": 1.0 - i * 0.1},
                 )
                 for i in range(4)

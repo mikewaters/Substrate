@@ -58,17 +58,35 @@ class SearchCriteria(BaseModel):
     )
 
 
+class SnippetResult(BaseModel):
+    """Formatted snippet with provenance information.
+
+    Pydantic I/O model corresponding to the internal Snippet dataclass.
+
+    Attributes:
+        text: The snippet text content (possibly truncated to max_lines).
+        start_line: 1-based line number where the snippet starts.
+        end_line: 1-based line number where the snippet ends.
+        header: Diff-style header (e.g., "@@ -1,10 +1,10 @@ path/to/file.md").
+    """
+
+    text: str
+    start_line: int = Field(ge=1)
+    end_line: int = Field(ge=1)
+    header: str
+
+
 class SearchResult(BaseModel):
     """A single search result with provenance information.
 
     Contains the matched document path, source dataset, relevance score,
-    and chunk-level details for snippet extraction and provenance tracking.
+    and a formatted snippet for display and provenance tracking.
 
     Attributes:
         path: Document path (relative to dataset root).
         dataset_name: Name of the source dataset.
         score: Final combined score, normalized to 0-1 range.
-        chunk_text: Best matching chunk text for snippet display.
+        snippet: Formatted snippet with line numbers and diff header.
             None if no chunk-level matching was performed.
         chunk_seq: Chunk sequence number within the document.
             None if no chunk-level matching was performed.
@@ -87,9 +105,9 @@ class SearchResult(BaseModel):
         ge=0.0,
         description="Relevance score (normalized 0-1 in final output)",
     )
-    chunk_text: str | None = Field(
+    snippet: SnippetResult | None = Field(
         default=None,
-        description="Best matching chunk text",
+        description="Formatted snippet with line numbers and diff header",
     )
     chunk_seq: int | None = Field(
         default=None,
@@ -149,4 +167,5 @@ __all__ = [
     "SearchCriteria",
     "SearchResult",
     "SearchResults",
+    "SnippetResult",
 ]

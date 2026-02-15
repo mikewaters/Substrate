@@ -193,6 +193,11 @@ class RAGSettings(BaseSettings):
         extra="ignore",
     )
 
+    tracing: bool = Field(
+        default=False,
+        description="Enable detailed tracing of RAG pipeline (for debugging, may impact performance)",
+    )
+
     # Chunking
     chunk_size: int = Field(
         default=800,
@@ -293,6 +298,10 @@ class RAGSettings(BaseSettings):
         ge=1,
         description="Number of candidates to consider for reranking",
     )
+    rerank_provider: str = Field(
+        default="mlx",
+        description="LLM provider for reranking: 'mlx' (local) or 'openai'",
+    )
     rerank_cache_enabled: bool = Field(
         default=True,
         description="Enable caching of rerank scores",
@@ -366,11 +375,11 @@ class Settings(BaseSettings):
         description="Multi-database paths for catalog and content separation",
     )
 
-    # Legacy single database path (deprecated, use databases.catalog_path)
-    database_path: Path = Field(
-        default=Path("~/.idx/catalog.db").expanduser(),
-        description="Path to the SQLite database file (deprecated: use databases.catalog_path)",
-    )
+    # # Legacy single database path (deprecated, use databases.catalog_path)
+    # database_path: Path = Field(
+    #     default=Path("~/.idx/catalog.db").expanduser(),
+    #     description="Path to the SQLite database file (deprecated: use databases.catalog_path)",
+    # )
     vector_store_path: Path = Field(
         default=Path("~/.idx/vector_store").expanduser(),
         description="Path to LlamaIndex persist directory (rebuildable cache)",
@@ -378,6 +387,10 @@ class Settings(BaseSettings):
     cache_path: Path = Field(
         default=Path("~/.idx/cache").expanduser(),
         description="Path to cache directory for temporary files",
+    )
+    job_config_path: Path = Field(
+        default=Path("~/.idx/jobs").expanduser(),
+        description="Path to job configuration files",
     )
 
     # Model configuration

@@ -10,6 +10,7 @@ from dataclasses import dataclass
 
 __all__ = [
     "Snippet",
+    "build_snippet",
     "extract_snippet",
 ]
 
@@ -80,4 +81,39 @@ def extract_snippet(
         start_line=start_line,
         end_line=end_line,
         header=header,
+    )
+
+
+def build_snippet(
+    chunk_text: str,
+    doc_path: str,
+    max_lines: int | None = None,
+) -> Snippet:
+    """Build a snippet from chunk text without document-level line numbers.
+
+    Use when doc_content is unavailable (e.g. at search time). Line numbers
+    are relative to the chunk itself (starting at 1).
+
+    Args:
+        chunk_text: The text content of the chunk.
+        doc_path: Path to the document (used in the header).
+        max_lines: Maximum number of lines to include in the snippet.
+            Defaults to settings.rag.snippet_max_lines.
+
+    Returns:
+        A Snippet with text, chunk-relative line numbers, and diff-style header.
+    """
+    if max_lines is None:
+        from catalog.core.settings import get_settings
+
+        max_lines = get_settings().rag.snippet_max_lines
+
+    chunk_lines = chunk_text.split("\n")[:max_lines]
+    num_lines = len(chunk_lines)
+
+    return Snippet(
+        text="\n".join(chunk_lines),
+        start_line=1,
+        end_line=num_lines,
+        header=f"@@ -1,{num_lines} +1,{num_lines} @@ {doc_path}",
     )

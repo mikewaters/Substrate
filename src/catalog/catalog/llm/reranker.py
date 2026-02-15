@@ -153,7 +153,7 @@ def blend_scores(
                     path=result.path,
                     dataset_name=result.dataset_name,
                     score=final_score,
-                    chunk_text=result.chunk_text,
+                    snippet=result.snippet,
                     chunk_seq=result.chunk_seq,
                     chunk_pos=result.chunk_pos,
                     metadata=result.metadata,
@@ -291,12 +291,13 @@ class Reranker:
 
         for i, result in enumerate(results):
             # Get text to evaluate based on mode
-            if self._config.mode == "chunk" and result.chunk_text:
-                text = result.chunk_text
+            snippet_text = result.snippet.text if result.snippet else None
+            if self._config.mode == "chunk" and snippet_text:
+                text = snippet_text
             else:
                 # Fallback: use path as placeholder
                 # (full document fetch not implemented)
-                text = result.chunk_text or f"[Document: {result.path}]"
+                text = snippet_text or f"[Document: {result.path}]"
 
             score = await self.score_single(
                 query=query,

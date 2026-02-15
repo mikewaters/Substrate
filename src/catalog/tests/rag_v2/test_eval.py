@@ -19,7 +19,7 @@ from catalog.eval.golden import (
     evaluate_golden_queries,
     load_golden_queries,
 )
-from catalog.search.models import SearchCriteria, SearchResult, SearchResults
+from catalog.search.models import SearchCriteria, SearchResult, SearchResults, SnippetResult
 
 
 class TestGoldenQueryDataclass:
@@ -256,14 +256,14 @@ class TestEvaluateSingle:
                     path="expected.md",
                     dataset_name="test",
                     score=0.9,
-                    chunk_text="content",
+                    snippet=SnippetResult(text="content", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                     scores={},
                 ),
                 SearchResult(
                     path="other.md",
                     dataset_name="test",
                     score=0.8,
-                    chunk_text="content",
+                    snippet=SnippetResult(text="content", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                     scores={},
                 ),
             ],
@@ -291,9 +291,9 @@ class TestEvaluateSingle:
         """_evaluate_single calculates hit@3 when expected doc is at position 2."""
         mock_service.search.return_value = SearchResults(
             results=[
-                SearchResult(path="other1.md", dataset_name="test", score=0.9, chunk_text="", scores={}),
-                SearchResult(path="other2.md", dataset_name="test", score=0.85, chunk_text="", scores={}),
-                SearchResult(path="expected.md", dataset_name="test", score=0.8, chunk_text="", scores={}),
+                SearchResult(path="other1.md", dataset_name="test", score=0.9, snippet=None, scores={}),
+                SearchResult(path="other2.md", dataset_name="test", score=0.85, snippet=None, scores={}),
+                SearchResult(path="expected.md", dataset_name="test", score=0.8, snippet=None, scores={}),
             ],
             query="test",
             mode="fts",
@@ -319,7 +319,7 @@ class TestEvaluateSingle:
         """_evaluate_single calculates miss when expected doc not in top 10."""
         mock_service.search.return_value = SearchResults(
             results=[
-                SearchResult(path=f"other{i}.md", dataset_name="test", score=0.9 - i * 0.01, chunk_text="", scores={})
+                SearchResult(path=f"other{i}.md", dataset_name="test", score=0.9 - i * 0.01, snippet=None, scores={})
                 for i in range(10)
             ],
             query="test",
@@ -346,8 +346,8 @@ class TestEvaluateSingle:
         """_evaluate_single hits if any expected doc is found."""
         mock_service.search.return_value = SearchResults(
             results=[
-                SearchResult(path="other.md", dataset_name="test", score=0.9, chunk_text="", scores={}),
-                SearchResult(path="expected2.md", dataset_name="test", score=0.8, chunk_text="", scores={}),
+                SearchResult(path="other.md", dataset_name="test", score=0.9, snippet=None, scores={}),
+                SearchResult(path="expected2.md", dataset_name="test", score=0.8, snippet=None, scores={}),
             ],
             query="test",
             mode="hybrid",
@@ -404,8 +404,8 @@ class TestEvaluateSingle:
         """_evaluate_single captures retrieved docs and scores."""
         mock_service.search.return_value = SearchResults(
             results=[
-                SearchResult(path="doc1.md", dataset_name="test", score=0.95, chunk_text="", scores={}),
-                SearchResult(path="doc2.md", dataset_name="test", score=0.85, chunk_text="", scores={}),
+                SearchResult(path="doc1.md", dataset_name="test", score=0.95, snippet=None, scores={}),
+                SearchResult(path="doc2.md", dataset_name="test", score=0.85, snippet=None, scores={}),
             ],
             query="test",
             mode="fts",
@@ -495,7 +495,7 @@ class TestEvaluateGoldenQueries:
         """evaluate_golden_queries evaluates a single query against one retriever."""
         mock_service.search.return_value = SearchResults(
             results=[
-                SearchResult(path="expected.md", dataset_name="test", score=0.9, chunk_text="", scores={}),
+                SearchResult(path="expected.md", dataset_name="test", score=0.9, snippet=None, scores={}),
             ],
             query="test",
             mode="fts",
@@ -522,7 +522,7 @@ class TestEvaluateGoldenQueries:
         """evaluate_golden_queries evaluates against multiple retriever types."""
         mock_service.search.return_value = SearchResults(
             results=[
-                SearchResult(path="expected.md", dataset_name="test", score=0.9, chunk_text="", scores={}),
+                SearchResult(path="expected.md", dataset_name="test", score=0.9, snippet=None, scores={}),
             ],
             query="test",
             mode="hybrid",
@@ -554,8 +554,8 @@ class TestEvaluateGoldenQueries:
         """evaluate_golden_queries uses custom k values."""
         mock_service.search.return_value = SearchResults(
             results=[
-                SearchResult(path="other.md", dataset_name="test", score=0.9, chunk_text="", scores={}),
-                SearchResult(path="expected.md", dataset_name="test", score=0.8, chunk_text="", scores={}),
+                SearchResult(path="other.md", dataset_name="test", score=0.9, snippet=None, scores={}),
+                SearchResult(path="expected.md", dataset_name="test", score=0.8, snippet=None, scores={}),
             ],
             query="test",
             mode="fts",

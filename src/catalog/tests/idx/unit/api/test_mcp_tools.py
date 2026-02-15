@@ -6,7 +6,7 @@ import pytest
 from llama_index.core.tools import FunctionTool
 
 from catalog.api.mcp.tools import create_mcp_tools
-from catalog.search.models import SearchCriteria, SearchResult, SearchResults
+from catalog.search.models import SearchCriteria, SearchResult, SearchResults, SnippetResult
 from catalog.search.service import SearchService
 
 
@@ -72,7 +72,7 @@ class TestCatalogSearchTool:
                     path="test.md",
                     dataset_name="vault",
                     score=1.0,
-                    chunk_text="test content",
+                    snippet=SnippetResult(text="test content", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                     scores={"retrieval": 1.0},
                 )
             ],

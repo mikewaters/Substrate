@@ -22,7 +22,7 @@ from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.search.fts import FTSSearch
 from catalog.search.fts_chunk import FTSChunkRetriever
 from catalog.search.hybrid import WeightedRRFRetriever
-from catalog.search.models import SearchCriteria, SearchResult, SearchResults
+from catalog.search.models import SearchCriteria, SearchResult, SearchResults, SnippetResult
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.fts import create_fts_table
 from catalog.store.fts_chunk import create_chunks_fts_table
@@ -117,7 +117,7 @@ class TestVectorSearchIntegration:
                     path="auth.md",
                     dataset_name="vault",
                     score=0.95,
-                    chunk_text="How to implement authentication",
+                    snippet=SnippetResult(text="How to implement authentication", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                     chunk_seq=0,
                     chunk_pos=0,
                     scores={"vector": 0.95},
@@ -126,7 +126,7 @@ class TestVectorSearchIntegration:
                     path="api.md",
                     dataset_name="vault",
                     score=0.85,
-                    chunk_text="Authentication endpoints",
+                    snippet=SnippetResult(text="Authentication endpoints", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                     chunk_seq=0,
                     chunk_pos=0,
                     scores={"vector": 0.85},
@@ -361,19 +361,19 @@ class TestRerankerIntegration:
                 path="auth.md",
                 dataset_name="vault",
                 score=0.9,
-                chunk_text="How to implement OAuth2 authentication",
+                snippet=SnippetResult(text="How to implement OAuth2 authentication", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
             ),
             SearchResult(
                 path="database.md",
                 dataset_name="vault",
                 score=0.8,
-                chunk_text="SQL indexing strategies",
+                snippet=SnippetResult(text="SQL indexing strategies", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
             ),
             SearchResult(
                 path="api.md",
                 dataset_name="vault",
                 score=0.7,
-                chunk_text="Authentication endpoints and rate limiting",
+                snippet=SnippetResult(text="Authentication endpoints and rate limiting", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
             ),
         ]
 
@@ -401,14 +401,14 @@ class TestRerankerIntegration:
                 path="a.md",
                 dataset_name="vault",
                 score=0.9,
-                chunk_text="Relevant content",
+                snippet=SnippetResult(text="Relevant content", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                 scores={"rrf": 0.9},
             ),
             SearchResult(
                 path="b.md",
                 dataset_name="vault",
                 score=0.5,
-                chunk_text="More relevant content",
+                snippet=SnippetResult(text="More relevant content", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
                 scores={"rrf": 0.5},
             ),
         ]
@@ -436,7 +436,7 @@ class TestRerankerIntegration:
                 path="doc.md",
                 dataset_name="vault",
                 score=0.9,
-                chunk_text="Some content",
+                snippet=SnippetResult(text="Some content", start_line=1, end_line=1, header="@@ -1,1 +1,1 @@ test"),
             ),
         ]
 
@@ -525,7 +525,7 @@ class TestEndToEndFlow:
                     path=path,
                     dataset_name=dataset_name,
                     score=node.score or 0.0,
-                    chunk_text=node.node.get_content() or f"Content from {path}",
+                    snippet=SnippetResult(text=node.node.get_content() or f"Content from {path}", start_line=1, end_line=1, header=f"@@ -1,1 +1,1 @@ {path}"),
                     scores={"rrf": node.score or 0.0},
                 )
             )
@@ -603,7 +603,7 @@ class TestResultShapeStability:
         assert hasattr(result, "path")
         assert hasattr(result, "dataset_name")
         assert hasattr(result, "score")
-        assert hasattr(result, "chunk_text")
+        assert hasattr(result, "snippet")
         assert hasattr(result, "chunk_seq")
         assert hasattr(result, "chunk_pos")
         assert hasattr(result, "metadata")

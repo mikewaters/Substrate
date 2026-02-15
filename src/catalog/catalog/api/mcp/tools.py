@@ -74,7 +74,7 @@ def _result_to_dict(result: SearchResult) -> dict[str, Any]:
         "path": result.path,
         "dataset_name": result.dataset_name,
         "score": result.score,
-        "chunk_text": result.chunk_text,
+        "snippet": result.snippet.model_dump() if result.snippet else None,
         "metadata": result.metadata,
     }
 

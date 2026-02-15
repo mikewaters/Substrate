@@ -51,9 +51,12 @@ results = search("how to handle concurrent operations", mode="vector")
 ```
 
 **How it works:**
-1. Query is embedded using the configured embedding model (default: `all-MiniLM-L6-v2`)
-2. Cosine similarity computed against all chunk embeddings
-3. Top-k most similar chunks returned
+1. Search loads embedding provenance identities from vector metadata (when present).
+2. Query embeddings are computed with the matching model identity for each
+   discovered profile.
+3. Similarity search runs per identity and merges best hits by chunk ID.
+4. If no provenance metadata exists, search falls back to the configured
+   embedding model identity.
 
 **Strengths:**
 - Semantic understanding
@@ -219,6 +222,46 @@ Configured via environment or settings:
 # Default: all-MiniLM-L6-v2 (384 dimensions)
 # Backend: mlx (Apple Silicon) or huggingface
 ```
+
+### Vector Backend Selection
+
+Qdrant remains the default vector backend.
+
+To run an experimental production trial with Zvec, set:
+
+```bash
+IDX_VECTOR_DB__BACKEND=zvec
+IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC=true
+IDX_ZVEC__INDEX_PATH=/absolute/path/to/zvec-index.json
+IDX_ZVEC__COLLECTION_NAME=catalog_vectors
+```
+
+Notes:
+- If `IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC` is not `true`, startup fails when
+  backend is set to `zvec`.
+- Zvec queries are executed against the local JSON index file from
+  `IDX_ZVEC__INDEX_PATH` (no HTTP API calls).
+- For provenance-aware query-time model selection, include
+  `embedding_profile` metadata (or `embedding_backend` + `embedding_model_name`)
+  in Zvec index entries.
+- Keep Qdrant settings unchanged for rollback by restoring
+  `IDX_VECTOR_DB__BACKEND=qdrant`.
+
+### Query-Time Embedding Provenance
+
+`SearchService.search(..., mode="vector"|"hybrid")` delegates semantic retrieval
+to `VectorSearch`, which calls `VectorStoreManager.semantic_query()`.
+
+For payload-based backends (Qdrant and latent Zvec):
+1. Distinct embedding identities are discovered from vector metadata payloads.
+2. Search computes one query embedding per discovered identity using the
+   matching backend/model.
+3. Vector similarity runs with identity filtering so each query embedding is
+   compared only to chunks from the same embedding identity.
+4. Hits are merged by chunk ID and ranked by best similarity score.
+
+This ensures query-time embeddings are compatible with the embeddings used at
+index time, even when a collection contains mixed embedding models.
 
 ### Chunking
 

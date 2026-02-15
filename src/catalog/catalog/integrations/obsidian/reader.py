@@ -193,6 +193,45 @@ class ObsidianMarkdownReader(MarkdownReader):
         with open(file, "r") as f:
             return f.read()
 
+    def _ensure_minimal_content(self, content: str, metadata: dict[str, Any]) -> str:
+        """Guarantee non-empty markdown content for parser/chunking stages.
+
+        Frontmatter-only notes can become empty after frontmatter stripping. Empty
+        markdown is dropped by MarkdownNodeParser, which prevents chunk/vector
+        indexing. For these cases, synthesize a minimal H1 from available metadata.
+        """
+        if content.strip():
+            return content
+
+        title: str | None = None
+        frontmatter = metadata.get(self._frontmatter_metadata_key)
+        if isinstance(frontmatter, dict):
+            raw_title = frontmatter.get("title")
+            if isinstance(raw_title, str) and raw_title.strip():
+                title = raw_title.strip()
+            if title is None:
+                aliases = frontmatter.get("aliases")
+                if isinstance(aliases, list):
+                    for alias in aliases:
+                        if isinstance(alias, str) and alias.strip():
+                            title = alias.strip()
+                            break
+
+        if title is None:
+            note_name = metadata.get("note_name")
+            if isinstance(note_name, str) and note_name.strip():
+                title = note_name.strip()
+
+        if title is None:
+            file_name = metadata.get("file_name")
+            if isinstance(file_name, str) and file_name.strip():
+                title = Path(file_name).stem.strip() or file_name.strip()
+
+        if title is None:
+            return content
+
+        return f"# {title}\n"
+
     def load_data(
         self,
         file: Any,  # Path | str
@@ -223,6 +262,9 @@ class ObsidianMarkdownReader(MarkdownReader):
                     if self._remove_frontmatter_from_text:
                         content = remainder
                     extracted = True
+
+        content = self._ensure_minimal_content(content, extra_info)
+
         # Now do the normal header splitting and document creation
         if not self._split_on_headers:
             doc = Document(text=content, metadata=extra_info)
@@ -628,4 +670,3 @@ class ObsidianVaultReader(SimpleDirectoryReader):
                 )
 
         return docs
-

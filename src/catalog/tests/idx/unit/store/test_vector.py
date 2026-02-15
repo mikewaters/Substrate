@@ -1,10 +1,17 @@
 """Tests for catalog.store.vector module."""
 
+import json
 import sys
 from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock
 
-from catalog.embedding.identity import EmbeddingIdentity
+import pytest
+
+from catalog.core.settings import get_settings
+from catalog.embedding.identity import (
+    EMBEDDING_PROFILE_METADATA_KEY,
+    EmbeddingIdentity,
+)
 from catalog.store.vector import (
     VectorBackendCapabilities,
     VectorStoreManager,
@@ -28,6 +35,16 @@ class _FakeEmbeddingModel:
 
     def get_query_embedding(self, query: str) -> list[float]:
         return [0.1, float(len(query))]
+
+
+class _FixedEmbeddingModel:
+    """Embedding model test double with fixed query embedding."""
+
+    def __init__(self, vector: list[float]) -> None:
+        self._vector = vector
+
+    def get_query_embedding(self, query: str) -> list[float]:
+        return self._vector
 
 
 class TestEmbeddingModelCache:
@@ -112,6 +129,64 @@ class TestEmbeddingIdentityDiscovery:
 
         assert identities == []
 
+    def test_get_embedding_identities_reads_zvec_local_metadata(
+        self,
+        tmp_path,
+        monkeypatch,
+    ) -> None:
+        """Zvec identity discovery reads profile metadata from local index entries."""
+        get_settings.cache_clear()
+        index_path = tmp_path / "zvec-index.json"
+        index_path.write_text(
+            json.dumps(
+                {
+                    "collections": {
+                        "catalog_vectors": [
+                            {
+                                "id": "chunk-a",
+                                "vector": [1.0, 0.0],
+                                "metadata": {
+                                    "source_doc_id": "obsidian:path/a.md",
+                                    EMBEDDING_PROFILE_METADATA_KEY: "mlx:model-a",
+                                },
+                            },
+                            {
+                                "id": "chunk-b",
+                                "vector": [0.0, 1.0],
+                                "metadata": {
+                                    "source_doc_id": "obsidian:path/b.md",
+                                    EMBEDDING_PROFILE_METADATA_KEY: "huggingface:model-b",
+                                },
+                            },
+                            {
+                                "id": "chunk-c",
+                                "vector": [1.0, 1.0],
+                                "metadata": {
+                                    "source_doc_id": "archive:path/c.md",
+                                    EMBEDDING_PROFILE_METADATA_KEY: "mlx:model-c",
+                                },
+                            },
+                        ]
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
+        monkeypatch.setenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", "true")
+        monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(index_path))
+
+        manager = VectorStoreManager(persist_dir=tmp_path / "vectors")
+
+        identities = manager.get_embedding_identities(dataset_name="obsidian")
+
+        assert identities == [
+            EmbeddingIdentity(backend="mlx", model_name="model-a"),
+            EmbeddingIdentity(backend="huggingface", model_name="model-b"),
+        ]
+        get_settings.cache_clear()
+
 
 class TestEmbeddingIdentityStrategies:
     """Tests for capability-driven embedding identity strategy selection."""
@@ -171,3 +246,164 @@ class TestEmbeddingIdentityStrategies:
         manager.get_embedding_identities.assert_called_once_with(dataset_name="obsidian")
         assert len(hits) == 1
         assert hits[0].node_id == "chunk-a"
+
+    def test_payload_strategy_prefers_stored_identity_over_runtime_config(
+        self,
+        tmp_path,
+        monkeypatch,
+    ) -> None:
+        """Stored payload identity is used even when runtime config identity differs."""
+        get_settings.cache_clear()
+        monkeypatch.setenv("IDX_EMBEDDING__BACKEND", "mlx")
+        monkeypatch.setenv("IDX_EMBEDDING__MODEL_NAME", "runtime-config-model")
+
+        manager = VectorStoreManager(persist_dir=tmp_path / "qdrant")
+        vector_store = MagicMock()
+        manager.get_vector_store = MagicMock(return_value=vector_store)
+
+        stored_identity = EmbeddingIdentity(
+            backend="huggingface",
+            model_name="stored-model",
+        )
+        manager.get_embedding_identities = MagicMock(return_value=[stored_identity])
+        manager.get_embed_model_for_identity = MagicMock(
+            return_value=_FakeEmbeddingModel()
+        )
+        vector_store.query.return_value = SimpleNamespace(
+            ids=["chunk-a"],
+            similarities=[0.9],
+            nodes=[SimpleNamespace(metadata={"source_doc_id": "obsidian:path/a.md"})],
+        )
+
+        hits = manager.semantic_query(query="hello", top_k=5, dataset_name="obsidian")
+
+        called_profiles = [
+            call_args.args[0].profile
+            for call_args in manager.get_embed_model_for_identity.call_args_list
+        ]
+        assert called_profiles == ["huggingface:stored-model"]
+        assert called_profiles != [manager.get_configured_embedding_identity().profile]
+        assert len(hits) == 1
+        assert hits[0].metadata[EMBEDDING_PROFILE_METADATA_KEY] == "huggingface:stored-model"
+        get_settings.cache_clear()
+
+
+class TestZvecBackend:
+    """Tests for latent Zvec backend wiring."""
+
+    def test_semantic_query_uses_zvec_client(self, tmp_path, monkeypatch) -> None:
+        """Zvec backend delegates semantic query to local index file."""
+        get_settings.cache_clear()
+        index_path = tmp_path / "zvec-index.json"
+        index_payload = {
+            "collections": {
+                "catalog_vectors": [
+                    {
+                        "id": "chunk-z1",
+                        "vector": [0.1, 5.0],
+                        "metadata": {"source_doc_id": "obsidian:path/z.md"},
+                    },
+                    {
+                        "id": "chunk-z2",
+                        "vector": [0.9, 0.1],
+                        "metadata": {"source_doc_id": "archive:path/z2.md"},
+                    },
+                ]
+            }
+        }
+        index_path.write_text(json.dumps(index_payload), encoding="utf-8")
+
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
+        monkeypatch.setenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", "true")
+        monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(index_path))
+
+        manager = VectorStoreManager(persist_dir=tmp_path / "vectors")
+        manager.get_embed_model_for_identity = MagicMock(return_value=_FakeEmbeddingModel())
+
+        hits = manager.semantic_query(query="hello", top_k=4, dataset_name="obsidian")
+
+        assert manager.vector_backend == "zvec"
+        assert manager.capabilities.native_embedding_identity is False
+        assert manager._zvec_settings.index_path == index_path
+        assert len(hits) == 1
+        assert hits[0].node_id == "chunk-z1"
+        assert hits[0].score == pytest.approx(1.0)
+        assert hits[0].metadata[EMBEDDING_PROFILE_METADATA_KEY] == (
+            manager.get_configured_embedding_identity().profile
+        )
+
+        get_settings.cache_clear()
+
+    def test_semantic_query_uses_stored_embedding_provenance(
+        self,
+        tmp_path,
+        monkeypatch,
+    ) -> None:
+        """Zvec search uses stored embedding provenance to select query-time model."""
+        get_settings.cache_clear()
+        index_path = tmp_path / "zvec-index.json"
+        index_path.write_text(
+            json.dumps(
+                {
+                    "collections": {
+                        "catalog_vectors": [
+                            {
+                                "id": "chunk-a",
+                                "vector": [1.0, 0.0],
+                                "metadata": {
+                                    "source_doc_id": "obsidian:path/a.md",
+                                    EMBEDDING_PROFILE_METADATA_KEY: "mlx:model-a",
+                                },
+                            },
+                            {
+                                "id": "chunk-b",
+                                "vector": [0.0, 1.0],
+                                "metadata": {
+                                    "source_doc_id": "obsidian:path/b.md",
+                                    EMBEDDING_PROFILE_METADATA_KEY: "huggingface:model-b",
+                                },
+                            },
+                        ]
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
+        monkeypatch.setenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", "true")
+        monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(index_path))
+
+        manager = VectorStoreManager(persist_dir=tmp_path / "vectors")
+
+        def _model_for_identity(identity: EmbeddingIdentity):
+            if identity.profile == "mlx:model-a":
+                return _FixedEmbeddingModel([1.0, 0.0])
+            if identity.profile == "huggingface:model-b":
+                return _FixedEmbeddingModel([0.0, 1.0])
+            raise AssertionError(f"Unexpected identity: {identity.profile}")
+
+        manager.get_embed_model_for_identity = MagicMock(side_effect=_model_for_identity)
+
+        hits = manager.semantic_query(query="hello", top_k=2, dataset_name="obsidian")
+
+        assert [hit.node_id for hit in hits] == ["chunk-a", "chunk-b"]
+        assert hits[0].metadata[EMBEDDING_PROFILE_METADATA_KEY] == "mlx:model-a"
+        assert hits[1].metadata[EMBEDDING_PROFILE_METADATA_KEY] == "huggingface:model-b"
+        called_profiles = [
+            call_args.args[0].profile
+            for call_args in manager.get_embed_model_for_identity.call_args_list
+        ]
+        assert called_profiles == ["mlx:model-a", "huggingface:model-b"]
+        get_settings.cache_clear()
+
+    def test_zvec_backend_requires_explicit_enablement(self, tmp_path, monkeypatch) -> None:
+        """Zvec backend is disabled by default until explicitly enabled."""
+        get_settings.cache_clear()
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
+        monkeypatch.delenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", raising=False)
+
+        with pytest.raises(ValueError, match="Zvec backend is disabled"):
+            VectorStoreManager(persist_dir=tmp_path / "vectors")
+
+        get_settings.cache_clear()

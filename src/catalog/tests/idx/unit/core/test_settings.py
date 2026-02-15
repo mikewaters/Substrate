@@ -131,3 +131,29 @@ class TestGetSettings:
         settings1 = get_settings()
         settings2 = get_settings()
         assert settings1 is settings2
+
+
+class TestVectorDBSettings:
+    """Tests for vector backend selection settings."""
+
+    def test_defaults_to_qdrant_backend(self) -> None:
+        """Vector DB defaults keep Qdrant as runtime backend."""
+        settings = Settings()
+
+        assert settings.vector_db.backend == "qdrant"
+        assert settings.vector_db.enable_experimental_zvec is False
+
+    def test_allows_zvec_backend_env_override(self) -> None:
+        """Vector backend can be set to Zvec via nested environment variables."""
+        env_vars = {
+            "IDX_VECTOR_DB__BACKEND": "zvec",
+            "IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC": "true",
+            "IDX_ZVEC__INDEX_PATH": "/tmp/zvec-index.json",
+        }
+
+        with mock.patch.dict(os.environ, env_vars, clear=False):
+            settings = Settings()
+
+            assert settings.vector_db.backend == "zvec"
+            assert settings.vector_db.enable_experimental_zvec is True
+            assert str(settings.zvec.index_path) == "/tmp/zvec-index.json"

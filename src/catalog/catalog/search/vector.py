@@ -126,7 +126,12 @@ class VectorSearch:
     ) -> list[SearchResult]:
         """Search vector store for similar documents.
 
-        Performs semantic similarity search using the embedded query.
+        Performs semantic similarity search using backend-aware query embeddings.
+        Embedding identity resolution is delegated to ``VectorStoreManager``:
+        payload-based backends discover stored embedding provenance from vector
+        metadata and compute query embeddings with the matching model identity
+        for each discovered profile.
+
         Results include the similarity score in scores["vector"].
 
         Args:
@@ -148,7 +153,8 @@ class VectorSearch:
             - metadata: Document metadata
             - scores: Dict with "vector" key containing similarity score
         """
-        self._ensure_vector_store()
+        if self._vector_manager.vector_backend == "qdrant":
+            self._ensure_vector_store()
         hits = self._vector_manager.semantic_query(
             query=query,
             top_k=top_k,

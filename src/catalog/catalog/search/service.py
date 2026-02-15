@@ -174,7 +174,9 @@ class SearchService:
 
         Pipeline:
         1. Query expansion (if enabled)
-        2. Dispatch to appropriate search mode
+        2. Dispatch to appropriate search mode. For vector/hybrid retrieval,
+           query-time embeddings are resolved by vector-store provenance so
+           the matching embedding model identity is used per stored profile.
         3. Apply top-rank bonus
         4. Rerank (if enabled)
         5. Return results

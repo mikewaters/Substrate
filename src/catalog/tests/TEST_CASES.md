@@ -497,3 +497,10 @@ Integration tests for LoadingService + IndexingService working together.
 | Test Case | Description | Status |
 |-----------|-------------|--------|
 | test_accuracy_and_latency_comparison_between_backends | Runs the same ingest and vector query scenario with Qdrant and Zvec, validates backend usage and top-hit parity, and captures latency metrics for comparison | Pass |
+
+## Integration Minimal Content Ingestion (tests/idx/integration/test_minimal_content_ingestion.py)
+
+| Test Case | Description | Status |
+|-----------|-------------|--------|
+| test_obsidian_frontmatter_only_document_is_stored_and_indexed | Obsidian frontmatter-only note is persisted and still creates document FTS, chunk FTS, and vector entries | Pass |
+| test_heptabase_frontmatter_plus_h1_document_is_stored_and_indexed | Heptabase frontmatter + H1-only note is persisted and still creates document FTS, chunk FTS, and vector entries | Pass |

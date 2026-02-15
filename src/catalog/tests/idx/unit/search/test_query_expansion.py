@@ -280,11 +280,12 @@ class TestFallbackBehavior:
     @pytest.mark.asyncio
     async def test_disabled_expansion_returns_original(self, db_session, monkeypatch) -> None:
         """Returns original only when expansion is disabled."""
-        from catalog.core.settings import RAGSettings, Settings
-        import catalog.core.settings as settings_module
+        from catalog.core.settings import RAGSettings
 
-        mock_settings = Settings(rag=RAGSettings(expansion_enabled=False))
-        monkeypatch.setattr(settings_module, "get_settings", lambda: mock_settings)
+        mock_rag = RAGSettings(expansion_enabled=False)
+        monkeypatch.setattr(
+            QueryExpansionTransform, "_settings", property(lambda self: mock_rag)
+        )
 
         transform = QueryExpansionTransform(db_session, model_name="test-model")
         result = await transform.expand("test query")

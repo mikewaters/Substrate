@@ -14,7 +14,7 @@ Environment variables:
     IDX_DATABASE_PATH - Path to SQLite database
     IDX_VECTOR_STORE_PATH - LlamaIndex persist directory (rebuildable cache)
     IDX_EMBEDDING_MODEL - Name/path of embedding model
-    IDX_TRANSFORMERS_MODEL - Name/path of transformers model for reranking
+    IDX_LLM_MODEL_NAME - Name/path of generative LLM for reranking/expansion
     IDX_LOG_LEVEL - Logging level (default: INFO)
     IDX_BATCH_SIZE - Default batch size for processing
     IDX_CONCURRENCY - Default concurrency level
@@ -29,6 +29,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 __all__ = [
     "DatabasesSettings",
+    "LLMSettings",
     "QdrantSettings",
     "RAGSettings",
     "Settings",
@@ -98,6 +99,28 @@ class EmbeddingSettings(BaseSettings):
         default=384,
         ge=1,
         description="Embedding vector dimension (384 for MiniLM-L6-v2)",
+    )
+
+
+class LLMSettings(BaseSettings):
+    """LLM configuration for generative tasks (reranking, query expansion).
+
+    Controls the local generative model used by MLXProvider. Must be an
+    autoregressive model supported by mlx-lm (not BERT/cross-encoder).
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="IDX_LLM_",
+        extra="ignore",
+    )
+
+    backend: Literal["mlx"] = Field(
+        default="mlx",
+        description="LLM backend: 'mlx' for Apple Silicon local inference",
+    )
+    model_name: str = Field(
+        default="mlx-community/Llama-3.2-1B-Instruct-4bit",
+        description="Name or path of the generative LLM (must be autoregressive, not BERT)",
     )
 
 
@@ -355,9 +378,9 @@ class Settings(BaseSettings):
         databases: Multi-database configuration (catalog and content paths).
         vector_store_path: Path to the LlamaIndex persist directory (rebuildable cache).
         embedding_model: Name or path of the embedding model (deprecated).
-        transformers_model: Name or path of the transformers model for reranking.
         log_level: Logging level for the library.
         embedding: Embedding model configuration (backend, model_name, batch_size).
+        llm: LLM model configuration for generative tasks (reranking, query expansion).
         langfuse: Langfuse observability settings (placeholder).
         performance: Default performance settings for batch processing.
     """
@@ -398,10 +421,6 @@ class Settings(BaseSettings):
         default="BAAI/bge-small-en-v1.5",
         description="Name or path of the embedding model",
     )
-    transformers_model: str = Field(
-        default="cross-encoder/ms-marco-MiniLM-L-6-v2",
-        description="Name or path of the transformers model for reranking",
-    )
 
     # Logging
     log_level: LogLevel = Field(
@@ -413,6 +432,10 @@ class Settings(BaseSettings):
     embedding: EmbeddingSettings = Field(
         default_factory=EmbeddingSettings,
         description="Embedding model configuration",
+    )
+    llm: LLMSettings = Field(
+        default_factory=LLMSettings,
+        description="LLM model configuration for generative tasks (reranking, query expansion)",
     )
     langfuse: LangfuseSettings = Field(
         default_factory=LangfuseSettings,

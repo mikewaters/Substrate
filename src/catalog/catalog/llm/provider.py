@@ -60,7 +60,7 @@ class MLXProvider:
             raise LLMProviderError("MLX provider requires macOS with Apple Silicon")
 
         settings = get_settings()
-        self.model_name = model_name or settings.transformers_model
+        self.model_name = model_name or settings.llm.model_name
 
         # Lazy-loaded model and tokenizer
         self._model: Any = None

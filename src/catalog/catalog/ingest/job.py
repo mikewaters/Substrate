@@ -48,6 +48,7 @@ if TYPE_CHECKING:
 __all__ = [
     "DatasetJob",
     "EmbeddingConfig",
+    "LLMConfig",
     "PipelineConfig",
     "SourceConfig",
     "_import_class",
@@ -114,6 +115,17 @@ class EmbeddingConfig(BaseModel):
     batch_size: int = 32
 
 
+class LLMConfig(BaseModel):
+    """LLM configuration for a dataset job.
+
+    Overrides the global LLM settings for this job's generative tasks
+    (reranking, query expansion). Must be an autoregressive model.
+    """
+
+    backend: Literal["mlx"] = "mlx"
+    model_name: str = "mlx-community/Llama-3.2-1B-Instruct-4bit"
+
+
 class PipelineConfig(BaseModel):
     """Pipeline caching configuration."""
 
@@ -132,6 +144,7 @@ class DatasetJob(BaseModel):
 
     source: SourceConfig
     embedding: EmbeddingConfig | None = None
+    llm: LLMConfig | None = None
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
 
     @classmethod
@@ -179,6 +192,25 @@ class DatasetJob(BaseModel):
         from catalog.ingest.sources import create_ingest_config
 
         return create_ingest_config(self.source)
+
+    def create_llm_provider(self):
+        """Create an LLM provider from this job's config.
+
+        When the ``llm`` section is omitted from the YAML config,
+        falls back to the application-level settings via
+        :class:`catalog.llm.provider.MLXProvider` default constructor.
+
+        Returns:
+            An MLXProvider instance.
+        """
+        from catalog.llm.provider import MLXProvider
+
+        if self.llm is None:
+            logger.debug("No job-level LLM config; using application settings")
+            return MLXProvider()
+
+        logger.debug(f"Loading MLX LLM model from job config: {self.llm.model_name}")
+        return MLXProvider(model_name=self.llm.model_name)
 
     def create_embed_model(self) -> BaseEmbedding:
         """Create an embedding model from this job's config.

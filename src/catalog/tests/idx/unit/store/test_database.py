@@ -9,8 +9,7 @@ from sqlalchemy.orm import Session
 
 from catalog.store.database import Base, create_engine_for_path, get_session
 
-
-class TestModel(Base):
+class ATestModel(Base):
     """Test model for database operations."""
 
     __tablename__ = "test_models"
@@ -87,12 +86,12 @@ class TestGetSession:
             get_session_factory.cache_clear()
 
             with get_session() as session:
-                model = TestModel(name="test")
+                model = ATestModel(name="test")
                 session.add(model)
 
             # Verify data was committed
             with get_session() as session:
-                result = session.query(TestModel).filter_by(name="test").first()
+                result = session.query(ATestModel).filter_by(name="test").first()
                 assert result is not None
                 assert result.name == "test"
 
@@ -109,13 +108,13 @@ class TestGetSession:
 
             with pytest.raises(ValueError):
                 with get_session() as session:
-                    model = TestModel(name="will_be_rolled_back")
+                    model = ATestModel(name="will_be_rolled_back")
                     session.add(model)
                     raise ValueError("Test error")
 
             # Verify data was not committed
             with get_session() as session:
-                result = session.query(TestModel).filter_by(name="will_be_rolled_back").first()
+                result = session.query(ATestModel).filter_by(name="will_be_rolled_back").first()
                 assert result is None
 
     def test_session_yields_valid_session(self, tmp_path: Path) -> None:

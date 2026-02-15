@@ -28,7 +28,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from functools import cached_property
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from agentlayer.logging import get_logger
 from llama_index.core.ingestion import DocstoreStrategy, IngestionPipeline
@@ -53,6 +53,9 @@ from catalog.store.vector import VectorStoreManager
 from catalog.transform import EmbeddingPrefixTransform, OntologyMapper, ResilientSplitter
 from catalog.transform.llama import ChunkPersistenceTransform, PersistenceTransform
 
+if TYPE_CHECKING:
+    from llama_index.core.embeddings import BaseEmbedding
+    
 __all__ = [
     "DatasetIngestPipeline",
 ]

@@ -46,7 +46,8 @@ def _build_embed_model(
     during a single run (e.g. comparing fts/vector/hybrid modes). Loading the
     embedding model each time dominates latency, so this cache keeps one model
     instance per unique backend/model/batch configuration in the current
-    process.
+    process. Delegates to ``catalog.embedding.build_embed_model`` so backend
+    dispatch and constructor logic live in one place.
 
     Args:
         backend: Embedding backend name (``mlx`` or ``huggingface``).
@@ -56,26 +57,9 @@ def _build_embed_model(
     Returns:
         Configured embedding model.
     """
-    if backend == "mlx":
-        from catalog.embedding.mlx import MLXEmbedding
+    from catalog.embedding import build_embed_model
 
-        logger.debug(f"Loading MLX embedding model: {model_name}")
-        model = MLXEmbedding(
-            model_name=model_name,
-            embed_batch_size=batch_size,
-        )
-        logger.info(f"MLX embedding model loaded: {model_name}")
-        return model
-
-    from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-
-    logger.debug(f"Loading HuggingFace embedding model: {model_name}")
-    model = HuggingFaceEmbedding(
-        model_name=model_name,
-        embed_batch_size=batch_size,
-    )
-    logger.info(f"HuggingFace embedding model loaded: {model_name}")
-    return model
+    return build_embed_model(backend=backend, model_name=model_name, batch_size=batch_size)
 
 
 class VectorStoreManager:

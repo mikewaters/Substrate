@@ -16,6 +16,7 @@ dependencies = [
     "llama-index-vector-stores-qdrant>=0.9.1",
     "qdrant-client>=1.16.2",
     "typer>=0.21.1",
+    "agentlayer"
 ]
 
 [build-system]

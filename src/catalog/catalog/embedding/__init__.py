@@ -20,6 +20,40 @@ from catalog.embedding.resilient import ResilientEmbedding
 logger = get_logger(__name__)
 
 
+def build_embed_model(backend: str, model_name: str, batch_size: int) -> "BaseEmbedding":
+    """Build an embedding model for the given backend and configuration.
+
+    Single source of truth for backend dispatch and constructor arguments.
+    Used by get_embed_model (from settings) and by cached callers (e.g. vector store).
+
+    Args:
+        backend: Embedding backend name (e.g. ``mlx`` or ``huggingface``).
+        model_name: Embedding model identifier.
+        batch_size: Embedding batch size.
+
+    Returns:
+        Configured BaseEmbedding instance.
+    """
+    if backend == "mlx":
+        logger.debug(f"Loading MLX embedding model: {model_name}")
+        embed_model = MLXEmbedding(
+            model_name=model_name,
+            embed_batch_size=batch_size,
+        )
+        logger.info(f"MLX embedding model loaded: {model_name}")
+        return embed_model
+
+    from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+
+    logger.debug(f"Loading HuggingFace embedding model: {model_name}")
+    embed_model = HuggingFaceEmbedding(
+        model_name=model_name,
+        embed_batch_size=batch_size,
+    )
+    logger.info(f"HuggingFace embedding model loaded: {model_name}")
+    return embed_model
+
+
 def get_embed_model(resilient: bool = False) -> "BaseEmbedding":
     """Get the embedding model based on settings.
 
@@ -34,25 +68,11 @@ def get_embed_model(resilient: bool = False) -> "BaseEmbedding":
     """
     settings = get_settings()
     embed_settings = settings.embedding
-
-    if embed_settings.backend == "mlx":
-        from catalog.embedding.mlx import MLXEmbedding
-
-        logger.debug(f"Loading MLX embedding model: {embed_settings.model_name}")
-        embed_model = MLXEmbedding(
-            model_name=embed_settings.model_name,
-            embed_batch_size=embed_settings.batch_size,
-        )
-        logger.info(f"MLX embedding model loaded: {embed_settings.model_name}")
-    else:
-        from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-
-        logger.debug(f"Loading HuggingFace embedding model: {embed_settings.model_name}")
-        embed_model = HuggingFaceEmbedding(
-            model_name=embed_settings.model_name,
-            embed_batch_size=embed_settings.batch_size,
-        )
-        logger.info(f"HuggingFace embedding model loaded: {embed_settings.model_name}")
+    embed_model = build_embed_model(
+        backend=embed_settings.backend,
+        model_name=embed_settings.model_name,
+        batch_size=embed_settings.batch_size,
+    )
 
     if resilient:
         batch_size = settings.rag.embed_batch_size
@@ -68,4 +88,4 @@ def get_embed_model(resilient: bool = False) -> "BaseEmbedding":
     return embed_model
 
 
-__all__ = ["MLXEmbedding", "ResilientEmbedding", "get_embed_model"]
+__all__ = ["MLXEmbedding", "ResilientEmbedding", "build_embed_model", "get_embed_model"]

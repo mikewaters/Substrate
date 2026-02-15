@@ -242,7 +242,7 @@ class TestGetEmbedModelResilient:
         mock_model = MockEmbedding()
 
         with patch("catalog.embedding.get_settings") as mock_settings, patch(
-            "catalog.embedding.mlx.MLXEmbedding", return_value=mock_model
+            "catalog.embedding.MLXEmbedding", return_value=mock_model
         ):
             mock_settings.return_value.embedding.backend = "mlx"
             mock_settings.return_value.embedding.model_name = "test-model"
@@ -264,7 +264,7 @@ class TestGetEmbedModelResilient:
         mock_model = MockEmbedding()
 
         with patch("catalog.embedding.get_settings") as mock_settings, patch(
-            "catalog.embedding.mlx.MLXEmbedding", return_value=mock_model
+            "catalog.embedding.MLXEmbedding", return_value=mock_model
         ):
             mock_settings.return_value.embedding.backend = "mlx"
             mock_settings.return_value.embedding.model_name = "test-model"
@@ -287,7 +287,7 @@ class TestGetEmbedModelResilient:
         mock_model = MockEmbedding()
 
         with patch("catalog.embedding.get_settings") as mock_settings, patch(
-            "catalog.embedding.mlx.MLXEmbedding", return_value=mock_model
+            "catalog.embedding.MLXEmbedding", return_value=mock_model
         ):
             mock_settings.return_value.embedding.backend = "mlx"
             mock_settings.return_value.embedding.model_name = "test-model"

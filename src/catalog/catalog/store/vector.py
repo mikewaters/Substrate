@@ -435,9 +435,8 @@ def _build_embed_model(
 class VectorStoreManager:
     """Manages vector storage backends for semantic retrieval.
 
-    Qdrant remains the default backend and supports full ingest/search lifecycle.
-    Zvec support is intentionally latent and experimental, intended to exercise
-    local-file vector query integration without changing runtime defaults.
+    Zvec (SimpleVectorStore-backed) is the primary backend. Qdrant remains
+    available as an alternative backend selectable via settings.
     """
 
     def __init__(
@@ -463,14 +462,6 @@ class VectorStoreManager:
             backend=self._embed_settings.backend,
             model_name=self._embed_settings.model_name,
         )
-
-        if (
-            self._vector_backend == "zvec"
-            and not settings.vector_db.enable_experimental_zvec
-        ):
-            raise ValueError(
-                "Zvec backend is disabled. Set IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC=true to opt in."
-            )
 
         default_capabilities = VectorBackendCapabilities(
             native_embedding_identity=False
@@ -828,20 +819,11 @@ class VectorStoreManager:
         return hits
 
     def load_or_create(self) -> "VectorStoreIndex":
-        """Load or create a VectorStoreIndex backed by Qdrant.
-
-        Creates the collection if it doesn't exist, then returns
-        a VectorStoreIndex that uses the Qdrant vector store.
+        """Load or create a VectorStoreIndex backed by the active backend.
 
         Returns:
             VectorStoreIndex ready for use.
         """
-        if self._vector_backend != "qdrant":
-            raise RuntimeError(
-                "load_or_create is only implemented for qdrant backend. "
-                "Zvec support is currently latent for semantic_query only."
-            )
-
         if self._index is not None:
             return self._index
 
@@ -856,7 +838,7 @@ class VectorStoreManager:
             embed_model=self._get_embed_model(),
         )
 
-        logger.info("VectorStoreIndex created from Qdrant")
+        logger.info("VectorStoreIndex created from %s", self._vector_backend)
         return self._index
 
     def get_vector_store(self):
@@ -997,28 +979,52 @@ class VectorStoreManager:
     def delete_by_dataset(self, dataset_name: str) -> int:
         """Delete all vectors associated with a dataset.
 
-        Uses Qdrant's filter-based deletion to remove all points
-        whose dataset_name payload field matches the given value.
-
         Args:
             dataset_name: Name of the dataset to clear vectors for.
 
         Returns:
             Number of points deleted.
         """
-        if self._vector_backend != "qdrant":
-            logger.warning("delete_by_dataset is not implemented for backend %s", self._vector_backend)
+        if self._vector_backend == "zvec":
+            return self._delete_by_dataset_zvec(dataset_name)
+
+        return self._delete_by_dataset_qdrant(dataset_name)
+
+    def _delete_by_dataset_zvec(self, dataset_name: str) -> int:
+        """Delete dataset vectors from the SimpleVectorStore backing Zvec."""
+        vector_store = self.get_vector_store()
+        data = vector_store.data
+
+        node_ids_to_remove = [
+            node_id
+            for node_id, metadata in (data.metadata_dict or {}).items()
+            if _ZvecClient._matches_dataset(metadata, dataset_name)
+        ]
+
+        if not node_ids_to_remove:
+            logger.debug(f"No vectors found for dataset '{dataset_name}'")
             return 0
 
+        for node_id in node_ids_to_remove:
+            data.embedding_dict.pop(node_id, None)
+            if data.metadata_dict:
+                data.metadata_dict.pop(node_id, None)
+            if data.text_id_to_ref_doc_id:
+                data.text_id_to_ref_doc_id.pop(node_id, None)
+
+        self.persist()
+        logger.info(f"Deleted {len(node_ids_to_remove)} vectors for dataset '{dataset_name}'")
+        return len(node_ids_to_remove)
+
+    def _delete_by_dataset_qdrant(self, dataset_name: str) -> int:
+        """Delete dataset vectors from Qdrant using filter-based deletion."""
         client = self._get_client()
         collection_name = self._qdrant_settings.collection_name
 
-        # Check if collection exists
         if not self._collection_exists():
             logger.debug(f"Collection {collection_name} does not exist, nothing to delete")
             return 0
 
-        # Count points before deletion
         count_filter = Filter(
             must=[
                 FieldCondition(
@@ -1036,7 +1042,6 @@ class VectorStoreManager:
         count = count_result.count
 
         if count > 0:
-            # Delete using filter
             from qdrant_client.models import FilterSelector
 
             client.delete(

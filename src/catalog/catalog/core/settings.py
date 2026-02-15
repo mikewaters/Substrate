@@ -182,8 +182,8 @@ class QdrantSettings(BaseSettings):
 class ZvecSettings(BaseSettings):
     """Zvec vector store configuration.
 
-    Zvec support is available for local-file integration exploration and should remain
-    opt-in via ``vector_db.enable_experimental_zvec``.
+    Zvec is the primary vector backend, using LlamaIndex SimpleVectorStore
+    with a local JSON index file.
     """
 
     model_config = SettingsConfigDict(
@@ -210,14 +210,8 @@ class VectorDBSettings(BaseSettings):
     )
 
     backend: Literal["qdrant", "zvec"] = Field(
-        default="qdrant",
+        default="zvec",
         description="Vector backend used by VectorStoreManager",
-    )
-    enable_experimental_zvec: bool = Field(
-        default=False,
-        description=(
-            "Enable latent Zvec backend support. Must be true when backend='zvec'."
-        ),
     )
 
 

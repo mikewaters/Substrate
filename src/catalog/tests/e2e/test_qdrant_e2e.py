@@ -90,7 +90,6 @@ class TestQdrantEndToEnd:
         )
 
         monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
-        monkeypatch.delenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", raising=False)
         monkeypatch.setenv("IDX_RAG__EXPANSION_ENABLED", "false")
         get_settings.cache_clear()
 
@@ -175,7 +174,6 @@ class TestQdrantEndToEnd:
 
         # Ingest identity (stored): huggingface:semantic-mock
         monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
-        monkeypatch.delenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", raising=False)
         monkeypatch.setenv("IDX_EMBEDDING__BACKEND", "huggingface")
         monkeypatch.setenv("IDX_EMBEDDING__MODEL_NAME", "ingest-config-model")
         monkeypatch.setenv("IDX_RAG__EXPANSION_ENABLED", "false")

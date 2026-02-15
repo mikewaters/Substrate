@@ -2,6 +2,17 @@
 
 If you are working on a python project, immediately read `AGENTS_PYTHON.md`.
 
+# Work environment
+
+You may be within a git worktree. Obey the following:
+
+- Always work only inside the current worktree
+- Write to .env.local, never .env
+- Read .wt.port for dev server port
+
+
+---
+
 # Product development lifecycle
 ## Architecture Decisions
 

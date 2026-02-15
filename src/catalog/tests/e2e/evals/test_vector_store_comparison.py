@@ -9,7 +9,6 @@ from llama_index.core.embeddings import BaseEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from sqlalchemy import text
 
-from catalog.core.settings import get_settings
 from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.search.models import SearchCriteria, SearchResults
@@ -17,6 +16,7 @@ from catalog.search.service import SearchService
 from catalog.store.session_context import use_session
 from catalog.store.vector import VectorStoreManager
 
+from ...backends import configure_backend
 from ..conftest import E2EInfra
 
 
@@ -64,25 +64,6 @@ class _BackendEvalResult:
     total_results: int
     qdrant_query_calls: int
     zvec_query_calls: int
-
-
-def _configure_backend(
-    monkeypatch: pytest.MonkeyPatch,
-    backend: str,
-    output_dir: Path,
-) -> None:
-    """Configure environment for a single active vector backend."""
-    monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", backend)
-    monkeypatch.setenv("IDX_RAG__EXPANSION_ENABLED", "false")
-
-    if backend == "zvec":
-        monkeypatch.setenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", "true")
-        monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(output_dir / "zvec-index.json"))
-    else:
-        monkeypatch.delenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", raising=False)
-        monkeypatch.delenv("IDX_ZVEC__INDEX_PATH", raising=False)
-
-    get_settings.cache_clear()
 
 
 def _ingest_dataset(
@@ -177,7 +158,7 @@ class TestVectorStoreComparisonEval:
             encoding="utf-8",
         )
 
-        _configure_backend(monkeypatch=monkeypatch, backend=backend, output_dir=e2e.output_dir)
+        configure_backend(monkeypatch=monkeypatch, backend=backend, output_dir=e2e.output_dir)
 
         embed_model = _SemanticMockEmbedding(embed_dim=384)
         _ingest_dataset(

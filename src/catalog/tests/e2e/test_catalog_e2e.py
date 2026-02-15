@@ -125,8 +125,9 @@ class TestHybridSearch:
         self,
         e2e: E2EInfra,
         hybrid_vault: Path,
+        vector_backend: str,
     ) -> None:
-        """Hybrid search with real Qdrant returns RRF-scored results."""
+        """Hybrid search returns RRF-scored results across vector backends."""
         pipeline = DatasetIngestPipeline()
         config = SourceObsidianConfig(
             source_path=hybrid_vault,
@@ -153,6 +154,7 @@ class TestHybridSearch:
         self,
         e2e: E2EInfra,
         sample_docs: Path,
+        vector_backend: str,
     ) -> None:
         """Full flow: ingest -> hybrid search -> LLM rerank (LLM mocked)."""
         from catalog.llm.reranker import Reranker

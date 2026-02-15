@@ -24,6 +24,8 @@ from catalog.core.settings import get_settings
 from catalog.store.database import get_registry, get_session, get_session_factory
 from catalog.store.vector import VectorStoreManager
 
+from ..backends import SUPPORTED_BACKENDS, configure_backend
+
 E2E_OUTPUT = Path(__file__).parent / ".output"
 
 
@@ -137,6 +139,14 @@ def e2e(request, monkeypatch) -> Generator[E2EInfra, None, None]:
     get_settings.cache_clear()
     get_registry.cache_clear()
     get_session_factory.cache_clear()
+
+
+@pytest.fixture(params=SUPPORTED_BACKENDS)
+def vector_backend(request, e2e, monkeypatch):
+    """Configure active vector backend per test invocation."""
+    backend = request.param
+    configure_backend(monkeypatch, backend, e2e.output_dir)
+    yield backend
 
 
 # ---------------------------------------------------------------------------

@@ -86,7 +86,6 @@ class TestZvecEndToEnd:
 
         zvec_index_path = e2e.output_dir / "zvec-index.json"
         monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
-        monkeypatch.setenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", "true")
         monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(zvec_index_path))
         monkeypatch.setenv("IDX_RAG__EXPANSION_ENABLED", "false")
         get_settings.cache_clear()
@@ -169,7 +168,6 @@ class TestZvecEndToEnd:
 
         zvec_index_path = e2e.output_dir / "zvec-index.json"
         monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
-        monkeypatch.setenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", "true")
         monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(zvec_index_path))
         monkeypatch.setenv("IDX_EMBEDDING__BACKEND", "huggingface")
         monkeypatch.setenv("IDX_EMBEDDING__MODEL_NAME", "ingest-config-model")

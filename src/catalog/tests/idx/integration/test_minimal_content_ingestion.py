@@ -14,7 +14,6 @@ from typing import Generator
 from unittest.mock import patch
 
 import pytest
-from qdrant_client.models import FieldCondition, Filter, MatchValue
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -177,18 +176,8 @@ def _assert_document_fts_and_vectors_exist(
         assert chunk_fts_count >= 1
 
     vector_store = patched_embedding["vector_manager"].get_vector_store.return_value
-    point_count = vector_store.client.count(
-        collection_name=vector_store.collection_name,
-        count_filter=Filter(
-            must=[
-                FieldCondition(
-                    key="dataset_name",
-                    match=MatchValue(value=dataset_name),
-                )
-            ]
-        ),
-        exact=True,
-    ).count
+    # SimpleVectorStore: verify vectors were written
+    point_count = len(vector_store.data.embedding_dict)
     assert point_count >= 1
 
 

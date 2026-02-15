@@ -86,8 +86,11 @@ class TestEmbeddingIdentityDiscovery:
     def test_get_embedding_identities_returns_distinct_profiles(
         self,
         tmp_path,
+        monkeypatch,
     ) -> None:
-        """Distinct embedding identities are deduplicated by profile."""
+        """Distinct embedding identities are deduplicated by profile (Qdrant)."""
+        get_settings.cache_clear()
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
         manager = VectorStoreManager(persist_dir=tmp_path / "qdrant")
         manager._collection_exists = MagicMock(return_value=True)
         manager._get_client = MagicMock(return_value=MagicMock())
@@ -116,18 +119,23 @@ class TestEmbeddingIdentityDiscovery:
         ]
         scroll_call = manager._get_client.return_value.scroll.call_args.kwargs
         assert scroll_call["scroll_filter"] is not None
+        get_settings.cache_clear()
 
     def test_get_embedding_identities_returns_empty_when_collection_missing(
         self,
         tmp_path,
+        monkeypatch,
     ) -> None:
-        """Missing collection returns no embedding identities."""
+        """Missing collection returns no embedding identities (Qdrant)."""
+        get_settings.cache_clear()
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
         manager = VectorStoreManager(persist_dir=tmp_path / "qdrant")
         manager._collection_exists = MagicMock(return_value=False)
 
         identities = manager.get_embedding_identities(dataset_name=None)
 
         assert identities == []
+        get_settings.cache_clear()
 
     def test_get_embedding_identities_reads_zvec_local_metadata(
         self,
@@ -174,7 +182,7 @@ class TestEmbeddingIdentityDiscovery:
         )
 
         monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
-        monkeypatch.setenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", "true")
+
         monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(index_path))
 
         manager = VectorStoreManager(persist_dir=tmp_path / "vectors")
@@ -191,8 +199,10 @@ class TestEmbeddingIdentityDiscovery:
 class TestEmbeddingIdentityStrategies:
     """Tests for capability-driven embedding identity strategy selection."""
 
-    def test_native_strategy_has_no_ingest_identity_transforms(self, tmp_path) -> None:
+    def test_native_strategy_has_no_ingest_identity_transforms(self, tmp_path, monkeypatch) -> None:
         """Native identity backends skip payload identity ingest transforms."""
+        get_settings.cache_clear()
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
         manager = VectorStoreManager(
             persist_dir=tmp_path / "qdrant",
             capabilities=VectorBackendCapabilities(native_embedding_identity=True),
@@ -201,9 +211,12 @@ class TestEmbeddingIdentityStrategies:
         transforms = manager.build_ingest_transforms(embed_model=_FakeEmbeddingModel())
 
         assert transforms == []
+        get_settings.cache_clear()
 
-    def test_native_strategy_skips_payload_identity_path(self, tmp_path) -> None:
+    def test_native_strategy_skips_payload_identity_path(self, tmp_path, monkeypatch) -> None:
         """Native identity capability bypasses payload identity discovery."""
+        get_settings.cache_clear()
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
         manager = VectorStoreManager(
             persist_dir=tmp_path / "qdrant",
             capabilities=VectorBackendCapabilities(native_embedding_identity=True),
@@ -224,8 +237,10 @@ class TestEmbeddingIdentityStrategies:
 
         manager.get_embedding_identities.assert_not_called()
 
-    def test_payload_strategy_discovers_embedding_identities(self, tmp_path) -> None:
+    def test_payload_strategy_discovers_embedding_identities(self, tmp_path, monkeypatch) -> None:
         """Non-native capability uses payload identity strategy."""
+        get_settings.cache_clear()
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
         manager = VectorStoreManager(persist_dir=tmp_path / "qdrant")
         vector_store = MagicMock()
         manager.get_vector_store = MagicMock(return_value=vector_store)
@@ -246,6 +261,7 @@ class TestEmbeddingIdentityStrategies:
         manager.get_embedding_identities.assert_called_once_with(dataset_name="obsidian")
         assert len(hits) == 1
         assert hits[0].node_id == "chunk-a"
+        get_settings.cache_clear()
 
     def test_payload_strategy_prefers_stored_identity_over_runtime_config(
         self,
@@ -254,6 +270,7 @@ class TestEmbeddingIdentityStrategies:
     ) -> None:
         """Stored payload identity is used even when runtime config identity differs."""
         get_settings.cache_clear()
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
         monkeypatch.setenv("IDX_EMBEDDING__BACKEND", "mlx")
         monkeypatch.setenv("IDX_EMBEDDING__MODEL_NAME", "runtime-config-model")
 
@@ -314,7 +331,7 @@ class TestZvecBackend:
         index_path.write_text(json.dumps(index_payload), encoding="utf-8")
 
         monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
-        monkeypatch.setenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", "true")
+
         monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(index_path))
 
         manager = VectorStoreManager(persist_dir=tmp_path / "vectors")
@@ -371,7 +388,7 @@ class TestZvecBackend:
         )
 
         monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
-        monkeypatch.setenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", "true")
+
         monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(index_path))
 
         manager = VectorStoreManager(persist_dir=tmp_path / "vectors")
@@ -397,13 +414,4 @@ class TestZvecBackend:
         assert called_profiles == ["mlx:model-a", "huggingface:model-b"]
         get_settings.cache_clear()
 
-    def test_zvec_backend_requires_explicit_enablement(self, tmp_path, monkeypatch) -> None:
-        """Zvec backend is disabled by default until explicitly enabled."""
-        get_settings.cache_clear()
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
-        monkeypatch.delenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", raising=False)
 
-        with pytest.raises(ValueError, match="Zvec backend is disabled"):
-            VectorStoreManager(persist_dir=tmp_path / "vectors")
-
-        get_settings.cache_clear()

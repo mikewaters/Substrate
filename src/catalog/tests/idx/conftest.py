@@ -56,38 +56,15 @@ def mock_embed_model():
 
 
 @pytest.fixture
-def in_memory_qdrant_vector_store(tmp_path):
-    """Create a real QdrantVectorStore with in-memory storage.
+def mock_vector_store():
+    """Provide an in-memory SimpleVectorStore for tests.
 
-    This satisfies Pydantic validation in LlamaIndex's IngestionPipeline.
+    This satisfies LlamaIndex's IngestionPipeline validation that
+    vector_store is an instance of BasePydanticVectorStore.
     """
-    import qdrant_client
-    from llama_index.vector_stores.qdrant import QdrantVectorStore
+    from llama_index.core.vector_stores import SimpleVectorStore
 
-    # Use in-memory mode for fast tests
-    client = qdrant_client.QdrantClient(location=":memory:")
-
-    # Create collection with correct dimensions
-    from qdrant_client.models import Distance, VectorParams
-    client.create_collection(
-        collection_name="test_collection",
-        vectors_config=VectorParams(size=384, distance=Distance.COSINE),
-    )
-
-    return QdrantVectorStore(
-        client=client,
-        collection_name="test_collection",
-    )
-
-
-@pytest.fixture
-def mock_vector_store(in_memory_qdrant_vector_store):
-    """Provide a real in-memory QdrantVectorStore for tests.
-
-    This is needed because LlamaIndex's IngestionPipeline validates
-    that vector_store is an instance of BasePydanticVectorStore.
-    """
-    return in_memory_qdrant_vector_store
+    return SimpleVectorStore()
 
 
 @pytest.fixture

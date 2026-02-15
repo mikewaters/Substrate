@@ -143,13 +143,6 @@ class _NativeEmbeddingIdentityStrategy:
         top_k: int,
         dataset_name: str | None = None,
     ) -> list["VectorQueryHit"]:
-        if manager.vector_backend == "zvec":
-            return manager._query_zvec(
-                query=query,
-                top_k=top_k,
-                dataset_name=dataset_name,
-            )
-
         from llama_index.core.vector_stores import VectorStoreQuery
 
         vector_store = manager.get_vector_store()
@@ -195,13 +188,6 @@ class _PayloadEmbeddingIdentityStrategy:
         top_k: int,
         dataset_name: str | None = None,
     ) -> list["VectorQueryHit"]:
-        if manager.vector_backend == "zvec":
-            return manager._query_zvec(
-                query=query,
-                top_k=top_k,
-                dataset_name=dataset_name,
-            )
-
         from llama_index.core.vector_stores import VectorStoreQuery
 
         vector_store = manager.get_vector_store()
@@ -441,6 +427,13 @@ class VectorStoreManager:
         dataset_name: str | None = None,
     ) -> list["VectorQueryHit"]:
         """Execute a semantic query using the active identity strategy."""
+        if self._vector_backend == "zvec":
+            return self._query_zvec(
+                query=query,
+                top_k=top_k,
+                dataset_name=dataset_name,
+            )
+
         return self._identity_strategy.query(
             self,
             query=query,

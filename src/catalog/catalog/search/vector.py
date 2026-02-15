@@ -148,7 +148,8 @@ class VectorSearch:
             - metadata: Document metadata
             - scores: Dict with "vector" key containing similarity score
         """
-        self._ensure_vector_store()
+        if self._vector_manager.vector_backend == "qdrant":
+            self._ensure_vector_store()
         hits = self._vector_manager.semantic_query(
             query=query,
             top_k=top_k,

@@ -464,3 +464,13 @@ Integration tests for LoadingService + IndexingService working together.
 | test_native_strategy_has_no_ingest_identity_transforms | Native identity backends skip payload-stamping transforms | Pass |
 | test_native_strategy_skips_payload_identity_path | Native strategy does not run payload identity discovery | Pass |
 | test_payload_strategy_discovers_embedding_identities | Payload strategy discovers and uses stored identity profiles | Pass |
+| test_semantic_query_uses_zvec_client | Uses experimental Zvec HTTP API when zvec backend is selected | Pass |
+| test_zvec_backend_requires_explicit_enablement | Rejects zvec backend unless experimental gate is enabled | Pass |
+
+
+## Settings (tests/idx/unit/core/test_settings.py)
+
+| Test Case | Description | Status |
+|-----------|-------------|--------|
+| test_defaults_to_qdrant_backend | Ensures vector backend defaults to qdrant with zvec disabled | Pass |
+| test_allows_zvec_backend_env_override | Allows explicit zvec backend via nested settings env vars | Pass |

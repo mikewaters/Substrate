@@ -14,8 +14,10 @@ Example usage:
 
 from dataclasses import dataclass
 from functools import lru_cache
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
+from urllib import request
 
 import qdrant_client
 from qdrant_client.models import Distance, FieldCondition, Filter, MatchValue, VectorParams
@@ -43,6 +45,49 @@ __all__ = [
 ]
 
 logger = get_logger(__name__)
+
+
+class _ZvecClient:
+    """Minimal HTTP client for experimental Zvec semantic queries."""
+
+    def __init__(self, endpoint: str, timeout_seconds: float) -> None:
+        self._endpoint = endpoint.rstrip("/")
+        self._timeout_seconds = timeout_seconds
+
+    def query(
+        self,
+        collection_name: str,
+        query_vector: list[float],
+        top_k: int,
+        dataset_name: str | None,
+    ) -> list["VectorQueryHit"]:
+        payload: dict[str, Any] = {
+            "collection_name": collection_name,
+            "vector": query_vector,
+            "top_k": top_k,
+        }
+        if dataset_name:
+            payload["filter"] = {"dataset_name": dataset_name}
+
+        req = request.Request(
+            url=f"{self._endpoint}/v1/search",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with request.urlopen(req, timeout=self._timeout_seconds) as resp:  # noqa: S310
+            response_payload = json.loads(resp.read().decode("utf-8"))
+
+        hits = response_payload.get("hits", [])
+        return [
+            VectorQueryHit(
+                node_id=str(hit.get("id", "")),
+                score=float(hit.get("score", 0.0)),
+                metadata=hit.get("metadata", {}),
+            )
+            for hit in hits
+            if hit.get("id") is not None
+        ]
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,7 +122,7 @@ class _EmbeddingIdentityStrategy(Protocol):
         query: str,
         top_k: int,
         dataset_name: str | None = None,
-    ) -> list[VectorQueryHit]:
+    ) -> list["VectorQueryHit"]:
         """Execute vector query with backend-specific identity behavior."""
 
 
@@ -97,7 +142,14 @@ class _NativeEmbeddingIdentityStrategy:
         query: str,
         top_k: int,
         dataset_name: str | None = None,
-    ) -> list[VectorQueryHit]:
+    ) -> list["VectorQueryHit"]:
+        if manager.vector_backend == "zvec":
+            return manager._query_zvec(
+                query=query,
+                top_k=top_k,
+                dataset_name=dataset_name,
+            )
+
         from llama_index.core.vector_stores import VectorStoreQuery
 
         vector_store = manager.get_vector_store()
@@ -142,7 +194,14 @@ class _PayloadEmbeddingIdentityStrategy:
         query: str,
         top_k: int,
         dataset_name: str | None = None,
-    ) -> list[VectorQueryHit]:
+    ) -> list["VectorQueryHit"]:
+        if manager.vector_backend == "zvec":
+            return manager._query_zvec(
+                query=query,
+                top_k=top_k,
+                dataset_name=dataset_name,
+            )
+
         from llama_index.core.vector_stores import VectorStoreQuery
 
         vector_store = manager.get_vector_store()
@@ -213,18 +272,11 @@ def _build_embed_model(
 
 
 class VectorStoreManager:
-    """Manages vector storage using Qdrant in local persistent mode.
+    """Manages vector storage backends for semantic retrieval.
 
-    Provides lazy initialization of the Qdrant client, vector store, and index.
-    Uses local file-based persistence for the vector database.
-
-    Key features:
-    - Auto-creates collection with correct dimensions on first use
-    - Qdrant auto-persists data (no manual persist needed)
-    - delete_by_dataset uses Qdrant's filter-based deletion
-
-    Attributes:
-        persist_dir: Directory path for Qdrant's local storage.
+    Qdrant remains the default backend and supports full ingest/search lifecycle.
+    Zvec support is intentionally latent and experimental, intended to exercise
+    API surface exploration without changing runtime defaults.
     """
 
     def __init__(
@@ -244,13 +296,25 @@ class VectorStoreManager:
         self._persist_dir = persist_dir or settings.vector_store_path
         self._embed_settings = settings.embedding
         self._qdrant_settings = settings.qdrant
+        self._vector_backend = settings.vector_db.backend
+        self._zvec_settings = settings.zvec
         self._configured_identity = EmbeddingIdentity(
             backend=self._embed_settings.backend,
             model_name=self._embed_settings.model_name,
         )
-        self._capabilities = capabilities or VectorBackendCapabilities(
-            native_embedding_identity=False
+
+        if (
+            self._vector_backend == "zvec"
+            and not settings.vector_db.enable_experimental_zvec
+        ):
+            raise ValueError(
+                "Zvec backend is disabled. Set IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC=true to opt in."
+            )
+
+        default_capabilities = VectorBackendCapabilities(
+            native_embedding_identity=self._vector_backend == "zvec"
         )
+        self._capabilities = capabilities or default_capabilities
         self._identity_strategy: _EmbeddingIdentityStrategy = (
             _NativeEmbeddingIdentityStrategy()
             if self._capabilities.native_embedding_identity
@@ -262,6 +326,7 @@ class VectorStoreManager:
         self._index: "VectorStoreIndex | None" = None
         self._embed_model: "BaseEmbedding | None" = None
         self._vector_store: QdrantVectorStore | None = None
+        self._zvec_client: _ZvecClient | None = None
 
         logger.debug(
             f"VectorStoreManager initialized with persist_dir={self._persist_dir}"
@@ -277,12 +342,29 @@ class VectorStoreManager:
         """Get declared capabilities for the active vector backend."""
         return self._capabilities
 
+    @property
+    def vector_backend(self) -> str:
+        """Get selected vector backend name."""
+        return self._vector_backend
+
+    def _get_zvec_client(self) -> _ZvecClient:
+        """Get or create the experimental Zvec HTTP client."""
+        if self._zvec_client is None:
+            self._zvec_client = _ZvecClient(
+                endpoint=self._zvec_settings.endpoint,
+                timeout_seconds=self._zvec_settings.timeout_seconds,
+            )
+        return self._zvec_client
+
     def _get_client(self) -> qdrant_client.QdrantClient:
         """Get or create the Qdrant client (lazy initialization).
 
         Returns:
             QdrantClient configured for local persistent storage.
         """
+        if self._vector_backend != "qdrant":
+            raise RuntimeError("Qdrant client is unavailable for non-qdrant backends")
+
         if self._client is None:
             self._persist_dir.mkdir(parents=True, exist_ok=True)
             self._client = qdrant_client.QdrantClient(
@@ -293,13 +375,7 @@ class VectorStoreManager:
         return self._client
 
     def _ensure_collection(self) -> None:
-        """Ensure the collection exists with correct configuration.
-
-        Creates the collection if it doesn't exist, with:
-        - Vector size from embedding settings
-        - Cosine distance metric
-        - Keyword index on dataset_name for efficient filtering
-        """
+        """Ensure the collection exists with correct configuration."""
         client = self._get_client()
         collection_name = self._qdrant_settings.collection_name
 
@@ -335,7 +411,10 @@ class VectorStoreManager:
                 logger.debug(f"Created payload index on '{EMBEDDING_PROFILE_METADATA_KEY}'")
 
     def _collection_exists(self) -> bool:
-        """Return True when the Qdrant collection exists."""
+        """Return True when the active backend collection exists."""
+        if self._vector_backend != "qdrant":
+            return True
+
         client = self._get_client()
         collection_name = self._qdrant_settings.collection_name
         collections = client.get_collections().collections
@@ -360,11 +439,28 @@ class VectorStoreManager:
         query: str,
         top_k: int,
         dataset_name: str | None = None,
-    ) -> list[VectorQueryHit]:
+    ) -> list["VectorQueryHit"]:
         """Execute a semantic query using the active identity strategy."""
         return self._identity_strategy.query(
             self,
             query=query,
+            top_k=top_k,
+            dataset_name=dataset_name,
+        )
+
+    def _query_zvec(
+        self,
+        query: str,
+        top_k: int,
+        dataset_name: str | None = None,
+    ) -> list[VectorQueryHit]:
+        """Execute semantic query using the experimental Zvec backend."""
+        embed_model = self._get_embed_model()
+        query_embedding = embed_model.get_query_embedding(query)
+        zvec_client = self._get_zvec_client()
+        return zvec_client.query(
+            collection_name=self._zvec_settings.collection_name,
+            query_vector=query_embedding,
             top_k=top_k,
             dataset_name=dataset_name,
         )
@@ -410,6 +506,9 @@ class VectorStoreManager:
             Distinct identities present in the collection, preserving first
             encounter order.
         """
+        if self._capabilities.native_embedding_identity:
+            return []
+
         if not self._collection_exists():
             return []
 
@@ -499,7 +598,7 @@ class VectorStoreManager:
         self,
         result: Any,
         fallback_identity: EmbeddingIdentity | None = None,
-    ) -> list[VectorQueryHit]:
+    ) -> list["VectorQueryHit"]:
         """Normalize a vector-store query result to VectorQueryHit records."""
         if not result.ids:
             return []
@@ -535,6 +634,12 @@ class VectorStoreManager:
         Returns:
             VectorStoreIndex ready for use.
         """
+        if self._vector_backend != "qdrant":
+            raise RuntimeError(
+                "load_or_create is only implemented for qdrant backend. "
+                "Zvec support is currently latent for semantic_query only."
+            )
+
         if self._index is not None:
             return self._index
 
@@ -562,6 +667,12 @@ class VectorStoreManager:
         Returns:
             QdrantVectorStore instance for pipeline use.
         """
+        if self._vector_backend != "qdrant":
+            raise RuntimeError(
+                "get_vector_store is only available for qdrant backend. "
+                "Zvec support is currently latent for semantic_query only."
+            )
+
         if self._vector_store is not None:
             return self._vector_store
 
@@ -674,6 +785,10 @@ class VectorStoreManager:
         Returns:
             Number of points deleted.
         """
+        if self._vector_backend != "qdrant":
+            logger.warning("delete_by_dataset is not implemented for backend %s", self._vector_backend)
+            return 0
+
         client = self._get_client()
         collection_name = self._qdrant_settings.collection_name
 

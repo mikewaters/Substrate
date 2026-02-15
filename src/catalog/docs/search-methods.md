@@ -220,6 +220,26 @@ Configured via environment or settings:
 # Backend: mlx (Apple Silicon) or huggingface
 ```
 
+### Vector Backend Selection
+
+Qdrant remains the default vector backend.
+
+To run an experimental production trial with Zvec, set:
+
+```bash
+IDX_VECTOR_DB__BACKEND=zvec
+IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC=true
+IDX_ZVEC__ENDPOINT=http://<zvec-host>:8000
+IDX_ZVEC__COLLECTION_NAME=catalog_vectors
+IDX_ZVEC__TIMEOUT_SECONDS=5
+```
+
+Notes:
+- If `IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC` is not `true`, startup fails when
+  backend is set to `zvec`.
+- Keep Qdrant settings unchanged for rollback by restoring
+  `IDX_VECTOR_DB__BACKEND=qdrant`.
+
 ### Chunking
 
 Documents are split using `SentenceSplitter`:

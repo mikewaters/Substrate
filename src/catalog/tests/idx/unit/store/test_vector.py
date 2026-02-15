@@ -1,9 +1,13 @@
 """Tests for catalog.store.vector module."""
 
+import json
 import sys
 from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock
 
+import pytest
+
+from catalog.core.settings import get_settings
 from catalog.embedding.identity import EmbeddingIdentity
 from catalog.store.vector import (
     VectorBackendCapabilities,
@@ -171,3 +175,79 @@ class TestEmbeddingIdentityStrategies:
         manager.get_embedding_identities.assert_called_once_with(dataset_name="obsidian")
         assert len(hits) == 1
         assert hits[0].node_id == "chunk-a"
+
+
+class _FakeUrlResponse:
+    """Simple context-manager response for urlopen mocking."""
+
+    def __init__(self, payload: dict[str, object]) -> None:
+        self._payload = payload
+
+    def read(self) -> bytes:
+        return json.dumps(self._payload).encode("utf-8")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        return False
+
+
+class TestZvecBackend:
+    """Tests for latent Zvec backend wiring."""
+
+    def test_semantic_query_uses_zvec_client(self, tmp_path, monkeypatch) -> None:
+        """Zvec backend delegates semantic query to Zvec HTTP API."""
+        get_settings.cache_clear()
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
+        monkeypatch.setenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", "true")
+        monkeypatch.setenv("IDX_ZVEC__ENDPOINT", "http://zvec.local")
+
+        manager = VectorStoreManager(persist_dir=tmp_path / "vectors")
+        manager._get_embed_model = MagicMock(return_value=_FakeEmbeddingModel())
+
+        captured: dict[str, object] = {}
+
+        def _fake_urlopen(req, timeout):
+            captured["url"] = req.full_url
+            captured["timeout"] = timeout
+            captured["body"] = json.loads(req.data.decode("utf-8"))
+            return _FakeUrlResponse(
+                {
+                    "hits": [
+                        {
+                            "id": "chunk-z1",
+                            "score": 0.87,
+                            "metadata": {"source_doc_id": "obsidian:path/z.md"},
+                        }
+                    ]
+                }
+            )
+
+        monkeypatch.setattr("catalog.store.vector.request.urlopen", _fake_urlopen)
+
+        hits = manager.semantic_query(query="hello", top_k=4, dataset_name="obsidian")
+
+        assert manager.vector_backend == "zvec"
+        assert len(hits) == 1
+        assert hits[0].node_id == "chunk-z1"
+        assert captured["url"] == "http://zvec.local/v1/search"
+        assert captured["body"] == {
+            "collection_name": manager._zvec_settings.collection_name,
+            "vector": [0.1, 5.0],
+            "top_k": 4,
+            "filter": {"dataset_name": "obsidian"},
+        }
+
+        get_settings.cache_clear()
+
+    def test_zvec_backend_requires_explicit_enablement(self, tmp_path, monkeypatch) -> None:
+        """Zvec backend is disabled by default until explicitly enabled."""
+        get_settings.cache_clear()
+        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
+        monkeypatch.delenv("IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC", raising=False)
+
+        with pytest.raises(ValueError, match="Zvec backend is disabled"):
+            VectorStoreManager(persist_dir=tmp_path / "vectors")
+
+        get_settings.cache_clear()

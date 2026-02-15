@@ -33,6 +33,8 @@ __all__ = [
     "QdrantSettings",
     "RAGSettings",
     "Settings",
+    "VectorDBSettings",
+    "ZvecSettings",
     "get_settings",
 ]
 
@@ -174,6 +176,53 @@ class QdrantSettings(BaseSettings):
     collection_name: str = Field(
         default="catalog_vectors",
         description="Qdrant collection name for vector storage",
+    )
+
+
+class ZvecSettings(BaseSettings):
+    """Zvec vector store configuration.
+
+    Zvec support is available for API-surface exploration and should remain
+    opt-in via ``vector_db.enable_experimental_zvec``.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="IDX_ZVEC_",
+        extra="ignore",
+    )
+
+    endpoint: str = Field(
+        default="http://127.0.0.1:8000",
+        description="Base URL for the Zvec HTTP service",
+    )
+    collection_name: str = Field(
+        default="catalog_vectors",
+        description="Zvec collection name for vector storage",
+    )
+    timeout_seconds: float = Field(
+        default=5.0,
+        gt=0,
+        description="HTTP timeout for Zvec API requests",
+    )
+
+
+class VectorDBSettings(BaseSettings):
+    """Vector database backend selection and feature gates."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="IDX_VECTOR_DB_",
+        extra="ignore",
+    )
+
+    backend: Literal["qdrant", "zvec"] = Field(
+        default="qdrant",
+        description="Vector backend used by VectorStoreManager",
+    )
+    enable_experimental_zvec: bool = Field(
+        default=False,
+        description=(
+            "Enable latent Zvec backend support. Must be true when backend='zvec'."
+        ),
     )
 
 
@@ -448,6 +497,14 @@ class Settings(BaseSettings):
     qdrant: QdrantSettings = Field(
         default_factory=QdrantSettings,
         description="Qdrant vector store settings",
+    )
+    vector_db: VectorDBSettings = Field(
+        default_factory=VectorDBSettings,
+        description="Vector backend selection and feature gates",
+    )
+    zvec: ZvecSettings = Field(
+        default_factory=ZvecSettings,
+        description="Zvec vector store settings",
     )
     rag: RAGSettings = Field(
         default_factory=RAGSettings,

@@ -126,7 +126,12 @@ class VectorSearch:
     ) -> list[SearchResult]:
         """Search vector store for similar documents.
 
-        Performs semantic similarity search using the embedded query.
+        Performs semantic similarity search using backend-aware query embeddings.
+        Embedding identity resolution is delegated to ``VectorStoreManager``:
+        payload-based backends discover stored embedding provenance from vector
+        metadata and compute query embeddings with the matching model identity
+        for each discovered profile.
+
         Results include the similarity score in scores["vector"].
 
         Args:

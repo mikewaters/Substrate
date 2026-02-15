@@ -464,7 +464,10 @@ Integration tests for LoadingService + IndexingService working together.
 | test_native_strategy_has_no_ingest_identity_transforms | Native identity backends skip payload-stamping transforms | Pass |
 | test_native_strategy_skips_payload_identity_path | Native strategy does not run payload identity discovery | Pass |
 | test_payload_strategy_discovers_embedding_identities | Payload strategy discovers and uses stored identity profiles | Pass |
-| test_semantic_query_uses_zvec_client | Uses experimental Zvec HTTP API when zvec backend is selected | Pass |
+| test_payload_strategy_prefers_stored_identity_over_runtime_config | Uses stored payload identity for query-time model selection even when runtime embedding config differs | Pass |
+| test_semantic_query_uses_zvec_client | Uses experimental Zvec local index file when zvec backend is selected | Pass |
+| test_get_embedding_identities_reads_zvec_local_metadata | Reads Zvec embedding provenance from local index metadata | Pass |
+| test_semantic_query_uses_stored_embedding_provenance | Selects query-time embedding model from stored provenance identities | Pass |
 | test_zvec_backend_requires_explicit_enablement | Rejects zvec backend unless experimental gate is enabled | Pass |
 
 
@@ -474,3 +477,23 @@ Integration tests for LoadingService + IndexingService working together.
 |-----------|-------------|--------|
 | test_defaults_to_qdrant_backend | Ensures vector backend defaults to qdrant with zvec disabled | Pass |
 | test_allows_zvec_backend_env_override | Allows explicit zvec backend via nested settings env vars | Pass |
+
+## E2E Zvec Vector Search (tests/e2e/test_zvec_e2e.py)
+
+| Test Case | Description | Status |
+|-----------|-------------|--------|
+| test_ingest_then_vector_search_uses_zvec_backend | Starts with no datasets, ingests test-owned dataset, runs vector-only query via Zvec local index, and validates expected top result | Pass |
+| test_query_uses_stored_embedding_profile_when_runtime_config_differs | Ingests with one embedding identity and verifies Zvec query-time model resolution uses stored profile when runtime config differs | Pass |
+
+## E2E Qdrant Vector Search (tests/e2e/test_qdrant_e2e.py)
+
+| Test Case | Description | Status |
+|-----------|-------------|--------|
+| test_ingest_then_vector_search_uses_qdrant_backend | Starts with no datasets, ingests test-owned dataset, runs vector-only query via Qdrant, and validates expected top result | Pass |
+| test_query_uses_stored_embedding_profile_when_runtime_config_differs | Ingests with one embedding identity and verifies Qdrant query-time model resolution uses stored profile when runtime config differs | Pass |
+
+## E2E Vector Store Eval Comparison (tests/e2e/evals/test_vector_store_comparison.py)
+
+| Test Case | Description | Status |
+|-----------|-------------|--------|
+| test_accuracy_and_latency_comparison_between_backends | Runs the same ingest and vector query scenario with Qdrant and Zvec, validates backend usage and top-hit parity, and captures latency metrics for comparison | Pass |

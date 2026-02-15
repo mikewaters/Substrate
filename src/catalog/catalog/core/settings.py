@@ -182,7 +182,7 @@ class QdrantSettings(BaseSettings):
 class ZvecSettings(BaseSettings):
     """Zvec vector store configuration.
 
-    Zvec support is available for API-surface exploration and should remain
+    Zvec support is available for local-file integration exploration and should remain
     opt-in via ``vector_db.enable_experimental_zvec``.
     """
 
@@ -191,18 +191,13 @@ class ZvecSettings(BaseSettings):
         extra="ignore",
     )
 
-    endpoint: str = Field(
-        default="http://127.0.0.1:8000",
-        description="Base URL for the Zvec HTTP service",
+    index_path: Path = Field(
+        default=Path("~/.idx/zvec/index.json").expanduser(),
+        description="Path to local JSON file used for Zvec semantic queries",
     )
     collection_name: str = Field(
         default="catalog_vectors",
         description="Zvec collection name for vector storage",
-    )
-    timeout_seconds: float = Field(
-        default=5.0,
-        gt=0,
-        description="HTTP timeout for Zvec API requests",
     )
 
 

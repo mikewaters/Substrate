@@ -148,7 +148,7 @@ class TestVectorDBSettings:
         env_vars = {
             "IDX_VECTOR_DB__BACKEND": "zvec",
             "IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC": "true",
-            "IDX_ZVEC__ENDPOINT": "http://zvec.internal:8000",
+            "IDX_ZVEC__INDEX_PATH": "/tmp/zvec-index.json",
         }
 
         with mock.patch.dict(os.environ, env_vars, clear=False):
@@ -156,4 +156,4 @@ class TestVectorDBSettings:
 
             assert settings.vector_db.backend == "zvec"
             assert settings.vector_db.enable_experimental_zvec is True
-            assert settings.zvec.endpoint == "http://zvec.internal:8000"
+            assert str(settings.zvec.index_path) == "/tmp/zvec-index.json"

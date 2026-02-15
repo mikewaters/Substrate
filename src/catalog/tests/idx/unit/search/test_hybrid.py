@@ -364,10 +364,6 @@ class TestHybridRetriever:
     def mock_vector_manager(self) -> MagicMock:
         """Create mock VectorStoreManager."""
         manager = MagicMock()
-        mock_index = MagicMock()
-        mock_retriever = MagicMock()
-        mock_index.as_retriever.return_value = mock_retriever
-        manager.load_or_create.return_value = mock_index
         return manager
 
     @pytest.fixture
@@ -484,19 +480,16 @@ class TestHybridRetriever:
             mock_get_settings.return_value.rag = mock_settings
 
             factory = HybridRetriever(mock_session, mock_vector_manager)
-            factory.build(dataset_name="obsidian")
+            retriever = factory.build(dataset_name="obsidian")
 
             # FTS should have dataset filter
             mock_fts_cls.assert_called_once()
             call_kwargs = mock_fts_cls.call_args.kwargs
             assert call_kwargs["dataset_name"] == "obsidian"
 
-            # Vector retriever should have metadata filter
-            mock_vector_manager.load_or_create.return_value.as_retriever.assert_called_once()
-            vector_call_kwargs = (
-                mock_vector_manager.load_or_create.return_value.as_retriever.call_args.kwargs
-            )
-            assert vector_call_kwargs["filters"] is not None
+            # Vector retriever should carry dataset filter
+            vector_retriever = retriever.retrievers[1]
+            assert vector_retriever._dataset_name == "obsidian"
 
     def test_build_without_dataset_filter(
         self,
@@ -510,18 +503,16 @@ class TestHybridRetriever:
             mock_get_settings.return_value.rag = mock_settings
 
             factory = HybridRetriever(mock_session, mock_vector_manager)
-            factory.build(dataset_name=None)
+            retriever = factory.build(dataset_name=None)
 
             # FTS should have no dataset filter
             mock_fts_cls.assert_called_once()
             call_kwargs = mock_fts_cls.call_args.kwargs
             assert call_kwargs["dataset_name"] is None
 
-            # Vector retriever should have no filter
-            vector_call_kwargs = (
-                mock_vector_manager.load_or_create.return_value.as_retriever.call_args.kwargs
-            )
-            assert vector_call_kwargs["filters"] is None
+            # Vector retriever should have no dataset filter
+            vector_retriever = retriever.retrievers[1]
+            assert vector_retriever._dataset_name is None
 
     def test_build_creates_two_retrievers(
         self,

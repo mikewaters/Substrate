@@ -12,9 +12,10 @@ Example usage:
     retriever = manager.get_retriever(similarity_top_k=10)
 """
 
-from pathlib import Path
+from dataclasses import dataclass
 from functools import lru_cache
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Protocol
 
 import qdrant_client
 from qdrant_client.models import Distance, FieldCondition, Filter, MatchValue, VectorParams
@@ -22,16 +23,165 @@ from agentlayer.logging import get_logger
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 
 from catalog.core.settings import get_settings
+from catalog.embedding.identity import (
+    EMBEDDING_BACKEND_METADATA_KEY,
+    EMBEDDING_MODEL_METADATA_KEY,
+    EMBEDDING_PROFILE_METADATA_KEY,
+    EmbeddingIdentity,
+)
 
 if TYPE_CHECKING:
     from llama_index.core import VectorStoreIndex
     from llama_index.core.embeddings import BaseEmbedding
     from llama_index.core.retrievers import VectorIndexRetriever
-    from llama_index.core.schema import TextNode
+    from llama_index.core.schema import TextNode, TransformComponent
 
-__all__ = ["VectorStoreManager"]
+__all__ = [
+    "VectorBackendCapabilities",
+    "VectorQueryHit",
+    "VectorStoreManager",
+]
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class VectorBackendCapabilities:
+    """Capabilities exposed by the active vector backend."""
+
+    native_embedding_identity: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class VectorQueryHit:
+    """Normalized vector query hit."""
+
+    node_id: str
+    score: float
+    metadata: dict[str, Any]
+
+
+class _EmbeddingIdentityStrategy(Protocol):
+    """Strategy interface for embedding identity handling."""
+
+    def build_ingest_transforms(
+        self,
+        manager: "VectorStoreManager",
+        embed_model: "BaseEmbedding",
+    ) -> list["TransformComponent"]:
+        """Return transforms required before vector insert."""
+
+    def query(
+        self,
+        manager: "VectorStoreManager",
+        query: str,
+        top_k: int,
+        dataset_name: str | None = None,
+    ) -> list[VectorQueryHit]:
+        """Execute vector query with backend-specific identity behavior."""
+
+
+class _NativeEmbeddingIdentityStrategy:
+    """No-op identity strategy for backends with native identity support."""
+
+    def build_ingest_transforms(
+        self,
+        manager: "VectorStoreManager",
+        embed_model: "BaseEmbedding",
+    ) -> list["TransformComponent"]:
+        return []
+
+    def query(
+        self,
+        manager: "VectorStoreManager",
+        query: str,
+        top_k: int,
+        dataset_name: str | None = None,
+    ) -> list[VectorQueryHit]:
+        from llama_index.core.vector_stores import VectorStoreQuery
+
+        vector_store = manager.get_vector_store()
+        embed_model = manager._get_embed_model()
+        query_embedding = embed_model.get_query_embedding(query)
+        filters = manager._build_filters(dataset_name=dataset_name)
+
+        vs_query = VectorStoreQuery(
+            query_embedding=query_embedding,
+            similarity_top_k=top_k,
+            filters=filters,
+        )
+        result = vector_store.query(vs_query)
+        return manager._normalize_query_hits(result)
+
+
+class _PayloadEmbeddingIdentityStrategy:
+    """Payload-based strategy for backends lacking native identity support."""
+
+    def build_ingest_transforms(
+        self,
+        manager: "VectorStoreManager",
+        embed_model: "BaseEmbedding",
+    ) -> list["TransformComponent"]:
+        from catalog.embedding import resolve_embedding_identity
+        from catalog.transform.embedding import EmbeddingIdentityTransform
+
+        identity = resolve_embedding_identity(
+            embed_model,
+            fallback=manager.get_configured_embedding_identity(),
+        )
+        return [
+            EmbeddingIdentityTransform(
+                backend=identity.backend,
+                model_name=identity.model_name,
+            )
+        ]
+
+    def query(
+        self,
+        manager: "VectorStoreManager",
+        query: str,
+        top_k: int,
+        dataset_name: str | None = None,
+    ) -> list[VectorQueryHit]:
+        from llama_index.core.vector_stores import VectorStoreQuery
+
+        vector_store = manager.get_vector_store()
+        stored_identities = manager.get_embedding_identities(dataset_name=dataset_name)
+        use_identity_filter = len(stored_identities) > 0
+        identities = (
+            stored_identities
+            if stored_identities
+            else [manager.get_configured_embedding_identity()]
+        )
+
+        best_hits: dict[str, VectorQueryHit] = {}
+        for identity in identities:
+            embed_model = manager.get_embed_model_for_identity(identity)
+            query_embedding = embed_model.get_query_embedding(query)
+            filters = manager._build_filters(
+                dataset_name=dataset_name,
+                embedding_identity=identity if use_identity_filter else None,
+            )
+            vs_query = VectorStoreQuery(
+                query_embedding=query_embedding,
+                similarity_top_k=top_k,
+                filters=filters,
+            )
+            result = vector_store.query(vs_query)
+            hits = manager._normalize_query_hits(
+                result=result,
+                fallback_identity=identity,
+            )
+            for hit in hits:
+                existing = best_hits.get(hit.node_id)
+                if existing is None or hit.score > existing.score:
+                    best_hits[hit.node_id] = hit
+
+        return sorted(
+            best_hits.values(),
+            key=lambda hit: hit.score,
+            reverse=True,
+        )[:top_k]
 
 
 @lru_cache(maxsize=8)
@@ -77,17 +227,35 @@ class VectorStoreManager:
         persist_dir: Directory path for Qdrant's local storage.
     """
 
-    def __init__(self, persist_dir: Path | None = None) -> None:
+    def __init__(
+        self,
+        persist_dir: Path | None = None,
+        capabilities: VectorBackendCapabilities | None = None,
+    ) -> None:
         """Initialize the VectorStoreManager.
 
         Args:
             persist_dir: Directory for Qdrant's local storage.
                 If None, uses settings.vector_store_path.
+            capabilities: Optional backend capability overrides. Defaults to
+                Qdrant capabilities (no native embedding identity support).
         """
         settings = get_settings()
         self._persist_dir = persist_dir or settings.vector_store_path
         self._embed_settings = settings.embedding
         self._qdrant_settings = settings.qdrant
+        self._configured_identity = EmbeddingIdentity(
+            backend=self._embed_settings.backend,
+            model_name=self._embed_settings.model_name,
+        )
+        self._capabilities = capabilities or VectorBackendCapabilities(
+            native_embedding_identity=False
+        )
+        self._identity_strategy: _EmbeddingIdentityStrategy = (
+            _NativeEmbeddingIdentityStrategy()
+            if self._capabilities.native_embedding_identity
+            else _PayloadEmbeddingIdentityStrategy()
+        )
 
         # Lazy-initialized components
         self._client: qdrant_client.QdrantClient | None = None
@@ -103,6 +271,11 @@ class VectorStoreManager:
     def persist_dir(self) -> Path:
         """Get the persistence directory path."""
         return self._persist_dir
+
+    @property
+    def capabilities(self) -> VectorBackendCapabilities:
+        """Get declared capabilities for the active vector backend."""
+        return self._capabilities
 
     def _get_client(self) -> qdrant_client.QdrantClient:
         """Get or create the Qdrant client (lazy initialization).
@@ -153,6 +326,48 @@ class VectorStoreManager:
                 field_schema="keyword",
             )
             logger.debug(f"Created payload index on 'dataset_name'")
+            if not self._capabilities.native_embedding_identity:
+                client.create_payload_index(
+                    collection_name=collection_name,
+                    field_name=EMBEDDING_PROFILE_METADATA_KEY,
+                    field_schema="keyword",
+                )
+                logger.debug(f"Created payload index on '{EMBEDDING_PROFILE_METADATA_KEY}'")
+
+    def _collection_exists(self) -> bool:
+        """Return True when the Qdrant collection exists."""
+        client = self._get_client()
+        collection_name = self._qdrant_settings.collection_name
+        collections = client.get_collections().collections
+        return any(c.name == collection_name for c in collections)
+
+    def get_configured_embedding_identity(self) -> EmbeddingIdentity:
+        """Get embedding identity from current process settings."""
+        return self._configured_identity
+
+    def build_ingest_transforms(
+        self,
+        embed_model: "BaseEmbedding",
+    ) -> list["TransformComponent"]:
+        """Build ingest-time transforms for embedding identity handling.
+
+        Backends with native embedding identity support return an empty list.
+        """
+        return self._identity_strategy.build_ingest_transforms(self, embed_model)
+
+    def semantic_query(
+        self,
+        query: str,
+        top_k: int,
+        dataset_name: str | None = None,
+    ) -> list[VectorQueryHit]:
+        """Execute a semantic query using the active identity strategy."""
+        return self._identity_strategy.query(
+            self,
+            query=query,
+            top_k=top_k,
+            dataset_name=dataset_name,
+        )
 
     def _get_embed_model(self) -> "BaseEmbedding":
         """Get or create the embedding model (lazy initialization).
@@ -165,13 +380,151 @@ class VectorStoreManager:
             BaseEmbedding instance configured from settings.
         """
         if self._embed_model is None:
-            self._embed_model = _build_embed_model(
-                backend=self._embed_settings.backend,
-                model_name=self._embed_settings.model_name,
-                batch_size=self._embed_settings.batch_size,
+            self._embed_model = self.get_embed_model_for_identity(
+                self._configured_identity
             )
 
         return self._embed_model
+
+    def get_embed_model_for_identity(
+        self,
+        identity: EmbeddingIdentity,
+    ) -> "BaseEmbedding":
+        """Build or reuse an embedding model for a specific identity."""
+        return _build_embed_model(
+            backend=identity.backend,
+            model_name=identity.model_name,
+            batch_size=self._embed_settings.batch_size,
+        )
+
+    def get_embedding_identities(
+        self,
+        dataset_name: str | None = None,
+    ) -> list[EmbeddingIdentity]:
+        """Discover embedding identities stored in vector payloads.
+
+        Args:
+            dataset_name: Optional dataset filter.
+
+        Returns:
+            Distinct identities present in the collection, preserving first
+            encounter order.
+        """
+        if not self._collection_exists():
+            return []
+
+        client = self._get_client()
+        collection_name = self._qdrant_settings.collection_name
+        seen: dict[str, EmbeddingIdentity] = {}
+
+        scroll_filter = None
+        if dataset_name:
+            scroll_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="dataset_name",
+                        match=MatchValue(value=dataset_name),
+                    )
+                ]
+            )
+
+        next_offset: Any = None
+        while True:
+            records, next_offset = client.scroll(
+                collection_name=collection_name,
+                scroll_filter=scroll_filter,
+                limit=256,
+                offset=next_offset,
+                with_payload=[
+                    EMBEDDING_BACKEND_METADATA_KEY,
+                    EMBEDDING_MODEL_METADATA_KEY,
+                    EMBEDDING_PROFILE_METADATA_KEY,
+                ],
+                with_vectors=False,
+            )
+
+            if not records:
+                break
+
+            for record in records:
+                payload = record.payload if record.payload is not None else {}
+                identity = EmbeddingIdentity.from_metadata(payload)
+                if identity is None:
+                    continue
+                if identity.profile not in seen:
+                    seen[identity.profile] = identity
+
+            if next_offset is None:
+                break
+
+        return list(seen.values())
+
+    def _build_filters(
+        self,
+        dataset_name: str | None,
+        embedding_identity: EmbeddingIdentity | None = None,
+    ):
+        """Build vector metadata filters."""
+        from llama_index.core.vector_stores.types import (
+            FilterCondition,
+            MetadataFilter,
+            MetadataFilters,
+        )
+
+        filters: list[MetadataFilter] = []
+        if dataset_name:
+            filters.append(
+                MetadataFilter(
+                    key="dataset_name",
+                    value=dataset_name,
+                )
+            )
+        if embedding_identity is not None:
+            filters.append(
+                MetadataFilter(
+                    key=EMBEDDING_PROFILE_METADATA_KEY,
+                    value=embedding_identity.profile,
+                )
+            )
+
+        if not filters:
+            return None
+
+        return MetadataFilters(
+            filters=filters,
+            condition=FilterCondition.AND,
+        )
+
+    def _normalize_query_hits(
+        self,
+        result: Any,
+        fallback_identity: EmbeddingIdentity | None = None,
+    ) -> list[VectorQueryHit]:
+        """Normalize a vector-store query result to VectorQueryHit records."""
+        if not result.ids:
+            return []
+
+        hits: list[VectorQueryHit] = []
+        for i, node_id in enumerate(result.ids):
+            score = result.similarities[i] if result.similarities else 0.0
+            metadata: dict[str, Any] = {}
+            if result.nodes and i < len(result.nodes):
+                node = result.nodes[i]
+                metadata = (
+                    node.metadata if hasattr(node, "metadata") and node.metadata else {}
+                )
+
+            if fallback_identity and EMBEDDING_PROFILE_METADATA_KEY not in metadata:
+                metadata = {**metadata, **fallback_identity.to_metadata()}
+
+            hits.append(
+                VectorQueryHit(
+                    node_id=str(node_id),
+                    score=score,
+                    metadata=metadata,
+                )
+            )
+        return hits
 
     def load_or_create(self) -> "VectorStoreIndex":
         """Load or create a VectorStoreIndex backed by Qdrant.
@@ -325,8 +678,7 @@ class VectorStoreManager:
         collection_name = self._qdrant_settings.collection_name
 
         # Check if collection exists
-        collections = client.get_collections().collections
-        if not any(c.name == collection_name for c in collections):
+        if not self._collection_exists():
             logger.debug(f"Collection {collection_name} does not exist, nothing to delete")
             return 0
 

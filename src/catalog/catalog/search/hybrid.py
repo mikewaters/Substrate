@@ -21,10 +21,11 @@ from typing import TYPE_CHECKING
 
 from agentlayer.logging import get_logger
 from llama_index.core.retrievers import BaseRetriever
-from llama_index.core.schema import NodeWithScore, QueryBundle
+from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 
 from catalog.core.settings import get_settings
 from catalog.search.fts_chunk import FTSChunkRetriever
+from catalog.search.vector import VectorSearch
 from catalog.store.vector import VectorStoreManager
 
 if TYPE_CHECKING:
@@ -209,6 +210,64 @@ class WeightedRRFRetriever(BaseRetriever):
         return fused_results
 
 
+class VectorSearchRetriever(BaseRetriever):
+    """LlamaIndex retriever wrapper around catalog VectorSearch.
+
+    This keeps hybrid retrieval model-aware by delegating vector retrieval to
+    ``VectorSearch``, which resolves query embedding models from stored vector
+    payload metadata.
+    """
+
+    def __init__(
+        self,
+        vector_search: VectorSearch,
+        similarity_top_k: int,
+        dataset_name: str | None = None,
+    ) -> None:
+        """Initialize the vector retriever wrapper."""
+        super().__init__()
+        self._vector_search = vector_search
+        self._similarity_top_k = similarity_top_k
+        self._dataset_name = dataset_name
+
+    def _retrieve(self, query_bundle: QueryBundle) -> list[NodeWithScore]:
+        """Retrieve vector matches as LlamaIndex NodeWithScore objects."""
+        search_results = self._vector_search.search(
+            query=query_bundle.query_str,
+            top_k=self._similarity_top_k,
+            dataset_name=self._dataset_name,
+        )
+
+        nodes_with_scores: list[NodeWithScore] = []
+        for result in search_results:
+            metadata = dict(result.metadata or {})
+            source_doc_id = f"{result.dataset_name}:{result.path}"
+            metadata["source_doc_id"] = source_doc_id
+            if result.chunk_seq is not None:
+                metadata["chunk_seq"] = result.chunk_seq
+            if result.chunk_pos is not None:
+                metadata["chunk_pos"] = result.chunk_pos
+
+            node_id = metadata.get("node_id")
+            if not node_id:
+                node_id = source_doc_id
+
+            text = result.snippet.text if result.snippet is not None else ""
+            node = TextNode(
+                id_=str(node_id),
+                text=text,
+                metadata=metadata,
+            )
+            nodes_with_scores.append(
+                NodeWithScore(
+                    node=node,
+                    score=result.score,
+                )
+            )
+
+        return nodes_with_scores
+
+
 class HybridRetriever:
     """Factory for building hybrid retrieval pipeline.
 
@@ -272,12 +331,6 @@ class HybridRetriever:
         Returns:
             WeightedRRFRetriever configured with FTS and vector retrievers.
         """
-        from llama_index.core.vector_stores import (
-            FilterOperator,
-            MetadataFilter,
-            MetadataFilters,
-        )
-
         # Get top_k values from settings if not provided
         fts_k = fts_top_k if fts_top_k is not None else self._settings.fts_top_k
         vector_k = vector_top_k if vector_top_k is not None else self._settings.vector_top_k
@@ -289,26 +342,10 @@ class HybridRetriever:
             dataset_name=dataset_name,
         )
 
-        # Load vector index and create retriever with filters
-        index = self._vector_manager.load_or_create()
-
-        # Build metadata filters if dataset_name is specified
-        filters = None
-        if dataset_name:
-            filters = MetadataFilters(
-                filters=[
-                    MetadataFilter(
-                        key="source_doc_id",
-                        operator=FilterOperator.CONTAINS,
-                        value=f"{dataset_name}:",
-                    )
-                ]
-            )
-            logger.debug(f"Filtering hybrid search by dataset: {dataset_name}")
-
-        vector_retriever = index.as_retriever(
+        vector_retriever = VectorSearchRetriever(
+            vector_search=VectorSearch(vector_manager=self._vector_manager),
             similarity_top_k=vector_k,
-            filters=filters,
+            dataset_name=dataset_name,
         )
 
         # Create weighted RRF retriever with settings

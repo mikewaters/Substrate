@@ -1,6 +1,6 @@
 """catalog.search.vector - Vector similarity search implementation.
 
-Provides vector search using direct QdrantVectorStore queries with text
+Provides vector search using VectorStoreManager semantic query APIs with text
 lookup from SQLite. Supports optional dataset filtering via metadata.
 
 Example usage:
@@ -45,13 +45,12 @@ def _build_snippet_result(chunk_text: str | None, doc_path: str) -> SnippetResul
 class VectorSearch:
     """Vector similarity search using direct QdrantVectorStore queries.
 
-    Queries the vector store directly and looks up chunk text from SQLite.
-    This approach works regardless of LlamaIndex's docstore state.
+    Delegates semantic retrieval to VectorStoreManager and looks up chunk text
+    from SQLite. This approach works regardless of LlamaIndex's docstore state.
 
     Attributes:
         _vector_manager: VectorStoreManager instance for vector store access.
         _vector_store: Cached QdrantVectorStore, loaded lazily.
-        _embed_model: Embedding model for query vectorization.
 
     Example:
         vector_search = VectorSearch()
@@ -79,7 +78,6 @@ class VectorSearch:
         """
         self._vector_manager = vector_manager or VectorStoreManager()
         self._vector_store: "QdrantVectorStore | None" = None
-        self._embed_model = None
 
     def _ensure_vector_store(self) -> "QdrantVectorStore":
         """Ensure the vector store is loaded.
@@ -92,12 +90,6 @@ class VectorSearch:
             self._vector_store = self._vector_manager.get_vector_store()
             logger.info("Vector store loaded for search")
         return self._vector_store
-
-    def _ensure_embed_model(self):
-        """Ensure the embedding model is loaded."""
-        if self._embed_model is None:
-            self._embed_model = self._vector_manager._get_embed_model()
-        return self._embed_model
 
     def _lookup_chunk_text(self, chunk_ids: list[str]) -> dict[str, str]:
         """Look up chunk text from SQLite FTS table.
@@ -156,55 +148,25 @@ class VectorSearch:
             - metadata: Document metadata
             - scores: Dict with "vector" key containing similarity score
         """
-        from llama_index.core.vector_stores import VectorStoreQuery
-        from llama_index.core.vector_stores.types import FilterCondition, MetadataFilter, MetadataFilters
-
-        vector_store = self._ensure_vector_store()
-        embed_model = self._ensure_embed_model()
-
-        # Generate query embedding
-        query_embedding = embed_model.get_query_embedding(query)
-
-        # Build filters for Qdrant if dataset_name is specified
-        filters = None
-        if dataset_name:
-            filters = MetadataFilters(
-                filters=[
-                    MetadataFilter(
-                        key="dataset_name",
-                        value=dataset_name,
-                    )
-                ],
-                condition=FilterCondition.AND,
-            )
-
-        # Query vector store directly
-        vs_query = VectorStoreQuery(
-            query_embedding=query_embedding,
-            similarity_top_k=top_k,
-            filters=filters,
+        self._ensure_vector_store()
+        hits = self._vector_manager.semantic_query(
+            query=query,
+            top_k=top_k,
+            dataset_name=dataset_name
         )
-        result = vector_store.query(vs_query)
 
-        if not result.ids:
+        if not hits:
             logger.debug(f"Vector search '{query[:50]}...' returned 0 results")
             return []
 
-        # Look up chunk text from SQLite
-        chunk_texts = self._lookup_chunk_text(result.ids)
+        chunk_ids = [hit.node_id for hit in hits]
+        chunk_texts = self._lookup_chunk_text(chunk_ids)
 
-        # Build results from query result nodes
         results = []
-        for i, node_id in enumerate(result.ids):
-            score = result.similarities[i] if result.similarities else 0.0
-
-            # Get metadata from the result nodes
-            metadata = {}
-            if result.nodes and i < len(result.nodes):
-                node = result.nodes[i]
-                metadata = node.metadata if hasattr(node, "metadata") and node.metadata else {}
-
-            # Extract source_doc_id and parse dataset_name and path
+        for hit in hits:
+            node_id = hit.node_id
+            score = hit.score
+            metadata = hit.metadata or {}
             source_doc_id = metadata.get("source_doc_id", "")
             if ":" in source_doc_id:
                 ds_name, path = source_doc_id.split(":", 1)
@@ -212,23 +174,28 @@ class VectorSearch:
                 ds_name = metadata.get("dataset_name", "")
                 path = metadata.get("relative_path", "")
 
-            # Get chunk text from SQLite lookup
             chunk_text = chunk_texts.get(node_id, "")
-
-            # Extract chunk metadata
             chunk_seq = metadata.get("chunk_seq")
             chunk_pos = metadata.get("chunk_pos")
 
-            # Build metadata dict (exclude internal keys)
             result_metadata = {
                 k: v
                 for k, v in metadata.items()
-                if k not in ("source_doc_id", "chunk_seq", "chunk_pos", "doc_id",
-                           "_node_type", "document_id", "ref_doc_id", "dataset_name")
+                if k
+                not in (
+                    "source_doc_id",
+                    "chunk_seq",
+                    "chunk_pos",
+                    "doc_id",
+                    "_node_type",
+                    "document_id",
+                    "ref_doc_id",
+                    "dataset_name",
+                )
             }
+            result_metadata["node_id"] = node_id
 
             snippet = _build_snippet_result(chunk_text, path)
-
             results.append(
                 SearchResult(
                     path=path,
@@ -245,5 +212,4 @@ class VectorSearch:
         logger.debug(
             f"Vector search '{query[:50]}...' returned {len(results)} results"
         )
-
         return results

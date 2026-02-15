@@ -439,3 +439,28 @@ Integration tests for LoadingService + IndexingService working together.
 | test_stale_document_cleanup | Removed files are marked inactive after reindex | Pass |
 | test_incremental_indexing | Only changed documents are reloaded | Pass |
 | test_loader_accessible_on_application | Application exposes loading service | Pass |
+
+## Embedding Identity (tests/idx/unit/embedding/test_identity.py)
+
+| Test Case | Description | Status |
+|-----------|-------------|--------|
+| test_to_metadata | Serializes backend/model/profile fields | Pass |
+| test_from_metadata_uses_profile | Parses combined embedding profile field | Pass |
+| test_from_metadata_uses_backend_and_model | Parses explicit backend/model fields | Pass |
+| test_resolve_embedding_identity_prefers_model_attributes | Infers identity from model attributes | Pass |
+| test_resolve_embedding_identity_unwraps_wrappers | Unwraps wrapped embedding models | Pass |
+
+## Vector Search Identity (tests/idx/unit/search/test_vector.py)
+
+| Test Case | Description | Status |
+|-----------|-------------|--------|
+| test_delegates_semantic_query_to_vector_manager | Delegates semantic retrieval to VectorStoreManager strategy | Pass |
+| test_returns_empty_when_manager_returns_no_hits | Returns empty result list when manager yields no hits | Pass |
+
+## Vector Store Identity Strategy (tests/idx/unit/store/test_vector.py)
+
+| Test Case | Description | Status |
+|-----------|-------------|--------|
+| test_native_strategy_has_no_ingest_identity_transforms | Native identity backends skip payload-stamping transforms | Pass |
+| test_native_strategy_skips_payload_identity_path | Native strategy does not run payload identity discovery | Pass |
+| test_payload_strategy_discovers_embedding_identities | Payload strategy discovers and uses stored identity profiles | Pass |

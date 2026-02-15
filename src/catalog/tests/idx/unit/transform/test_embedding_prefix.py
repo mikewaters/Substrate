@@ -1,9 +1,11 @@
 """Tests for catalog.transform.embedding module."""
 
-import pytest
 from llama_index.core.schema import TextNode
 
-from catalog.transform.embedding import EmbeddingPrefixTransform
+from catalog.transform.embedding import (
+    EmbeddingIdentityTransform,
+    EmbeddingPrefixTransform,
+)
 
 
 class TestEmbeddingPrefixTransform:
@@ -128,3 +130,34 @@ class TestEmbeddingPrefixTransform:
         result = transform([])
 
         assert result == []
+
+
+class TestEmbeddingIdentityTransform:
+    """Tests for EmbeddingIdentityTransform class."""
+
+    def test_stamps_embedding_identity_metadata(self) -> None:
+        """Embedding identity is stamped on each node."""
+        transform = EmbeddingIdentityTransform(
+            backend="mlx",
+            model_name="my-model",
+        )
+        node = TextNode(text="Hello", metadata={})
+
+        result = transform([node])
+
+        assert result[0].metadata["embedding_backend"] == "mlx"
+        assert result[0].metadata["embedding_model_name"] == "my-model"
+        assert result[0].metadata["embedding_profile"] == "mlx:my-model"
+
+    def test_preserves_existing_metadata(self) -> None:
+        """Existing metadata survives identity stamping."""
+        transform = EmbeddingIdentityTransform(
+            backend="huggingface",
+            model_name="all-MiniLM",
+        )
+        node = TextNode(text="Hello", metadata={"dataset_name": "obsidian"})
+
+        result = transform([node])
+
+        assert result[0].metadata["dataset_name"] == "obsidian"
+        assert result[0].metadata["embedding_profile"] == "huggingface:all-MiniLM"

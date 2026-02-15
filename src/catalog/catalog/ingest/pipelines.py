@@ -53,8 +53,10 @@ from catalog.store.fts import FTSManager
 from catalog.store.repositories import DatasetRepository, DocumentRepository
 from catalog.store.session_context import use_session
 from catalog.store.vector import VectorStoreManager
-from catalog.transform import EmbeddingPrefixTransform, OntologyMapper, ResilientSplitter
+from catalog.transform.embedding import EmbeddingPrefixTransform
+from catalog.transform.ontology import OntologyMapper
 from catalog.transform.llama import ChunkPersistenceTransform, PersistenceTransform
+from catalog.transform.splitter import ResilientSplitter
 from catalog.ingest.tracing import TracingDocstore
 
 if TYPE_CHECKING:
@@ -125,8 +127,15 @@ class DatasetIngestPipeline(BaseModel):
             return self.embed_model
         return get_embed_model(resilient=self.resilient_embedding)
 
-    def _get_transforms(self) -> list[TransformComponent]:
-        """Get source-specific transforms for the dataset."""
+    def _get_transforms(
+        self,
+        vector_manager: VectorStoreManager,
+    ) -> list[TransformComponent]:
+        """Get source-specific transforms for the dataset.
+
+        Args:
+            vector_manager: Vector manager providing backend-aware ingest transforms.
+        """
         #
         # Stage 1: Dataset- and Document-level transformations, including persistence
         # Varies-by:
@@ -168,6 +177,8 @@ class DatasetIngestPipeline(BaseModel):
         # - (TODO)splitting may vary by the type of information present in a node/chunk
         # - (TODO) embedding model may vary by the data source configuration, or by the source type itself
         #
+        embed_model = self._get_embed_model()
+        identity_transforms = vector_manager.build_ingest_transforms(embed_model)
 
         split_and_embed_transforms = [
             ResilientSplitter(
@@ -180,7 +191,8 @@ class DatasetIngestPipeline(BaseModel):
             EmbeddingPrefixTransform(
                 prefix_template=self._settings.embed_prefix_doc,
             ),
-            self._get_embed_model()
+            *identity_transforms,
+            embed_model,
         ]
 
         # Build transformation chain
@@ -202,7 +214,7 @@ class DatasetIngestPipeline(BaseModel):
         Returns:
             Configured IngestionPipeline ready to run.
         """
-        transformations = self._get_transforms()
+        transformations = self._get_transforms(vector_manager=vector_manager)
 
         # Create pipeline with docstore for change detection and deduplication.
         # LlamaIndex's docstore uses SHA256(text + metadata) for change detection,

@@ -14,6 +14,13 @@ from agentlayer.logging import get_logger
 from catalog.core.settings import get_settings
 from llama_index.core.embeddings import BaseEmbedding
 
+from catalog.embedding.identity import (
+    EMBEDDING_BACKEND_METADATA_KEY,
+    EMBEDDING_MODEL_METADATA_KEY,
+    EMBEDDING_PROFILE_METADATA_KEY,
+    EmbeddingIdentity,
+    resolve_embedding_identity,
+)
 from catalog.embedding.mlx import MLXEmbedding
 from catalog.embedding.resilient import ResilientEmbedding
 
@@ -88,4 +95,14 @@ def get_embed_model(resilient: bool = False) -> "BaseEmbedding":
     return embed_model
 
 
-__all__ = ["MLXEmbedding", "ResilientEmbedding", "build_embed_model", "get_embed_model"]
+__all__ = [
+    "EMBEDDING_BACKEND_METADATA_KEY",
+    "EMBEDDING_MODEL_METADATA_KEY",
+    "EMBEDDING_PROFILE_METADATA_KEY",
+    "EmbeddingIdentity",
+    "MLXEmbedding",
+    "ResilientEmbedding",
+    "build_embed_model",
+    "get_embed_model",
+    "resolve_embedding_identity",
+]

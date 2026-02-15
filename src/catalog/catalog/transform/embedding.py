@@ -19,8 +19,10 @@ from typing import Any
 from llama_index.core.schema import BaseNode, TransformComponent
 
 from catalog.core.settings import get_settings
+from catalog.embedding.identity import EmbeddingIdentity
 
 __all__ = [
+    "EmbeddingIdentityTransform",
     "EmbeddingPrefixTransform",
 ]
 
@@ -95,5 +97,54 @@ class EmbeddingPrefixTransform(TransformComponent):
 
             # Apply prefix to text
             node.set_content(prefix + original_text)
+
+        return nodes
+
+
+class EmbeddingIdentityTransform(TransformComponent):
+    """Attach embedding identity metadata to each node before vector write.
+
+    This metadata is persisted in vector payloads so query-time embedding model
+    selection can be based on the vector's original embedding space instead of
+    current process config.
+    """
+
+    backend: str
+    model_name: str
+
+    def __init__(
+        self,
+        backend: str,
+        model_name: str,
+        **kwargs: Any,
+    ) -> None:
+        """Initialize embedding identity transform.
+
+        Args:
+            backend: Embedding backend name.
+            model_name: Embedding model identifier.
+            **kwargs: Additional TransformComponent kwargs.
+        """
+        super().__init__(
+            backend=backend,
+            model_name=model_name,
+            **kwargs,
+        )
+
+    def __call__(
+        self,
+        nodes: list[BaseNode],
+        **kwargs: Any,
+    ) -> list[BaseNode]:
+        """Stamp embedding identity metadata on all nodes."""
+        identity = EmbeddingIdentity(
+            backend=self.backend,
+            model_name=self.model_name,
+        )
+
+        for node in nodes:
+            if node.metadata is None:
+                node.metadata = {}
+            node.metadata.update(identity.to_metadata())
 
         return nodes

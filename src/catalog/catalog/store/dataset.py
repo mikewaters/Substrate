@@ -111,24 +111,24 @@ def normalize_dataset_name(name: str) -> str:
 def make_document_uri(dataset_name: str, path: str) -> str:
     """Build a document URI from dataset name and document path.
 
-    Slugifies the full relative path (directory separators become hyphens)
-    and combines with the dataset name. This preserves uniqueness for
-    documents with the same filename in different directories.
+    Uses the raw path directly (no slugification) to preserve uniqueness
+    for documents whose paths differ only in special characters, unicode,
+    or emoji. The URI column is an internal unique key, not user-facing.
 
     Args:
         dataset_name: Normalized dataset name.
         path: Document path (may include directory components).
 
     Returns:
-        URI in the format ``document:<dataset_name>:<slugified-path>``.
+        URI in the format ``document:<dataset_name>:<path>``.
 
     Example:
-        >>> make_document_uri("vault-small", "LabelFiles/A SQLite client lib that understands Heptabase.md")
-        'document:vault-small:labelfiles-a-sqlite-client-lib-that-understands-heptabase-md'
-        >>> make_document_uri("vault-small", "A SQLite client lib that understands Heptabase.md")
-        'document:vault-small:a-sqlite-client-lib-that-understands-heptabase-md'
+        >>> make_document_uri("vault-small", "LabelFiles/A SQLite client lib.md")
+        'document:vault-small:LabelFiles/A SQLite client lib.md'
+        >>> make_document_uri("vault-small", "notes/test.md")
+        'document:vault-small:notes/test.md'
     """
-    return f"document:{dataset_name}:{slugify(path)}"
+    return f"document:{dataset_name}:{path}"
 
 class DatasetService:
     """Service for managing datasets and documents.

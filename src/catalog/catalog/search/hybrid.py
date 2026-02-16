@@ -25,10 +25,12 @@ from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
 
 from catalog.core.settings import get_settings
 from catalog.search.fts_chunk import FTSChunkRetriever
+from catalog.search.intent import QueryIntent
 from catalog.search.vector import VectorSearch
 from catalog.store.vector import VectorStoreManager
 
 if TYPE_CHECKING:
+    from catalog.search.postprocessors import PerDocDedupePostprocessor
     from sqlalchemy.orm import Session
 
 __all__ = [
@@ -80,6 +82,7 @@ class WeightedRRFRetriever(BaseRetriever):
         weights: list[float],
         k: int = 60,
         top_n: int = 30,
+        enable_dedupe: bool = False,
     ) -> None:
         """Initialize the WeightedRRFRetriever.
 
@@ -107,6 +110,7 @@ class WeightedRRFRetriever(BaseRetriever):
         self._weights = weights
         self._k = k
         self._top_n = top_n
+        self._enable_dedupe = enable_dedupe
 
         logger.debug(
             f"WeightedRRFRetriever initialized: k={k}, top_n={top_n}, "
@@ -206,6 +210,12 @@ class WeightedRRFRetriever(BaseRetriever):
             f"Weighted RRF fusion: {len(scores)} unique nodes -> "
             f"{len(fused_results)} results"
         )
+
+        # Apply per-document deduplication if enabled
+        if self._enable_dedupe and fused_results:
+            from catalog.search.postprocessors import PerDocDedupePostprocessor
+            deduper = PerDocDedupePostprocessor()
+            fused_results = deduper.postprocess_nodes(fused_results)
 
         return fused_results
 
@@ -312,6 +322,7 @@ class HybridRetriever:
         fts_top_k: int | None = None,
         vector_top_k: int | None = None,
         fusion_top_k: int | None = None,
+        query_intent: QueryIntent | None = None,
     ) -> WeightedRRFRetriever:
         """Build a WeightedRRFRetriever with FTS and vector retrievers.
 
@@ -336,10 +347,23 @@ class HybridRetriever:
         vector_k = vector_top_k if vector_top_k is not None else self._settings.vector_top_k
         fusion_k = fusion_top_k if fusion_top_k is not None else self._settings.fusion_top_k
 
+        # Resolve RRF weights based on query intent
+        if query_intent is not None:
+            if query_intent == "navigational":
+                fts_weight = self._settings.rrf_fts_weight_navigational
+                vector_weight = self._settings.rrf_vector_weight_navigational
+            else:
+                fts_weight = self._settings.rrf_fts_weight_informational
+                vector_weight = self._settings.rrf_vector_weight_informational
+        else:
+            fts_weight = self._settings.rrf_original_weight
+            vector_weight = self._settings.rrf_original_weight
+
         # Create FTS retriever
         fts_retriever = FTSChunkRetriever(
             similarity_top_k=fts_k,
             dataset_name=dataset_name,
+            query_intent=query_intent,
         )
 
         vector_retriever = VectorSearchRetriever(
@@ -349,12 +373,12 @@ class HybridRetriever:
         )
 
         # Create weighted RRF retriever with settings
-        # Both retrievers get the original weight since we're not doing query expansion here
         hybrid_retriever = WeightedRRFRetriever(
             retrievers=[fts_retriever, vector_retriever],
-            weights=[self._settings.rrf_original_weight, self._settings.rrf_original_weight],
+            weights=[fts_weight, vector_weight],
             k=self._settings.rrf_k,
             top_n=fusion_k,
+            enable_dedupe=self._settings.hybrid_dedupe_enabled,
         )
 
         logger.debug(

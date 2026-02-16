@@ -1,0 +1,86 @@
+{
+  "version": "1.0",
+  "description": "Golden queries targeting heading-bias edge cases. Informational queries that may false-positive on headings, and navigational queries that should still match heading content.",
+  "queries": [
+    {
+      "query": "how to configure home automation routines",
+      "expected_docs": ["LabelFiles/Home Assistant.md"],
+      "difficulty": "medium",
+      "retriever_types": ["hybrid"],
+      "intent": "informational",
+      "notes": "Informational query - should match body content about automation, not heading 'Home Assistant'"
+    },
+    {
+      "query": "strategies for managing attention deficit",
+      "expected_docs": ["LabelFiles/ADHD & Task Initiation.md"],
+      "difficulty": "medium",
+      "retriever_types": ["hybrid"],
+      "intent": "informational",
+      "notes": "Informational query - should match body discussion of ADHD strategies, not just the heading"
+    },
+    {
+      "query": "embedding models for semantic search",
+      "expected_docs": ["LabelFiles/RAG.md"],
+      "difficulty": "medium",
+      "retriever_types": ["hybrid"],
+      "intent": "informational",
+      "notes": "Informational query - should match body content about embeddings, not heading 'RAG'"
+    },
+    {
+      "query": "calorie tracking and meal planning",
+      "expected_docs": ["LabelFiles/Weight Loss Strategy.md"],
+      "difficulty": "medium",
+      "retriever_types": ["hybrid"],
+      "intent": "informational",
+      "notes": "Informational query - should match body content about diet strategies"
+    },
+    {
+      "query": "building conversational AI with function calling",
+      "expected_docs": ["LabelFiles/ChatGPT.md"],
+      "difficulty": "medium",
+      "retriever_types": ["hybrid"],
+      "intent": "informational",
+      "notes": "Informational query - should match body discussion of API features, not heading"
+    },
+    {
+      "query": "HuggingFace",
+      "expected_docs": ["LabelFiles/HuggingFace.md"],
+      "difficulty": "easy",
+      "retriever_types": ["bm25", "hybrid"],
+      "intent": "navigational",
+      "notes": "Navigational short query - should still find the document via heading match"
+    },
+    {
+      "query": "ChatGPT",
+      "expected_docs": ["LabelFiles/ChatGPT.md"],
+      "difficulty": "easy",
+      "retriever_types": ["bm25", "hybrid"],
+      "intent": "navigational",
+      "notes": "Navigational short query - heading match should remain strong"
+    },
+    {
+      "query": "Personal Knowledge Management",
+      "expected_docs": ["LabelFiles/Personal Knowledge Management.md"],
+      "difficulty": "easy",
+      "retriever_types": ["bm25", "hybrid"],
+      "intent": "navigational",
+      "notes": "Navigational multi-word title - heading weight should boost this"
+    },
+    {
+      "query": "\"iOS Security Posture\"",
+      "expected_docs": ["LabelFiles/iOS Security Posture.md"],
+      "difficulty": "easy",
+      "retriever_types": ["bm25", "hybrid"],
+      "intent": "navigational",
+      "notes": "Quoted navigational query - exact title match via heading"
+    },
+    {
+      "query": "organizing notes into categories and hierarchies",
+      "expected_docs": ["LabelFiles/Ontology.md"],
+      "difficulty": "hard",
+      "retriever_types": ["hybrid"],
+      "intent": "informational",
+      "notes": "Hard informational - should find ontology via body content about classification, not via heading"
+    }
+  ]
+}

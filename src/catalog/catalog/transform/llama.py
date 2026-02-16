@@ -29,7 +29,7 @@ from llama_index.core.schema import BaseNode, TransformComponent
 from sqlalchemy.orm import Session
 
 from catalog.store.fts import FTSManager
-from catalog.store.fts_chunk import FTSChunkManager
+from catalog.store.fts_chunk import FTSChunkManager, extract_heading_body
 from catalog.store.models import Document
 from catalog.store.repositories import DocumentRepository
 from catalog.store.session_context import session_or_new
@@ -870,6 +870,16 @@ class ChunkPersistenceTransform(TransformComponent):
 
         # Get chunk text
         text = node.get_content()
+
+        # Split heading lines from body for heading-bias mitigation.
+        # Body text goes to embeddings; full text still goes to FTS upsert
+        # which runs its own extract_heading_body internally.
+        heading_text, body_text = extract_heading_body(text)
+        node.metadata["heading_text"] = heading_text
+        node.metadata["body_text"] = body_text
+        # Use body-only text for embeddings to reduce heading bias.
+        # If body is empty (heading-only chunk), fall back to heading.
+        node.set_content(body_text if body_text.strip() else heading_text)
 
         # Check if chunk already exists by searching for existing node_id
         # For FTS5, we use upsert which handles both insert and update

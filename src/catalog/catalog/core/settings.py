@@ -424,6 +424,42 @@ class RAGSettings(BaseSettings):
         description="Score bonus for rank 2-3 results",
     )
 
+    # Heading bias mitigation
+    bm25_heading_weight_informational: float = Field(
+        default=0.25,
+        ge=0.0,
+        description="BM25 weight for heading_text column on informational queries",
+    )
+    bm25_heading_weight_navigational: float = Field(
+        default=0.80,
+        ge=0.0,
+        description="BM25 weight for heading_text column on navigational queries",
+    )
+    rrf_fts_weight_informational: float = Field(
+        default=1.5,
+        ge=0.0,
+        description="RRF weight for FTS retriever on informational queries",
+    )
+    rrf_vector_weight_informational: float = Field(
+        default=2.0,
+        ge=0.0,
+        description="RRF weight for vector retriever on informational queries",
+    )
+    rrf_fts_weight_navigational: float = Field(
+        default=2.5,
+        ge=0.0,
+        description="RRF weight for FTS retriever on navigational queries",
+    )
+    rrf_vector_weight_navigational: float = Field(
+        default=1.0,
+        ge=0.0,
+        description="RRF weight for vector retriever on navigational queries",
+    )
+    hybrid_dedupe_enabled: bool = Field(
+        default=True,
+        description="Enable per-document deduplication in hybrid retrieval",
+    )
+
     # Reranking
     rerank_top_n: int = Field(
         default=10,

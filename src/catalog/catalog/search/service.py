@@ -213,11 +213,19 @@ class SearchService:
             criteria.rerank_candidates if criteria.rerank else criteria.limit
         )
 
+        # Classify query intent for heading-bias-aware routing
+        query_intent = None
+        if criteria.mode in ("hybrid", "fts"):
+            from catalog.search.intent import classify_intent
+            query_intent = classify_intent(criteria.query)
+            debug_info["query_intent"] = query_intent
+
         if criteria.mode == "fts":
             results = self.search_fts(
                 criteria.query,
                 criteria.dataset_name,
                 effective_limit,
+                query_intent=query_intent,
             )
         elif criteria.mode == "vector":
             results = self.search_vector(
@@ -231,6 +239,7 @@ class SearchService:
                 criteria.dataset_name,
                 effective_limit,
                 expansion_result=expansion_result,
+                query_intent=query_intent,
             )
 
         search_elapsed_ms = (time.perf_counter() - start) * 1000
@@ -276,6 +285,7 @@ class SearchService:
         query: str,
         dataset_name: str | None = None,
         limit: int | None = None,
+        query_intent: str | None = None,
     ) -> SearchResults:
         """Execute FTS search.
 
@@ -297,6 +307,7 @@ class SearchService:
         # metadata key that doesn't exist in FTS results.
         fts.dataset_name = dataset_name
         fts.similarity_top_k = limit
+        fts.query_intent = query_intent
 
         # Use the retriever interface
         query_bundle = QueryBundle(query_str=query)
@@ -352,6 +363,7 @@ class SearchService:
         dataset_name: str | None = None,
         limit: int | None = None,
         expansion_result: Any = None,
+        query_intent: str | None = None,
     ) -> SearchResults:
         """Execute hybrid search with weighted RRF fusion.
 
@@ -370,7 +382,11 @@ class SearchService:
         hybrid_factory = self._ensure_hybrid_retriever()
 
         # Build retriever
-        retriever = hybrid_factory.build(dataset_name=dataset_name, fusion_top_k=limit)
+        retriever = hybrid_factory.build(
+            dataset_name=dataset_name,
+            fusion_top_k=limit,
+            query_intent=query_intent,
+        )
 
         # Execute search
         query_bundle = QueryBundle(query_str=query)

@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 from agentlayer.logging import get_logger
+from catalog.eval.heading_bias import HeadingBiasMetrics
 
 if TYPE_CHECKING:
     from catalog.search.service import SearchService
@@ -112,6 +113,7 @@ class EvalResult:
     hits: dict[int, bool] = field(default_factory=dict)
     retrieved_docs: list[str] = field(default_factory=list)
     scores: list[float] = field(default_factory=list)
+    heading_bias: HeadingBiasMetrics | None = None
 
     @property
     def hit_at_1(self) -> bool:

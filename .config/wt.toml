@@ -16,4 +16,4 @@ bootstrap = "./tools/worktrunk/bootstrap.sh"
 
 # 3) Optional: open an “agent cockpit” in tmux with panes for Claude/Codex/tests.
 #    If you don't use tmux, delete this line.
-tmux = "./tools/worktunk/tmux.sh"
+tmux = "./tools/worktrunk/tmux.sh"

@@ -1,6 +1,6 @@
 # /// script
 # dependencies = [
-#   "idx",
+#   "catalog",
 # ]
 # ///
 """Run end-to-end retrieval experiments across multiple search modes.

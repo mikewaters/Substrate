@@ -430,11 +430,9 @@ class DatasetService:
 
             doc_repo = DocumentRepository(session)
             metadata_json = data.metadata if data.metadata else None
-            uri = make_document_uri(dataset.name, data.path)
 
             doc = doc_repo.create(
                 parent_id=dataset_id,
-                uri=uri,
                 path=data.path,
                 content_hash=data.content_hash,
                 body=data.body,

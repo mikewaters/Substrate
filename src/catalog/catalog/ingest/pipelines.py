@@ -28,7 +28,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Optional
+from llama_index.core.ingestion.pipeline import IngestionPipeline
+from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
 
 from agentlayer.logging import get_logger
 from catalog.ingest.tracing import SnapshotTransform
@@ -61,7 +62,7 @@ from catalog.ingest.tracing import TracingDocstore
 
 if TYPE_CHECKING:
     from llama_index.core.embeddings import BaseEmbedding
-    
+
 __all__ = [
     "DatasetIngestPipeline",
 ]
@@ -101,6 +102,10 @@ class DatasetIngestPipeline(BaseModel):
     ingest_config: Optional[DatasetSourceConfig] = None
     embed_model: Optional[Any] = None  # BaseEmbedding, but Any for Pydantic compat
     resilient_embedding: bool = Field(default=True)
+    num_workers: int = Field(
+        default=1,
+        description="Reserved; ingestion runs with 1 worker because persistence writes to SQLite.",
+    )
 
     dataset_id: Optional[int] = None
     dataset_name: Optional[str] = None
@@ -316,9 +321,9 @@ class DatasetIngestPipeline(BaseModel):
                         )
 
                 # Handle forced ingestion
-                vector_manager = VectorStoreManager()
+                vector_manager: VectorStoreManager = VectorStoreManager()
                 if self.ingest_config.force:
-                    deleted = vector_manager.delete_by_dataset(dataset.name)
+                    deleted: int = vector_manager.delete_by_dataset(dataset.name)
                     if deleted > 0:
                         logger.info(
                             f"Force mode: cleared {deleted} vectors for "
@@ -327,16 +332,20 @@ class DatasetIngestPipeline(BaseModel):
                     clear_cache(self._cache_key(dataset.name))
 
                 # Build and run pipeline
-                pipeline = self.build_pipeline(
+                pipeline: IngestionPipeline = self.build_pipeline(
                     vector_manager=vector_manager,
                     incremental=is_incremental,
                 )
 
-                source_docs = self.source.documents
+                source_docs: Callable[[], None] = self.source.documents
                 logger.info(
                     f"Running {len(source_docs)} documents through pipeline"
                 )
-                nodes = pipeline.run(documents=source_docs)
+                # SQLite does not support concurrent writers from multiple
+                # processes; persistence transforms write to SQLite, so use 1.
+                nodes: Sequence[BaseNode] = pipeline.run(
+                    documents=source_docs, num_workers=1
+                )
 
                 # Collect statistics from transforms
                 persist_transform = None

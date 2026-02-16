@@ -77,6 +77,7 @@ from catalog.store.session_context import (
                                    SessionNotSetError,
                                    clear_session,
                                    current_session,
+                                   session_or_new,
                                    use_session,
 )
 from catalog.store.vector import VectorStoreManager
@@ -155,5 +156,6 @@ __all__ = [
     "SessionNotSetError",
     "clear_session",
     "current_session",
+    "session_or_new",
     "use_session",
 ]

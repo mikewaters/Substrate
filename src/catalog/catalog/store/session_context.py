@@ -19,6 +19,12 @@ Example usage:
         with use_session(session):
             sess = current_session()
             sess.execute(...)
+
+    # In workers (threads or processes) where no session is set:
+    with session_or_new() as session:
+        # session is either the ambient one or a new one for this block
+        repo = DocumentRepository()
+        ...
 """
 
 from collections.abc import Generator
@@ -32,6 +38,7 @@ if TYPE_CHECKING:
 __all__ = [
     "current_session",
     "use_session",
+    "session_or_new",
     "clear_session",
     "SessionNotSetError",
 ]
@@ -45,11 +52,13 @@ _current_session: ContextVar["Session | None"] = ContextVar(
 class SessionNotSetError(RuntimeError):
     """Raised when accessing ambient session before it's set."""
 
-    def __init__(self) -> None:
-        super().__init__(
-            "No ambient session set. Use 'with use_session(session):' or "
-            "pass session explicitly to the constructor."
-        )
+    def __init__(self, *args: object) -> None:
+        if not args:
+            args = (
+                "No ambient session set. Use 'with use_session(session):' or "
+                "pass session explicitly to the constructor.",
+            )
+        super().__init__(*args)
 
 
 def current_session() -> "Session":
@@ -99,6 +108,36 @@ def use_session(session: "Session") -> Generator[None, None, None]:
         yield
     finally:
         _current_session.reset(token)
+
+
+@contextmanager
+def session_or_new() -> Generator["Session", None, None]:
+    """Use the ambient session if set; otherwise create one for this block.
+
+    Call this at the start of code that may run in a worker (thread or
+    process) where the ambient session might not be set. In the main
+    thread with use_session() already active, the existing session is
+    yielded and not closed. In workers, a new session is created and
+    set as ambient for the block, then closed on exit.
+
+    Yields:
+        The ambient session if set, otherwise a new session (owned by
+        this context manager; do not close it yourself).
+
+    Example:
+        with session_or_new() as session:
+            repo = DocumentRepository()
+            repo.add(...)
+    """
+    session = _current_session.get()
+    if session is not None:
+        yield session
+        return
+    from catalog.store.database import get_session
+
+    with get_session() as session:
+        with use_session(session):
+            yield session
 
 
 def clear_session() -> None:

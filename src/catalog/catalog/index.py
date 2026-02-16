@@ -15,7 +15,7 @@ from catalog.core.settings import get_settings
 # For now, we'll assume the Index is initialized with them or loads them.
 
 @define
-class Index:
+class IndexSync:
     """
     Class for managing and executing ingestion pipelines.
 
@@ -25,6 +25,7 @@ class Index:
     _pipelines: List[DatasetIngestPipeline] = field(factory=list)
     #_jobs: List[Job] = field(factory=list)
     base_dir: Path = field(default=get_settings().job_config_path)
+    per_job_concurrency: int = field(default=1)
 
     def load_jobs(self) -> None:
         """
@@ -52,14 +53,15 @@ class Index:
             try:
                 job = DatasetJob.from_yaml(path)
                 pipeline = DatasetIngestPipeline(
-                    ingest_config=job.to_ingest_config()
+                    ingest_config=job.to_ingest_config(),
+                    num_workers=self.per_job_concurrency
                 )
                 self._pipelines.append(pipeline)
                 logger.debug(f"Created pipeline for job config: {path.name}")
             except Exception as e:
                 logger.error(f"Failed to load job config {path}: {e}")
 
-    async def run(self) -> None:
+    async def arun(self) -> None:
         """
         Executes all loaded pipelines concurrently.
         """
@@ -85,8 +87,8 @@ class Index:
 if __name__ == '__main__':
     import sys
     from agentlayer.logging import get_logger, configure_logging
-    from catalog.integrations.obsidian import SourceObsidianConfig
-    from catalog.integrations.heptabase import SourceHeptabaseConfig
+    #from catalog.integrations.obsidian import SourceObsidianConfig
+    #from catalog.integrations.heptabase import SourceHeptabaseConfig
 
     configure_logging(level="DEBUG")
     if len(sys.argv) < 2:
@@ -101,6 +103,6 @@ if __name__ == '__main__':
 
     if target.is_dir():
 
-        index = Index(base_dir=target)
+        index = IndexSync(base_dir=target) #, per_job_concurrency=2)
         index.load_jobs()
-        asyncio.run(index.run())
+        asyncio.run(index.arun())

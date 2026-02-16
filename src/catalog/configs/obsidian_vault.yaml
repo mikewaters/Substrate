@@ -11,7 +11,7 @@
 
 source:
   type: obsidian                          # Literal["obsidian"] — only supported source type
-  source_path: /Users/mike/Develop/lifeos/substrate/src/catalog/catalog/tests/corpus/vault
+  source_path: /Users/mike/Develop/lifeos/substrate/src/catalog/tests/corpus/vault
   dataset_name: vault      # auto-derived from folder name if omitted
   ontology_spec: catalog.integrations.obsidian.ontology.VaultSpec  # dotted import path, or omit for no schema
   force: false                             # reprocess all documents even if unchanged
@@ -22,6 +22,3 @@ embedding:
   model_name: mlx-community/all-MiniLM-L6-v2-bf16
   batch_size: 32
 
-pipeline:
-  cache_enabled: true                     # false disables docstore/vector_store entirely
-  docstore_strategy: upserts              # "upserts" | "duplicates_only" | "upserts_and_delete"

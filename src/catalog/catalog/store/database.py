@@ -82,11 +82,14 @@ def create_engine_for_path(database_path: Path, *, echo: bool = False) -> Engine
     # Ensure parent directory exists
     database_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Create engine with SQLite-specific settings
+    # Create engine with SQLite-specific settings.
+    # timeout: seconds to wait for lock; avoids immediate "database is locked"
+    # when a single writer is busy (e.g. another process or tool).
     engine = create_engine(
         f"sqlite:///{database_path}",
         echo=echo,
         pool_pre_ping=True,
+        connect_args={"timeout": 30},
     )
     # Register pragma listener BEFORE using the engine
     event.listen(engine, "connect", _set_sqlite_pragmas)

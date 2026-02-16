@@ -1,3 +1,5 @@
+.cache/
+.env.local
 .conductor/
 node_modules
 .private-journal/**

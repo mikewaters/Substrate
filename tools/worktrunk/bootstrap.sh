@@ -28,8 +28,10 @@ fi
 # --------------------------------------------------
 echo "[wt] syncing deps"
 uv sync
+
 # hack
 uv add agentlayer
+make install
 
 # --------------------------------------------------
 # 4) Activate environment for current shell

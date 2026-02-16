@@ -173,7 +173,6 @@ class DocumentRepository(_BaseRepository):
     def create(
         self,
         parent_id: int,
-        uri: str,
         path: str,
         content_hash: str,
         body: str,
@@ -190,9 +189,11 @@ class DocumentRepository(_BaseRepository):
     ) -> Document:
         """Create a new document.
 
+        The document URI is derived in the ORM layer from the parent dataset
+        name and path so it is unique across datasets (document:<dataset_name>:<path>).
+
         Args:
-            parent_id: Parent resource ID.
-            uri: Unique URI for the document.
+            parent_id: Parent resource ID (typically a Dataset).
             path: Relative path within the parent.
             content_hash: SHA256 hash of content.
             body: Full normalized text content.
@@ -209,6 +210,18 @@ class DocumentRepository(_BaseRepository):
         Returns:
             The created Document instance.
         """
+        from catalog.store.dataset import make_document_uri
+
+        parent = self._session.get(Dataset, parent_id)
+        if parent is None:
+            parent = self._session.get(Resource, parent_id)
+            if parent is None:
+                raise ValueError(f"Parent resource {parent_id} not found")
+            name = getattr(parent, "uri", None) or str(parent_id)
+        else:
+            name = parent.name
+        uri = make_document_uri(name, path)
+
         doc = Document(
             parent_id=parent_id,
             uri=uri,

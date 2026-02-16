@@ -603,7 +603,11 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.0.2" }]
+dev = [
+    { name = "agentlayer", specifier = ">=0.1" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-testmon", specifier = ">=2.2.0" },
+]
 
 [[package]]
 name = "certifi"

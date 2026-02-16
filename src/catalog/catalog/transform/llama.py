@@ -28,12 +28,11 @@ from agentlayer.logging import get_logger
 from llama_index.core.schema import BaseNode, TransformComponent
 from sqlalchemy.orm import Session
 
-from catalog.store.dataset import make_document_uri
 from catalog.store.fts import FTSManager
 from catalog.store.fts_chunk import FTSChunkManager
 from catalog.store.models import Document
 from catalog.store.repositories import DocumentRepository
-from catalog.store.session_context import current_session
+from catalog.store.session_context import session_or_new
 from catalog.transform.normalize import TextNormalizer
 
 __all__ = [
@@ -390,7 +389,8 @@ class PersistenceTransform(TransformComponent):
         - Updates FTS index
         - Tracks statistics
 
-        Requires an ambient session to be set via `use_session()`.
+        Uses `session_or_new()`: the ambient session if set, otherwise a
+        new session for this run (e.g. in worker processes or threads).
 
         Args:
             nodes: List of nodes to persist.
@@ -400,57 +400,55 @@ class PersistenceTransform(TransformComponent):
             All input nodes with doc_id added to metadata.
 
         Raises:
-            SessionNotSetError: If no ambient session is set.
+            SessionNotSetError: If no ambient session is set (only when
+                session_or_new cannot create one).
         """
-        logger.info(f"PersistenceTransform: persisting {len(nodes)} documents")
+        with session_or_new() as session:
+            logger.info(f"PersistenceTransform: persisting {len(nodes)} documents")
 
-        # Reset stats for this run
-        self.stats.reset()
+            # Reset stats for this run
+            self.stats.reset()
 
-        # Get ambient session - raises SessionNotSetError if not set
-        session = current_session()
+            doc_repo = DocumentRepository()
+            fts = FTSManager()
 
-        # Use ambient session for repositories
-        doc_repo = DocumentRepository()
-        fts = FTSManager()
+            # Pre-fetch existing documents for efficiency
+            existing_paths = doc_repo.list_paths_by_parent(
+                self._dataset_id, active_only=False
+            )
+            existing_docs: dict[str, Document | None] = {
+                path: doc_repo.get_by_path(self._dataset_id, path)
+                for path in existing_paths
+            }
 
-        # Pre-fetch existing documents for efficiency
-        existing_paths = doc_repo.list_paths_by_parent(
-            self._dataset_id, active_only=False
-        )
-        existing_docs: dict[str, Document | None] = {
-            path: doc_repo.get_by_path(self._dataset_id, path)
-            for path in existing_paths
-        }
+            output_nodes: list[BaseNode] = []
+            for node in nodes:
+                try:
+                    changed = self._process_node(
+                        session=session,
+                        doc_repo=doc_repo,
+                        fts=fts,
+                        node=node,
+                        existing_docs=existing_docs,
+                    )
+                    if changed:
+                        output_nodes.append(node)
+                except Exception as e:
+                    path = self._get_path(node)
+                    logger.error(f"Failed to persist {path}: {e}")
+                    self.stats.failed += 1
+                    self.stats.errors.append(f"{path}: {e}")
 
-        output_nodes: list[BaseNode] = []
-        for node in nodes:
-            try:
-                changed = self._process_node(
-                    session=session,
-                    doc_repo=doc_repo,
-                    fts=fts,
-                    node=node,
-                    existing_docs=existing_docs,
-                )
-                if changed:
-                    output_nodes.append(node)
-            except Exception as e:
-                path = self._get_path(node)
-                logger.error(f"Failed to persist {path}: {e}")
-                self.stats.failed += 1
-                self.stats.errors.append(f"{path}: {e}")
+            session.flush()
 
-        session.flush()
+            logger.info(
+                f"PersistenceTransform complete: "
+                f"created={self.stats.created}, updated={self.stats.updated}, "
+                f"failed={self.stats.failed}, "
+                f"passing {len(output_nodes)}/{len(nodes)} nodes downstream"
+            )
 
-        logger.info(
-            f"PersistenceTransform complete: "
-            f"created={self.stats.created}, updated={self.stats.updated}, "
-            f"failed={self.stats.failed}, "
-            f"passing {len(output_nodes)}/{len(nodes)} nodes downstream"
-        )
-
-        return output_nodes
+            return output_nodes
 
     def _get_path(self, node: BaseNode) -> str:
         """Extract document path from node metadata."""
@@ -553,7 +551,6 @@ class PersistenceTransform(TransformComponent):
             doc = doc_repo.create(
                 parent_id=self._dataset_id,
                 path=path,
-                uri=make_document_uri(self._dataset_name, path),
                 content_hash=content_hash,
                 body=body,
                 title=title,
@@ -692,7 +689,8 @@ class ChunkPersistenceTransform(TransformComponent):
         - Upserts to FTSChunkManager
         - Tracks statistics
 
-        Requires an ambient session to be set via `use_session()`.
+        Uses `session_or_new()`: the ambient session if set, otherwise a
+        new session for this run (e.g. in worker processes or threads).
 
         Args:
             nodes: List of TextNodes to persist (typically from MarkdownNodeParser).
@@ -702,47 +700,48 @@ class ChunkPersistenceTransform(TransformComponent):
             The same nodes with assigned IDs and metadata (pass-through).
 
         Raises:
-            SessionNotSetError: If no ambient session is set.
+            SessionNotSetError: If no ambient session is set and
+                session_or_new cannot create one.
         """
-        logger.info(f"ChunkPersistenceTransform: persisting {len(nodes)} chunks")
+        with session_or_new():
+            logger.info(f"ChunkPersistenceTransform: persisting {len(nodes)} chunks")
 
-        # Reset stats for this run
-        self.stats.reset()
+            # Reset stats for this run
+            self.stats.reset()
 
-        # Get FTS manager using ambient session
-        fts_chunk = FTSChunkManager()
+            fts_chunk = FTSChunkManager()
 
-        # Group nodes by source document to assign chunk sequences
-        doc_chunks: dict[str, list[BaseNode]] = {}
-        for node in nodes:
-            # Get source document identifier
-            ref_doc_id = getattr(node, "ref_doc_id", None) or node.node_id
-            source_key = self._get_source_key(node, ref_doc_id)
-            if source_key not in doc_chunks:
-                doc_chunks[source_key] = []
-            doc_chunks[source_key].append(node)
+            # Group nodes by source document to assign chunk sequences
+            doc_chunks: dict[str, list[BaseNode]] = {}
+            for node in nodes:
+                # Get source document identifier
+                ref_doc_id = getattr(node, "ref_doc_id", None) or node.node_id
+                source_key = self._get_source_key(node, ref_doc_id)
+                if source_key not in doc_chunks:
+                    doc_chunks[source_key] = []
+                doc_chunks[source_key].append(node)
 
-        # Process nodes grouped by document
-        for source_key, chunk_nodes in doc_chunks.items():
-            for chunk_seq, node in enumerate(chunk_nodes):
-                try:
-                    self._process_chunk(
-                        fts_chunk=fts_chunk,
-                        node=node,
-                        chunk_seq=chunk_seq,
-                    )
-                except Exception as e:
-                    node_id = getattr(node, "node_id", "unknown")
-                    logger.error(f"Failed to persist chunk {node_id}: {e}")
-                    self.stats.failed += 1
-                    self.stats.errors.append(f"{node_id}: {e}")
+            # Process nodes grouped by document
+            for source_key, chunk_nodes in doc_chunks.items():
+                for chunk_seq, node in enumerate(chunk_nodes):
+                    try:
+                        self._process_chunk(
+                            fts_chunk=fts_chunk,
+                            node=node,
+                            chunk_seq=chunk_seq,
+                        )
+                    except Exception as e:
+                        node_id = getattr(node, "node_id", "unknown")
+                        logger.error(f"Failed to persist chunk {node_id}: {e}")
+                        self.stats.failed += 1
+                        self.stats.errors.append(f"{node_id}: {e}")
 
-        logger.info(
-            f"ChunkPersistenceTransform complete: "
-            f"created={self.stats.created}, failed={self.stats.failed}"
-        )
+            logger.info(
+                f"ChunkPersistenceTransform complete: "
+                f"created={self.stats.created}, failed={self.stats.failed}"
+            )
 
-        return nodes
+            return nodes
 
     def _get_source_key(self, node: BaseNode, ref_doc_id: str) -> str:
         """Get a key to group chunks by source document.

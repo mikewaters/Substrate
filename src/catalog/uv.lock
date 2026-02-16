@@ -10,6 +10,15 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "agentlayer"
+version = "0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "openai" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/27/ed/564f661bfd73660e29b2b8ed0ed47f42d6347b2b7654a5fb5989900314a3/agentlayer-0.1.tar.gz", hash = "sha256:31f3f3d13c64dd5736f41febd2fc080624971ba80bccd5c4ca39d26f12570c73", size = 1042, upload-time = "2023-07-01T20:38:05.661Z" }
+
+[[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
 source = { registry = "https://pypi.org/simple" }
@@ -237,6 +246,7 @@ name = "catalog"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "agentlayer" },
     { name = "hydra-core" },
     { name = "langfuse" },
     { name = "llama-index-core" },
@@ -256,6 +266,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "agentlayer" },
     { name = "hydra-core", specifier = ">=1.3" },
     { name = "langfuse", specifier = ">=3.12.1" },
     { name = "llama-index-core", specifier = ">=0.14.13" },

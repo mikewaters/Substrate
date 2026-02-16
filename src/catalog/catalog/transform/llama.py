@@ -424,15 +424,23 @@ class PersistenceTransform(TransformComponent):
             output_nodes: list[BaseNode] = []
             for node in nodes:
                 try:
-                    changed = self._process_node(
-                        session=session,
-                        doc_repo=doc_repo,
-                        fts=fts,
-                        node=node,
-                        existing_docs=existing_docs,
-                    )
-                    if changed:
-                        output_nodes.append(node)
+                    # Use a savepoint so a single node failure (e.g. URI
+                    # collision) doesn't poison the entire session.
+                    nested = session.begin_nested()
+                    try:
+                        changed = self._process_node(
+                            session=session,
+                            doc_repo=doc_repo,
+                            fts=fts,
+                            node=node,
+                            existing_docs=existing_docs,
+                        )
+                        nested.commit()
+                        if changed:
+                            output_nodes.append(node)
+                    except Exception:
+                        nested.rollback()
+                        raise
                 except Exception as e:
                     path = self._get_path(node)
                     logger.error(f"Failed to persist {path}: {e}")

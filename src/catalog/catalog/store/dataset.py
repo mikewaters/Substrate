@@ -121,24 +121,24 @@ def _path_hash(path: str) -> str:
 def make_document_uri(dataset_name: str, path: str) -> str:
     """Build a document URI from dataset name and document path.
 
-    Slugifies the path for readability and appends a short hash of the
-    original path so that different paths that slugify to the same value
-    (e.g. "Continuity txt.md" and "Continuity.Txt.Md") get distinct URIs,
-    satisfying the resources.uri UNIQUE constraint.
+    Uses the raw path directly (no slugification) to preserve uniqueness
+    for documents whose paths differ only in special characters, unicode,
+    or emoji. The URI column is an internal unique key, not user-facing.
 
     Args:
         dataset_name: Normalized dataset name.
         path: Document path (may include directory components).
 
     Returns:
-        URI in the format ``document:<dataset_name>:<slugified-path>:<path-hash>``.
+        URI in the format ``document:<dataset_name>:<path>``.
 
     Example:
-        Format is document:<dataset>:<slug>:<12-char path hash>; the hash
-        ensures paths that slugify identically (e.g. "a txt.md" and "a.Txt.Md")
-        get distinct URIs.
+        >>> make_document_uri("vault-small", "LabelFiles/A SQLite client lib.md")
+        'document:vault-small:LabelFiles/A SQLite client lib.md'
+        >>> make_document_uri("vault-small", "notes/test.md")
+        'document:vault-small:notes/test.md'
     """
-    return f"document:{dataset_name}:{slugify(path)}:{_path_hash(path)}"
+    return f"document:{dataset_name}:{path}"
 
 class DatasetService:
     """Service for managing datasets and documents.

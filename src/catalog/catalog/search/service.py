@@ -291,17 +291,15 @@ class SearchService:
         limit = limit or self._settings.fts_top_k
         fts = self._ensure_fts_search()
 
+        # Apply dataset filter at the retriever level so FTS5 filters
+        # via source_doc_id prefix rather than post-filtering on a
+        # metadata key that doesn't exist in FTS results.
+        fts.dataset_name = dataset_name
+        fts.similarity_top_k = limit
+
         # Use the retriever interface
         query_bundle = QueryBundle(query_str=query)
         nodes = fts.retrieve(query_bundle)
-
-        # Filter by dataset if specified
-        if dataset_name:
-            nodes = [
-                n
-                for n in nodes
-                if n.node.metadata.get("dataset_name") == dataset_name
-            ]
 
         # Convert to SearchResults
         results = self._nodes_to_search_results(nodes[:limit])

@@ -1,7 +1,9 @@
 .conductor/
 node_modules
 .private-journal/**
-
+.wt.activate
+.wt.agent-env
+.wt.port
 .ropeproject/
 .ruff_cache/
 

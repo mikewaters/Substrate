@@ -1,0 +1,2 @@
+# source this file to activate worktree venv
+source .venv/bin/activate

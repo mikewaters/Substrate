@@ -127,28 +127,32 @@ def extract_heading_body(text: str) -> tuple[str, str]:
 def _sanitize_fts5_query(query: str) -> str:
     """Sanitize a query string for safe use with FTS5 MATCH.
 
-    FTS5 interprets hyphens as column-filter operators (e.g. 'PROJ-1234'
-    becomes 'search column PROJ for 1234'), and other characters like
-    quotes and parentheses as grouping operators. This function wraps
-    any token containing special characters in double quotes so FTS5
-    treats them as literal search terms.
+    FTS5 defaults to implicit AND between tokens, which returns zero
+    results when not every term appears in the same chunk. We join
+    tokens with OR so that partial matches are returned and BM25
+    naturally ranks chunks containing more query terms higher.
+
+    Tokens containing FTS5 operator characters (hyphens, quotes,
+    parentheses, etc.) are wrapped in double quotes so FTS5 treats
+    them as literal search terms.
 
     Args:
         query: Raw user query string.
 
     Returns:
-        Sanitized query safe for FTS5 MATCH.
+        Sanitized query safe for FTS5 MATCH, using OR between terms.
     """
     tokens = query.split()
+    if not tokens:
+        return query
     sanitized = []
     for token in tokens:
         if _FTS5_SPECIAL_RE.search(token):
-            # Escape internal double quotes and wrap in double quotes
             escaped = token.replace('"', '""')
             sanitized.append(f'"{escaped}"')
         else:
             sanitized.append(token)
-    return " ".join(sanitized)
+    return " OR ".join(sanitized)
 
 
 @dataclass

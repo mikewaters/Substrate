@@ -1,4 +1,0 @@
-WORKTREE=/Users/mike/Develop/lifeos/substrate.refactoring
-VENV=.venv
-PORT=5413
-ACTIVATE=source .venv/bin/activate

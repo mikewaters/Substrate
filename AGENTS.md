@@ -10,6 +10,9 @@ You may be within a git worktree. Obey the following:
 - Write to .env.local, never .env
 - Read .wt.port for dev server port
 
+Note that the application's cache (defined in settings and enviuronment variables) can be stored in different locations,
+based on the current "SUBSTRATE_ENVIRONMENT" env var. If this is set, you can find the location of the cache files in
+`catalog.core.settings.DEFAULT_CONFIG_ROOTS`.
 
 ---
 

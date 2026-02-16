@@ -38,5 +38,7 @@ catalog = "catalog.cli:main"
 
 [dependency-groups]
 dev = [
+    "agentlayer>=0.1",
     "pytest>=9.0.2",
+    "pytest-testmon>=2.2.0",
 ]

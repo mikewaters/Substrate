@@ -1,0 +1,4 @@
+WORKTREE=/Users/mike/Develop/lifeos/substrate.bug-query-expansion-coroutine
+VENV=.venv
+PORT=5969
+ACTIVATE=source .venv/bin/activate

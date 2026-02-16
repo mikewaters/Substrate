@@ -4,6 +4,7 @@ The DatasetService provides a Pydantic model-based API for managing
 datasets and documents, delegating to repositories for persistence.
 """
 
+import hashlib
 import re
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -108,27 +109,36 @@ def normalize_dataset_name(name: str) -> str:
     return slugify(name)
 
 
+def _path_hash(path: str) -> str:
+    """Deterministic short hash of path for URI disambiguation.
+
+    Slugify is not injective (e.g. 'a.txt' and 'a txt' both become 'a-txt'),
+    so we append a hash of the original path to keep URIs unique.
+    """
+    return hashlib.sha256(path.encode("utf-8")).hexdigest()[:12]
+
+
 def make_document_uri(dataset_name: str, path: str) -> str:
     """Build a document URI from dataset name and document path.
 
-    Slugifies the full relative path (directory separators become hyphens)
-    and combines with the dataset name. This preserves uniqueness for
-    documents with the same filename in different directories.
+    Slugifies the path for readability and appends a short hash of the
+    original path so that different paths that slugify to the same value
+    (e.g. "Continuity txt.md" and "Continuity.Txt.Md") get distinct URIs,
+    satisfying the resources.uri UNIQUE constraint.
 
     Args:
         dataset_name: Normalized dataset name.
         path: Document path (may include directory components).
 
     Returns:
-        URI in the format ``document:<dataset_name>:<slugified-path>``.
+        URI in the format ``document:<dataset_name>:<slugified-path>:<path-hash>``.
 
     Example:
-        >>> make_document_uri("vault-small", "LabelFiles/A SQLite client lib that understands Heptabase.md")
-        'document:vault-small:labelfiles-a-sqlite-client-lib-that-understands-heptabase-md'
-        >>> make_document_uri("vault-small", "A SQLite client lib that understands Heptabase.md")
-        'document:vault-small:a-sqlite-client-lib-that-understands-heptabase-md'
+        Format is document:<dataset>:<slug>:<12-char path hash>; the hash
+        ensures paths that slugify identically (e.g. "a txt.md" and "a.Txt.Md")
+        get distinct URIs.
     """
-    return f"document:{dataset_name}:{slugify(path)}"
+    return f"document:{dataset_name}:{slugify(path)}:{_path_hash(path)}"
 
 class DatasetService:
     """Service for managing datasets and documents.

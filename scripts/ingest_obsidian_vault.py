@@ -10,7 +10,7 @@ Run from the project root:
     uv run python scripts/ingest_obsidian_vault.py /path/to/vault
 
 By default, the database path comes from `catalog.core.settings` (env var
-`IDX_DATABASE_PATH`, or `~/.idx/catalog.db`).
+`SUBSTRATE_DATABASE_PATH`, or `~/.idx/catalog.db`).
 """
 
 from __future__ import annotations

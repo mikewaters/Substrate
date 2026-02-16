@@ -77,10 +77,10 @@ Create a small, self-contained script in `scripts/` that:
    - catalog/content db paths
    - optional flag to compare against baseline
 2. Sets env vars:
-   - `IDX_DATABASES_CATALOG_PATH`
-   - `IDX_DATABASES_CONTENT_PATH`
-   - `IDX_VECTOR_STORE_PATH`
-   - `IDX_EMBEDDING_MODEL`
+   - `SUBSTRATE_DATABASES_CATALOG_PATH`
+   - `SUBSTRATE_DATABASES_CONTENT_PATH`
+   - `SUBSTRATE_VECTOR_STORE_PATH`
+   - `SUBSTRATE_EMBEDDING_MODEL`
 3. Calls ingest:
    - `uv run python scripts/ingest_obsidian_vault.py <corpus> --dataset-name <name>`
 4. Calls eval:

@@ -85,9 +85,9 @@ class TestZvecEndToEnd:
         )
 
         zvec_index_path = e2e.output_dir / "zvec-index.json"
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
-        monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(zvec_index_path))
-        monkeypatch.setenv("IDX_RAG__EXPANSION_ENABLED", "false")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "zvec")
+        monkeypatch.setenv("SUBSTRATE_ZVEC__INDEX_PATH", str(zvec_index_path))
+        monkeypatch.setenv("SUBSTRATE_RAG__EXPANSION_ENABLED", "false")
         get_settings.cache_clear()
 
         with patch("catalog.ingest.pipelines.get_embed_model", return_value=e2e.embed_model):
@@ -167,11 +167,11 @@ class TestZvecEndToEnd:
         )
 
         zvec_index_path = e2e.output_dir / "zvec-index.json"
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
-        monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(zvec_index_path))
-        monkeypatch.setenv("IDX_EMBEDDING__BACKEND", "huggingface")
-        monkeypatch.setenv("IDX_EMBEDDING__MODEL_NAME", "ingest-config-model")
-        monkeypatch.setenv("IDX_RAG__EXPANSION_ENABLED", "false")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "zvec")
+        monkeypatch.setenv("SUBSTRATE_ZVEC__INDEX_PATH", str(zvec_index_path))
+        monkeypatch.setenv("SUBSTRATE_EMBEDDING__BACKEND", "huggingface")
+        monkeypatch.setenv("SUBSTRATE_EMBEDDING__MODEL_NAME", "ingest-config-model")
+        monkeypatch.setenv("SUBSTRATE_RAG__EXPANSION_ENABLED", "false")
         get_settings.cache_clear()
 
         with patch("catalog.ingest.pipelines.get_embed_model", return_value=e2e.embed_model):
@@ -187,8 +187,8 @@ class TestZvecEndToEnd:
         assert ingest_result.documents_failed == 0
         assert zvec_index_path.exists()
 
-        monkeypatch.setenv("IDX_EMBEDDING__BACKEND", "mlx")
-        monkeypatch.setenv("IDX_EMBEDDING__MODEL_NAME", "query-config-model")
+        monkeypatch.setenv("SUBSTRATE_EMBEDDING__BACKEND", "mlx")
+        monkeypatch.setenv("SUBSTRATE_EMBEDDING__MODEL_NAME", "query-config-model")
         get_settings.cache_clear()
 
         requested_profiles: list[str] = []

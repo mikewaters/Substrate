@@ -51,7 +51,7 @@ class MLXProvider:
 
         Args:
             model_name: HuggingFace model name. If not provided,
-                uses IDX_TRANSFORMERS_MODEL from settings.
+                uses SUBSTRATE_TRANSFORMERS_MODEL from settings.
 
         Raises:
             LLMProviderError: If not running on macOS/Apple Silicon.

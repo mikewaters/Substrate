@@ -230,22 +230,22 @@ Qdrant remains the default vector backend.
 To run an experimental production trial with Zvec, set:
 
 ```bash
-IDX_VECTOR_DB__BACKEND=zvec
-IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC=true
-IDX_ZVEC__INDEX_PATH=/absolute/path/to/zvec-index.json
-IDX_ZVEC__COLLECTION_NAME=catalog_vectors
+SUBSTRATE_VECTOR_DB__BACKEND=zvec
+SUBSTRATE_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC=true
+SUBSTRATE_ZVEC__INDEX_PATH=/absolute/path/to/zvec-index.json
+SUBSTRATE_ZVEC__COLLECTION_NAME=catalog_vectors
 ```
 
 Notes:
-- If `IDX_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC` is not `true`, startup fails when
+- If `SUBSTRATE_VECTOR_DB__ENABLE_EXPERIMENTAL_ZVEC` is not `true`, startup fails when
   backend is set to `zvec`.
 - Zvec queries are executed against the local JSON index file from
-  `IDX_ZVEC__INDEX_PATH` (no HTTP API calls).
+  `SUBSTRATE_ZVEC__INDEX_PATH` (no HTTP API calls).
 - For provenance-aware query-time model selection, include
   `embedding_profile` metadata (or `embedding_backend` + `embedding_model_name`)
   in Zvec index entries.
 - Keep Qdrant settings unchanged for rollback by restoring
-  `IDX_VECTOR_DB__BACKEND=qdrant`.
+  `SUBSTRATE_VECTOR_DB__BACKEND=qdrant`.
 
 ### Query-Time Embedding Provenance
 

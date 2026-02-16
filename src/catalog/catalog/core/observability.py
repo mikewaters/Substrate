@@ -1,7 +1,7 @@
 """catalog.core.observability - Langfuse observability integration.
 
 Provides Langfuse integration for tracing LLM calls via LlamaIndex.
-Configuration is driven by settings (IDX_LANGFUSE_* environment variables).
+Configuration is driven by settings (SUBSTRATE_LANGFUSE_* environment variables).
 
 Example usage:
     from catalog.core.observability import configure_observability
@@ -89,7 +89,7 @@ def configure_observability() -> bool:
     if not settings.langfuse.public_key or not settings.langfuse.secret_key:
         logger.warning(
             "Langfuse is enabled but credentials are missing. "
-            "Set IDX_LANGFUSE_PUBLIC_KEY and IDX_LANGFUSE_SECRET_KEY."
+            "Set SUBSTRATE_LANGFUSE_PUBLIC_KEY and SUBSTRATE_LANGFUSE_SECRET_KEY."
         )
         _configured = True
         return False

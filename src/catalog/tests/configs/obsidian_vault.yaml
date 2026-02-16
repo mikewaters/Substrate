@@ -16,7 +16,7 @@ source:
   ontology_spec: catalog.integrations.obsidian.ontology.VaultSpec  # dotted import path, or omit for no schema
   force: false                             # reprocess all documents even if unchanged
 
-# embedding: (optional — omit to use application-level IDX_EMBEDDING_* settings)
+# embedding: (optional — omit to use application-level SUBSTRATE_EMBEDDING_* settings)
 # embedding:
 #   backend: mlx                            # "mlx" | "huggingface"
 #   model_name: mlx-community/all-MiniLM-L6-v2-bf16

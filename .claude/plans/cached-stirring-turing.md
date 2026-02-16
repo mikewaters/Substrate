@@ -17,7 +17,7 @@ Everything else is real: SQLite, FTS5, Qdrant (file-based), LlamaIndex Ingestion
 Instead of patching `get_session` and `VectorStoreManager` (the current integration test pattern), override settings via environment variables and clear singleton caches. This lets the entire stack initialize naturally through the same code paths as production.
 
 **How it works:**
-1. `monkeypatch.setenv` sets `IDX_DATABASES__CATALOG_PATH`, `IDX_DATABASES__CONTENT_PATH`, `IDX_VECTOR_STORE_PATH`, `IDX_CACHE_PATH` to test-specific output dirs
+1. `monkeypatch.setenv` sets `SUBSTRATE_DATABASES__CATALOG_PATH`, `SUBSTRATE_DATABASES__CONTENT_PATH`, `SUBSTRATE_VECTOR_STORE_PATH`, `SUBSTRATE_CACHE_PATH` to test-specific output dirs
 2. Clear `get_settings`, `get_registry`, `get_session_factory` lru_caches
 3. Call `get_registry()` -- this triggers `DatabaseRegistry.__init__` which creates engine, tables, FTS virtual tables, content DB ATTACH
 4. Pipeline calls `get_session()` naturally (no patching!)
@@ -89,10 +89,10 @@ def e2e(request, monkeypatch):
     get_session_factory.cache_clear()
 
     # Override settings via env
-    monkeypatch.setenv("IDX_DATABASES__CATALOG_PATH", str(output_dir / "catalog.db"))
-    monkeypatch.setenv("IDX_DATABASES__CONTENT_PATH", str(output_dir / "content.db"))
-    monkeypatch.setenv("IDX_VECTOR_STORE_PATH", str(output_dir / "qdrant"))
-    monkeypatch.setenv("IDX_CACHE_PATH", str(output_dir / "cache"))
+    monkeypatch.setenv("SUBSTRATE_DATABASES__CATALOG_PATH", str(output_dir / "catalog.db"))
+    monkeypatch.setenv("SUBSTRATE_DATABASES__CONTENT_PATH", str(output_dir / "content.db"))
+    monkeypatch.setenv("SUBSTRATE_VECTOR_STORE_PATH", str(output_dir / "qdrant"))
+    monkeypatch.setenv("SUBSTRATE_CACHE_PATH", str(output_dir / "cache"))
 
     embed_model = MockEmbedding(embed_dim=384)
 
@@ -156,7 +156,7 @@ Six tests, each using the `e2e` fixture. All use `DatasetIngestPipelineV2` for i
 
 | File | Role |
 |------|------|
-| `catalog/core/settings.py` | `get_settings()` -- lru_cached singleton, reads `IDX_*` env vars |
+| `catalog/core/settings.py` | `get_settings()` -- lru_cached singleton, reads `SUBSTRATE_*` env vars |
 | `catalog/store/database.py` | `get_registry()`, `get_session_factory()`, `get_session()` -- all lru_cached |
 | `catalog/store/vector.py` | `VectorStoreManager` -- reads `settings.vector_store_path`, lazy `_get_embed_model()` |
 | `catalog/embedding/__init__.py` | `get_embed_model()` -- patched to return `MockEmbedding` |

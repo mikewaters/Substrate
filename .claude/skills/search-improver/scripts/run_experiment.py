@@ -154,7 +154,7 @@ EVAL_TMP = Path("/tmp/catalog-eval-experiment")
 def setup_isolated_env(embedding_model: str) -> None:
     """Configure environment variables for isolated eval databases.
 
-    Sets IDX_* env vars so that the catalog stack uses ephemeral paths
+    Sets SUBSTRATE_* env vars so that the catalog stack uses ephemeral paths
     under /tmp/catalog-eval-experiment/ instead of the user's real data.
 
     Args:
@@ -176,10 +176,10 @@ def setup_isolated_env(embedding_model: str) -> None:
         if child.is_file():
             child.unlink()
 
-    os.environ["IDX_DATABASES_CATALOG_PATH"] = str(catalog_db)
-    os.environ["IDX_DATABASES_CONTENT_PATH"] = str(content_db)
-    os.environ["IDX_VECTOR_STORE_PATH"] = str(vector_dir)
-    os.environ["IDX_EMBEDDING_MODEL"] = embedding_model
+    os.environ["SUBSTRATE_DATABASES__CATALOG_PATH"] = str(catalog_db)
+    os.environ["SUBSTRATE_DATABASES__CONTENT_PATH"] = str(content_db)
+    os.environ["SUBSTRATE_VECTOR_STORE_PATH"] = str(vector_dir)
+    os.environ["SUBSTRATE_EMBEDDING_MODEL"] = embedding_model
 
     logger.info(f"Isolated eval env: catalog={catalog_db}, content={content_db}, vectors={vector_dir}")
 

@@ -164,8 +164,8 @@ class TestSettingsIntegration:
         # Set environment variable for catalog path
         db_path = tmp_path / "settings_test.db"
         content_path = tmp_path / "content_test.db"
-        monkeypatch.setenv("IDX_DATABASES__CATALOG_PATH", str(db_path))
-        monkeypatch.setenv("IDX_DATABASES__CONTENT_PATH", str(content_path))
+        monkeypatch.setenv("SUBSTRATE_DATABASES__CATALOG_PATH", str(db_path))
+        monkeypatch.setenv("SUBSTRATE_DATABASES__CONTENT_PATH", str(content_path))
 
         # Clear settings cache too
         from catalog.core.settings import get_settings

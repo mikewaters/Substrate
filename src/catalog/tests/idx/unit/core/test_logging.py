@@ -61,7 +61,7 @@ class TestConfigureLogging:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Logging uses level from settings by default."""
-        monkeypatch.setenv("IDX_LOG_LEVEL", "DEBUG")
+        monkeypatch.setenv("SUBSTRATE_LOG_LEVEL", "DEBUG")
 
         # Clear settings cache
         from catalog.core.settings import get_settings

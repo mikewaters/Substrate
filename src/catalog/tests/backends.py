@@ -30,10 +30,10 @@ def configure_backend(
     output_dir: Path,
 ) -> None:
     """Configure environment for a single active vector backend."""
-    monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", backend)
-    monkeypatch.setenv("IDX_RAG__EXPANSION_ENABLED", "false")
+    monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", backend)
+    monkeypatch.setenv("SUBSTRATE_RAG__EXPANSION_ENABLED", "false")
 
     # Zvec is the default; always set its index path relative to the test output dir.
-    monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(output_dir / "zvec-index.json"))
+    monkeypatch.setenv("SUBSTRATE_ZVEC__INDEX_PATH", str(output_dir / "zvec-index.json"))
 
     get_settings.cache_clear()

@@ -56,10 +56,16 @@ class InterceptHandler(logging.Handler):
         except ValueError:
             level = record.levelno
 
-        # Find caller frame for proper log location
+        # Find caller frame for proper log location. We are inside this handler and
+        # stdlib logging; skip those frames so loguru reports the real caller
+        # (e.g. catalog or llama_index module), not "logging:callHandlers".
         frame = logging.currentframe()
-        depth = 2
-        while frame is not None and frame.f_code.co_filename == logging.__file__:
+        depth = 0
+        this_file = __file__
+        while frame is not None and (
+            frame.f_code.co_filename == logging.__file__
+            or frame.f_code.co_filename == this_file
+        ):
             frame = frame.f_back
             depth += 1
 

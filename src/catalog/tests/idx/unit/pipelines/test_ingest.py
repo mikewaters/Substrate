@@ -154,10 +154,7 @@ class TestDatasetIngestPipeline:
         vector_manager = VectorStoreManager()
 
         ingestion_pipeline = pipeline.build_pipeline(
-            dataset_id=1,
-            dataset_name="test-docs",
             vector_manager=vector_manager,
-            source_transforms=([], []),
         )
 
         # Check that ResilientSplitter is in transformations
@@ -180,10 +177,7 @@ class TestDatasetIngestPipeline:
         vector_manager = VectorStoreManager()
 
         ingestion_pipeline = pipeline.build_pipeline(
-            dataset_id=1,
-            dataset_name="test-docs",
             vector_manager=vector_manager,
-            source_transforms=([], []),
         )
 
         # Check that EmbeddingPrefixTransform is in transformations

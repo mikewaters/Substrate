@@ -1,6 +1,7 @@
 """Tests for catalog.core.settings, specifically RAGSettings."""
 
 import os
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -60,11 +61,11 @@ class TestRAGSettings:
     def test_environment_variable_override(self) -> None:
         """RAGSettings can be overridden via environment variables."""
         env_vars = {
-            "IDX_RAG__CHUNK_SIZE": "1000",
-            "IDX_RAG__CHUNK_OVERLAP": "150",
-            "IDX_RAG__RRF_K": "80",
-            "IDX_RAG__EXPANSION_ENABLED": "false",
-            "IDX_RAG__RERANK_TOP_N": "5",
+            "SUBSTRATE_RAG__CHUNK_SIZE": "1000",
+            "SUBSTRATE_RAG__CHUNK_OVERLAP": "150",
+            "SUBSTRATE_RAG__RRF_K": "80",
+            "SUBSTRATE_RAG__EXPANSION_ENABLED": "false",
+            "SUBSTRATE_RAG__RERANK_TOP_N": "5",
         }
 
         with mock.patch.dict(os.environ, env_vars, clear=False):
@@ -104,8 +105,8 @@ class TestRAGSettings:
     def test_nested_environment_override(self) -> None:
         """RAGSettings can be overridden via nested env vars in main Settings."""
         env_vars = {
-            "IDX_RAG__CHUNK_SIZE": "900",
-            "IDX_RAG__CACHE_TTL_HOURS": "48",
+            "SUBSTRATE_RAG__CHUNK_SIZE": "900",
+            "SUBSTRATE_RAG__CACHE_TTL_HOURS": "48",
         }
 
         with mock.patch.dict(os.environ, env_vars, clear=False):
@@ -145,7 +146,7 @@ class TestVectorDBSettings:
     def test_allows_qdrant_backend_env_override(self) -> None:
         """Vector backend can be set to Qdrant via nested environment variables."""
         env_vars = {
-            "IDX_VECTOR_DB__BACKEND": "qdrant",
+            "SUBSTRATE_VECTOR_DB__BACKEND": "qdrant",
         }
 
         with mock.patch.dict(os.environ, env_vars, clear=False):
@@ -156,11 +157,91 @@ class TestVectorDBSettings:
     def test_allows_zvec_index_path_env_override(self) -> None:
         """Zvec index path can be configured via environment variables."""
         env_vars = {
-            "IDX_ZVEC__INDEX_PATH": "/tmp/zvec-index.json",
+            "SUBSTRATE_ZVEC__INDEX_PATH": "/tmp/zvec-index.json",
         }
 
         with mock.patch.dict(os.environ, env_vars, clear=False):
             settings = Settings()
 
             assert settings.vector_db.backend == "zvec"
-            assert str(settings.zvec.index_path) == "/tmp/zvec-index.json"
+            assert settings.zvec.index_path is not None
+            assert settings.zvec.index_path.resolve() == Path("/tmp/zvec-index.json").resolve()
+
+
+class TestConfigRoot:
+    """Tests for config_root and environment-based path derivation."""
+
+    def test_config_root_defaults_by_environment(self) -> None:
+        """Config root is chosen from environment when SUBSTRATE_CONFIG_ROOT unset."""
+        saved = os.environ.pop("SUBSTRATE_CONFIG_ROOT", None)
+        try:
+            with mock.patch.dict(os.environ, {"SUBSTRATE_ENVIRONMENT": "prod"}, clear=False):
+                settings = Settings()
+                assert settings.config_root is not None
+                assert settings.config_root.is_absolute()
+                assert "substrate" in str(settings.config_root).lower()
+        finally:
+            if saved is not None:
+                os.environ["SUBSTRATE_CONFIG_ROOT"] = saved
+
+    def test_config_root_override_derives_all_paths(self, tmp_path: Path) -> None:
+        """When SUBSTRATE_CONFIG_ROOT is set, all paths derive from it."""
+        root = tmp_path / "idx-root"
+        env_vars = {
+            "SUBSTRATE_CONFIG_ROOT": str(root),
+            "SUBSTRATE_ENVIRONMENT": "dev",
+        }
+        with mock.patch.dict(os.environ, env_vars, clear=False):
+            get_settings.cache_clear()
+            try:
+                settings = get_settings()
+                assert settings.config_root is not None
+                assert settings.config_root.resolve() == root.resolve()
+                assert settings.databases.catalog_path == root / "catalog.db"
+                assert settings.databases.content_path == root / "content.db"
+                assert settings.vector_store_path == root / "vector_store"
+                assert settings.cache_path == root / "cache"
+                assert settings.job_config_path == root / "jobs"
+                assert settings.env_config_path == root / "environments"
+                assert settings.zvec.index_path == root / "zvec" / "index.json"
+            finally:
+                get_settings.cache_clear()
+
+
+class TestEnvironmentTomlDefaults:
+    """Tests for environment-named TOML from catalog.core package (env vars still take precedence)."""
+
+    def test_toml_overrides_defaults_when_present(self) -> None:
+        """Bundled catalog.core/{environment}.toml overrides Pydantic defaults."""
+        with mock.patch.dict(os.environ, {"SUBSTRATE_ENVIRONMENT": "dev"}, clear=False):
+            get_settings.cache_clear()
+            try:
+                settings = get_settings()
+                assert settings.log_level == "DEBUG"
+            finally:
+                get_settings.cache_clear()
+
+    def test_env_var_overrides_toml(self) -> None:
+        """Environment variables take precedence over bundled environment TOML."""
+        env_vars = {
+            "SUBSTRATE_ENVIRONMENT": "dev",
+            "SUBSTRATE_LOG_LEVEL": "WARNING",
+        }
+        with mock.patch.dict(os.environ, env_vars, clear=False):
+            get_settings.cache_clear()
+            try:
+                settings = get_settings()
+                assert settings.log_level == "WARNING"
+            finally:
+                get_settings.cache_clear()
+
+    def test_nested_toml_section_overrides_defaults(self) -> None:
+        """Nested [rag] (and similar) sections in bundled TOML override nested defaults."""
+        with mock.patch.dict(os.environ, {"SUBSTRATE_ENVIRONMENT": "dev"}, clear=False):
+            get_settings.cache_clear()
+            try:
+                settings = get_settings()
+                assert settings.rag.chunk_size == 1000
+                assert settings.rag.rrf_k == 80
+            finally:
+                get_settings.cache_clear()

@@ -47,7 +47,7 @@ class TestObservabilitySmoke:
         reset_observability()
 
         # Ensure disabled
-        monkeypatch.setenv("IDX_LANGFUSE_ENABLED", "false")
+        monkeypatch.setenv("SUBSTRATE_LANGFUSE_ENABLED", "false")
         get_settings.cache_clear()
 
         # Should not crash

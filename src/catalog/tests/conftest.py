@@ -20,14 +20,12 @@ _TEST_IDX_ROOT = (_TEST_HOME / ".idx").resolve()
 _TEST_IDX_ROOT.mkdir(parents=True, exist_ok=True)
 
 # Apply environment isolation as soon as this conftest is imported so any module
-# import-time settings resolution still targets test-only paths.
+# import-time settings resolution still targets test-only paths. All paths derive
+# from config_root; setting SUBSTRATE_CONFIG_ROOT and SUBSTRATE_ENVIRONMENT=test ensures
+# catalog uses the test tree.
 os.environ["HOME"] = str(_TEST_HOME)
-os.environ["IDX_DATABASES__CATALOG_PATH"] = str(_TEST_IDX_ROOT / "catalog.db")
-os.environ["IDX_DATABASES__CONTENT_PATH"] = str(_TEST_IDX_ROOT / "content.db")
-os.environ["IDX_VECTOR_STORE_PATH"] = str(_TEST_IDX_ROOT / "vector_store")
-os.environ["IDX_CACHE_PATH"] = str(_TEST_IDX_ROOT / "cache")
-os.environ["IDX_JOB_CONFIG_PATH"] = str(_TEST_IDX_ROOT / "jobs")
-os.environ["IDX_ZVEC__INDEX_PATH"] = str(_TEST_IDX_ROOT / "zvec" / "index.json")
+os.environ["SUBSTRATE_ENVIRONMENT"] = "test"
+os.environ["SUBSTRATE_CONFIG_ROOT"] = str(_TEST_IDX_ROOT)
 
 
 def _is_within(candidate: Path, parent: Path) -> bool:

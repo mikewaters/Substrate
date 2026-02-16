@@ -34,7 +34,7 @@ embedding_dim: int = Field(
 Add new `QdrantSettings` class:
 ```python
 class QdrantSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="IDX_QDRANT_", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="SUBSTRATE_QDRANT_", extra="ignore")
     collection_name: str = Field(default="catalog_vectors", description="Collection name")
 ```
 

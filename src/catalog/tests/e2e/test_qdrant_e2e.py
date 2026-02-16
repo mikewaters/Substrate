@@ -89,8 +89,8 @@ class TestQdrantEndToEnd:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
-        monkeypatch.setenv("IDX_RAG__EXPANSION_ENABLED", "false")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "qdrant")
+        monkeypatch.setenv("SUBSTRATE_RAG__EXPANSION_ENABLED", "false")
         get_settings.cache_clear()
 
         embed_model = _SemanticMockEmbedding(embed_dim=384)
@@ -173,10 +173,10 @@ class TestQdrantEndToEnd:
         )
 
         # Ingest identity (stored): huggingface:semantic-mock
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
-        monkeypatch.setenv("IDX_EMBEDDING__BACKEND", "huggingface")
-        monkeypatch.setenv("IDX_EMBEDDING__MODEL_NAME", "ingest-config-model")
-        monkeypatch.setenv("IDX_RAG__EXPANSION_ENABLED", "false")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "qdrant")
+        monkeypatch.setenv("SUBSTRATE_EMBEDDING__BACKEND", "huggingface")
+        monkeypatch.setenv("SUBSTRATE_EMBEDDING__MODEL_NAME", "ingest-config-model")
+        monkeypatch.setenv("SUBSTRATE_RAG__EXPANSION_ENABLED", "false")
         get_settings.cache_clear()
 
         embed_model = _SemanticMockEmbedding(embed_dim=384)
@@ -196,8 +196,8 @@ class TestQdrantEndToEnd:
         assert ingest_result.documents_failed == 0
 
         # Runtime configured identity differs from stored profile.
-        monkeypatch.setenv("IDX_EMBEDDING__BACKEND", "mlx")
-        monkeypatch.setenv("IDX_EMBEDDING__MODEL_NAME", "query-config-model")
+        monkeypatch.setenv("SUBSTRATE_EMBEDDING__BACKEND", "mlx")
+        monkeypatch.setenv("SUBSTRATE_EMBEDDING__MODEL_NAME", "query-config-model")
         get_settings.cache_clear()
 
         requested_profiles: list[str] = []

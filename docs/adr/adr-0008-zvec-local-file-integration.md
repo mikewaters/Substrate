@@ -13,8 +13,8 @@ instead of making API calls.
 
 - Keep `vector_db.backend=zvec` and the existing experimental feature gate.
 - Replace Zvec HTTP configuration with a local index path:
-  - `IDX_ZVEC__INDEX_PATH`
-  - `IDX_ZVEC__COLLECTION_NAME`
+  - `SUBSTRATE_ZVEC__INDEX_PATH`
+  - `SUBSTRATE_ZVEC__COLLECTION_NAME`
 - Execute Zvec semantic queries in-process by reading the configured local JSON
   file and ranking entries with cosine similarity.
 - Remove Zvec HTTP endpoint/timeout settings from runtime configuration.

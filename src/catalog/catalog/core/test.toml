@@ -1,0 +1,4 @@
+# Default settings for SUBSTRATE_ENVIRONMENT=test (catalog.core bundle).
+# Overrides Pydantic defaults only; env vars take precedence.
+
+log_level = "WARNING"

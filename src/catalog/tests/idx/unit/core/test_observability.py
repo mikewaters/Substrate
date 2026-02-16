@@ -35,7 +35,7 @@ class TestConfigureObservability:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Returns False when Langfuse is disabled in settings."""
-        monkeypatch.setenv("IDX_LANGFUSE_ENABLED", "false")
+        monkeypatch.setenv("SUBSTRATE_LANGFUSE_ENABLED", "false")
 
         # Clear settings cache
         from catalog.core.settings import get_settings
@@ -50,9 +50,9 @@ class TestConfigureObservability:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Returns False when credentials are missing."""
-        monkeypatch.setenv("IDX_LANGFUSE_ENABLED", "true")
-        monkeypatch.delenv("IDX_LANGFUSE_PUBLIC_KEY", raising=False)
-        monkeypatch.delenv("IDX_LANGFUSE_SECRET_KEY", raising=False)
+        monkeypatch.setenv("SUBSTRATE_LANGFUSE_ENABLED", "true")
+        monkeypatch.delenv("SUBSTRATE_LANGFUSE_PUBLIC_KEY", raising=False)
+        monkeypatch.delenv("SUBSTRATE_LANGFUSE_SECRET_KEY", raising=False)
 
         from catalog.core.settings import get_settings
 
@@ -66,7 +66,7 @@ class TestConfigureObservability:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Multiple calls return same result when disabled."""
-        monkeypatch.setenv("IDX_LANGFUSE_ENABLED", "false")
+        monkeypatch.setenv("SUBSTRATE_LANGFUSE_ENABLED", "false")
 
         from catalog.core.settings import get_settings
 
@@ -82,9 +82,9 @@ class TestConfigureObservability:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Returns False when langfuse package is not installed."""
-        monkeypatch.setenv("IDX_LANGFUSE_ENABLED", "true")
-        monkeypatch.setenv("IDX_LANGFUSE_PUBLIC_KEY", "pk-test")
-        monkeypatch.setenv("IDX_LANGFUSE_SECRET_KEY", "sk-test")
+        monkeypatch.setenv("SUBSTRATE_LANGFUSE_ENABLED", "true")
+        monkeypatch.setenv("SUBSTRATE_LANGFUSE_PUBLIC_KEY", "pk-test")
+        monkeypatch.setenv("SUBSTRATE_LANGFUSE_SECRET_KEY", "sk-test")
 
         from catalog.core.settings import get_settings
 
@@ -123,7 +123,7 @@ class TestGetCallbackManager:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Returns None when Langfuse is disabled."""
-        monkeypatch.setenv("IDX_LANGFUSE_ENABLED", "false")
+        monkeypatch.setenv("SUBSTRATE_LANGFUSE_ENABLED", "false")
 
         from catalog.core.settings import get_settings
 
@@ -153,7 +153,7 @@ class TestIsObservabilityConfigured:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Returns True after configure_observability is called."""
-        monkeypatch.setenv("IDX_LANGFUSE_ENABLED", "false")
+        monkeypatch.setenv("SUBSTRATE_LANGFUSE_ENABLED", "false")
 
         from catalog.core.settings import get_settings
 
@@ -170,7 +170,7 @@ class TestResetObservability:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """reset_observability clears the configured state."""
-        monkeypatch.setenv("IDX_LANGFUSE_ENABLED", "false")
+        monkeypatch.setenv("SUBSTRATE_LANGFUSE_ENABLED", "false")
 
         from catalog.core.settings import get_settings
 

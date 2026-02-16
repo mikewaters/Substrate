@@ -15,7 +15,7 @@ Beyond the immediate fix, embedding and LLM model configuration need to be coupl
 - Create `LLMSettings(BaseSettings)` with:
   - `backend: Literal["mlx"] = "mlx"` (extensible later)
   - `model_name: str = "mlx-community/Llama-3.2-1B-Instruct-4bit"` (small, fast, instruction-tuned)
-  - env prefix: `IDX_LLM_`
+  - env prefix: `SUBSTRATE_LLM_`
 - Add `llm: LLMSettings` to `Settings` class
 - Remove the bare `transformers_model` field from `Settings`
 
@@ -48,4 +48,4 @@ Search for all uses of `settings.transformers_model` and update to `settings.llm
 
 1. Run `uv run pytest src/catalog/tests/ -v -k "rerank or llm or provider or expansion"` to check existing tests
 2. Confirm MLXProvider loads the new default model without "Model type bert not supported" error
-3. Verify env var override works: `IDX_LLM_MODEL_NAME=some-other-model`
+3. Verify env var override works: `SUBSTRATE_LLM_MODEL_NAME=some-other-model`

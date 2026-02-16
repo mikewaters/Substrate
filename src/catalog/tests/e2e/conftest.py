@@ -122,10 +122,10 @@ def e2e(request, monkeypatch) -> Generator[E2EInfra, None, None]:
     get_session_factory.cache_clear()
 
     # Override settings via env vars
-    monkeypatch.setenv("IDX_DATABASES__CATALOG_PATH", str(output_dir / "catalog.db"))
-    monkeypatch.setenv("IDX_DATABASES__CONTENT_PATH", str(output_dir / "content.db"))
-    monkeypatch.setenv("IDX_VECTOR_STORE_PATH", str(output_dir / "qdrant"))
-    monkeypatch.setenv("IDX_CACHE_PATH", str(output_dir / "cache"))
+    monkeypatch.setenv("SUBSTRATE_DATABASES__CATALOG_PATH", str(output_dir / "catalog.db"))
+    monkeypatch.setenv("SUBSTRATE_DATABASES__CONTENT_PATH", str(output_dir / "content.db"))
+    monkeypatch.setenv("SUBSTRATE_VECTOR_STORE_PATH", str(output_dir / "qdrant"))
+    monkeypatch.setenv("SUBSTRATE_CACHE_PATH", str(output_dir / "cache"))
 
     embed_model = MockEmbedding(embed_dim=384)
 

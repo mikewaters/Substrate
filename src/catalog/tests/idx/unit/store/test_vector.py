@@ -90,7 +90,7 @@ class TestEmbeddingIdentityDiscovery:
     ) -> None:
         """Distinct embedding identities are deduplicated by profile (Qdrant)."""
         get_settings.cache_clear()
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "qdrant")
         manager = VectorStoreManager(persist_dir=tmp_path / "qdrant")
         manager._collection_exists = MagicMock(return_value=True)
         manager._get_client = MagicMock(return_value=MagicMock())
@@ -128,7 +128,7 @@ class TestEmbeddingIdentityDiscovery:
     ) -> None:
         """Missing collection returns no embedding identities (Qdrant)."""
         get_settings.cache_clear()
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "qdrant")
         manager = VectorStoreManager(persist_dir=tmp_path / "qdrant")
         manager._collection_exists = MagicMock(return_value=False)
 
@@ -181,9 +181,9 @@ class TestEmbeddingIdentityDiscovery:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "zvec")
 
-        monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(index_path))
+        monkeypatch.setenv("SUBSTRATE_ZVEC__INDEX_PATH", str(index_path))
 
         manager = VectorStoreManager(persist_dir=tmp_path / "vectors")
 
@@ -202,7 +202,7 @@ class TestEmbeddingIdentityStrategies:
     def test_native_strategy_has_no_ingest_identity_transforms(self, tmp_path, monkeypatch) -> None:
         """Native identity backends skip payload identity ingest transforms."""
         get_settings.cache_clear()
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "qdrant")
         manager = VectorStoreManager(
             persist_dir=tmp_path / "qdrant",
             capabilities=VectorBackendCapabilities(native_embedding_identity=True),
@@ -216,7 +216,7 @@ class TestEmbeddingIdentityStrategies:
     def test_native_strategy_skips_payload_identity_path(self, tmp_path, monkeypatch) -> None:
         """Native identity capability bypasses payload identity discovery."""
         get_settings.cache_clear()
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "qdrant")
         manager = VectorStoreManager(
             persist_dir=tmp_path / "qdrant",
             capabilities=VectorBackendCapabilities(native_embedding_identity=True),
@@ -240,7 +240,7 @@ class TestEmbeddingIdentityStrategies:
     def test_payload_strategy_discovers_embedding_identities(self, tmp_path, monkeypatch) -> None:
         """Non-native capability uses payload identity strategy."""
         get_settings.cache_clear()
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "qdrant")
         manager = VectorStoreManager(persist_dir=tmp_path / "qdrant")
         vector_store = MagicMock()
         manager.get_vector_store = MagicMock(return_value=vector_store)
@@ -270,9 +270,9 @@ class TestEmbeddingIdentityStrategies:
     ) -> None:
         """Stored payload identity is used even when runtime config identity differs."""
         get_settings.cache_clear()
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "qdrant")
-        monkeypatch.setenv("IDX_EMBEDDING__BACKEND", "mlx")
-        monkeypatch.setenv("IDX_EMBEDDING__MODEL_NAME", "runtime-config-model")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "qdrant")
+        monkeypatch.setenv("SUBSTRATE_EMBEDDING__BACKEND", "mlx")
+        monkeypatch.setenv("SUBSTRATE_EMBEDDING__MODEL_NAME", "runtime-config-model")
 
         manager = VectorStoreManager(persist_dir=tmp_path / "qdrant")
         vector_store = MagicMock()
@@ -330,9 +330,9 @@ class TestZvecBackend:
         }
         index_path.write_text(json.dumps(index_payload), encoding="utf-8")
 
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "zvec")
 
-        monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(index_path))
+        monkeypatch.setenv("SUBSTRATE_ZVEC__INDEX_PATH", str(index_path))
 
         manager = VectorStoreManager(persist_dir=tmp_path / "vectors")
         manager.get_embed_model_for_identity = MagicMock(return_value=_FakeEmbeddingModel())
@@ -387,9 +387,9 @@ class TestZvecBackend:
             encoding="utf-8",
         )
 
-        monkeypatch.setenv("IDX_VECTOR_DB__BACKEND", "zvec")
+        monkeypatch.setenv("SUBSTRATE_VECTOR_DB__BACKEND", "zvec")
 
-        monkeypatch.setenv("IDX_ZVEC__INDEX_PATH", str(index_path))
+        monkeypatch.setenv("SUBSTRATE_ZVEC__INDEX_PATH", str(index_path))
 
         manager = VectorStoreManager(persist_dir=tmp_path / "vectors")
 

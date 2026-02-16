@@ -1,11 +1,17 @@
 import asyncio
-from typing import List
 from pathlib import Path
-from loguru import logger
+from typing import List
+
+from agentlayer.logging import configure_logging
 from attrs import define, field
+from loguru import logger
+
+# Configure logging before any get_settings() so settings selection logs are visible
+configure_logging(level="DEBUG")
+
+from catalog.core.settings import get_settings
 from catalog.ingest.job import DatasetJob
 from catalog.ingest.pipelines import DatasetIngestPipeline
-from catalog.core.settings import get_settings
 
 # Assumed imports based on project structure patterns described in AGENTS.md
 # We will need to adjust these paths if the actual class locations differ.
@@ -86,11 +92,7 @@ class IndexSync:
 
 if __name__ == '__main__':
     import sys
-    from agentlayer.logging import get_logger, configure_logging
-    #from catalog.integrations.obsidian import SourceObsidianConfig
-    #from catalog.integrations.heptabase import SourceHeptabaseConfig
 
-    configure_logging(level="DEBUG")
     if len(sys.argv) < 2:
         print("Usage: python -m catalog.ingest.pipelines <source_dir_or_yaml> [--force]")
         sys.exit(1)

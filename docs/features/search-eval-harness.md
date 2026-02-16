@@ -80,19 +80,19 @@ Dedicated paths set via environment variables.
 
 Recommended variables (from `catalog.core.settings`):
 
-- `IDX_DATABASES_CATALOG_PATH` (catalog DB)
-- `IDX_DATABASES_CONTENT_PATH` (content DB)
-- `IDX_VECTOR_STORE_PATH` (vector store persistence path)
-- `IDX_EMBEDDING_MODEL` (embedding model id)
-- `IDX_TRANSFORMERS_MODEL` (reranker model id, if used)
+- `SUBSTRATE_DATABASES_CATALOG_PATH` (catalog DB)
+- `SUBSTRATE_DATABASES_CONTENT_PATH` (content DB)
+- `SUBSTRATE_VECTOR_STORE_PATH` (vector store persistence path)
+- `SUBSTRATE_EMBEDDING_MODEL` (embedding model id)
+- `SUBSTRATE_TRANSFORMERS_MODEL` (reranker model id, if used)
 
 Example environment for local evaluation:
 
 ```bash
-export IDX_DATABASES_CATALOG_PATH=/tmp/catalog-eval/catalog.db
-export IDX_DATABASES_CONTENT_PATH=/tmp/catalog-eval/content.db
-export IDX_VECTOR_STORE_PATH=/tmp/catalog-eval/vectors
-export IDX_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
+export SUBSTRATE_DATABASES_CATALOG_PATH=/tmp/catalog-eval/catalog.db
+export SUBSTRATE_DATABASES_CONTENT_PATH=/tmp/catalog-eval/content.db
+export SUBSTRATE_VECTOR_STORE_PATH=/tmp/catalog-eval/vectors
+export SUBSTRATE_EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
 ```
 
 ---
@@ -307,7 +307,7 @@ If you update the corpus, it must be treated as a new baseline.
 No results returned:
 
 - Confirm the corpus ingest step succeeded.
-- Verify `IDX_DATABASES_CATALOG_PATH` points to the eval database used during ingestion.
+- Verify `SUBSTRATE_DATABASES_CATALOG_PATH` points to the eval database used during ingestion.
 
 Flaky results:
 

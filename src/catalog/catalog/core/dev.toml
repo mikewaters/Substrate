@@ -1,0 +1,9 @@
+# Default settings for SUBSTRATE_ENVIRONMENT=dev (catalog.core bundle).
+# Overrides Pydantic defaults only; env vars take precedence.
+# Extend as needed; keys match Settings and nested models (e.g. [rag], [databases]).
+
+log_level = "DEBUG"
+
+[rag]
+chunk_size = 1000
+rrf_k = 80

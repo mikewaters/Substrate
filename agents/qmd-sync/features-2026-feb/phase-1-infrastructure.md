@@ -20,7 +20,7 @@ Centralizes all v2 configuration in a single, environment-driven settings class.
 ```python
 class RAGv2Settings(BaseSettings):
     """RAG v2 configuration with environment variable support."""
-    model_config = SettingsConfigDict(env_prefix="IDX_RAG_V2__")
+    model_config = SettingsConfigDict(env_prefix="SUBSTRATE_RAG_V2__")
 
     # Chunking
     chunk_size: int = 800
@@ -71,7 +71,7 @@ class RAGv2Settings(BaseSettings):
 
 ### Acceptance Criteria
 - [ ] RAGv2Settings class with all config knobs
-- [ ] Environment variable override support (IDX_RAG_V2__*)
+- [ ] Environment variable override support (SUBSTRATE_RAG_V2__*)
 - [ ] Default values match TypeScript QMD system
 - [ ] Unit tests for settings loading and validation
 

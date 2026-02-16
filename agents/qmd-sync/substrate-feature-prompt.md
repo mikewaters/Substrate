@@ -6,13 +6,13 @@ This document proposes an additive LlamaIndex-based RAG + hybrid retrieval path 
 ## Existing Seams & Contracts
 
 ### A) Storage & Vector I/O
-- Vector persistence and retrieval is managed via `catalog.store.vector.VectorStoreManager`, which creates/loads a `VectorStoreIndex` and persists to the configured `IDX_VECTOR_STORE_PATH` directory.
+- Vector persistence and retrieval is managed via `catalog.store.vector.VectorStoreManager`, which creates/loads a `VectorStoreIndex` and persists to the configured `SUBSTRATE_VECTOR_STORE_PATH` directory.
 - Vector queries are executed either directly against `SimpleVectorStore` (`catalog.search.vector.VectorSearch`) or via `VectorStoreIndex.as_retriever()` in the hybrid path (`catalog.search.hybrid.HybridSearch`).
 - Dataset scoping relies on `source_doc_id = "{dataset}:{path}"` in node metadata. The hybrid retriever uses LlamaIndex `MetadataFilters` with `FilterOperator.CONTAINS` on `source_doc_id`, while direct vector search filters results in Python.
 
 ### B) Embeddings Access
 - Embedding model creation is centralized in `catalog.embedding.get_embed_model()` and `catalog.store.vector.VectorStoreManager._get_embed_model()`.
-- MLX and HuggingFace embeddings are supported, with batch size defined by `IDX_EMBEDDING__BATCH_SIZE`.
+- MLX and HuggingFace embeddings are supported, with batch size defined by `SUBSTRATE_EMBEDDING__BATCH_SIZE`.
 - No explicit embedding cache or retry middleware exists; models are lazily initialized.
 
 ### C) Document/Node Persistence
@@ -41,7 +41,7 @@ Before detailing the v2 design, here's where new abstractions belong based on th
 
 | Module | Responsibility | New v2 Additions |
 |--------|----------------|------------------|
-| `catalog.core.settings` | Configuration management | All `IDX_RAG_V2__*` config knobs |
+| `catalog.core.settings` | Configuration management | All `SUBSTRATE_RAG_V2__*` config knobs |
 | `catalog.embedding` | Embedding model abstraction | `ResilientEmbedding` (batch fallback) |
 | `catalog.transform` | LlamaIndex TransformComponents | `EmbeddingPrefixTransform`, `ResilientSplitter` |
 | `catalog.store` | Persistence layer | `LLMCache` (new submodule for LLM result caching) |
@@ -72,18 +72,18 @@ Default behavior stays unchanged; v2 is opt-in.
 
 | Capability | LlamaIndex abstraction | Existing seam | Proposed location | Config knobs |
 | --- | --- | --- | --- | --- |
-| Chunking with fallback | `TokenTextSplitter` / `SentenceSplitter` | `catalog.ingest.pipelines` | `catalog.transform.splitter` | `IDX_RAG_V2__CHUNK_*` |
-| Embedding prefixes | `TransformComponent` | `catalog.transform.llama` | `catalog.transform.embedding` | `IDX_RAG_V2__EMBED_PREFIX_*` |
-| Resilient embedding | `TransformComponent` | `catalog.embedding` | `catalog.embedding.resilient` | `IDX_RAG_V2__EMBED_*` |
-| Ingestion pipeline v2 | `IngestionPipeline` | `catalog.ingest.pipelines` | `catalog.ingest.pipelines` | `IDX_RAG_V2__INGEST_*` |
-| Vector retrieval | `VectorIndexRetriever` | `catalog.search.vector` | reuse existing | `IDX_RAG_V2__VECTOR_TOP_K` |
-| Lexical retrieval | `BaseRetriever` | `catalog.search.fts_chunk` | reuse existing | `IDX_RAG_V2__FTS_TOP_K` |
-| Hybrid fusion v2 | `QueryFusionRetriever` | `catalog.search.hybrid` | `catalog.search.hybrid` | `IDX_RAG_V2__FUSION_*` |
-| Query expansion | `QueryTransform` | None | `catalog.search.query_expansion` | `IDX_RAG_V2__EXPANSION_*` |
-| RRF postprocessing | `BaseNodePostprocessor` | None | `catalog.search.postprocessors` | `IDX_RAG_V2__RRF_*` |
-| Reranking with cache | `LLMRerank` wrapper | `catalog.llm.reranker` | `catalog.llm.reranker` | `IDX_RAG_V2__RERANK_*` |
-| LLM caching | Custom adapter | None | `catalog.store.llm_cache` | `IDX_RAG_V2__CACHE_*` |
-| Snippet formatting | Pure utility | `catalog.search.models` | `catalog.search.formatting` | `IDX_RAG_V2__SNIPPET_*` |
+| Chunking with fallback | `TokenTextSplitter` / `SentenceSplitter` | `catalog.ingest.pipelines` | `catalog.transform.splitter` | `SUBSTRATE_RAG_V2__CHUNK_*` |
+| Embedding prefixes | `TransformComponent` | `catalog.transform.llama` | `catalog.transform.embedding` | `SUBSTRATE_RAG_V2__EMBED_PREFIX_*` |
+| Resilient embedding | `TransformComponent` | `catalog.embedding` | `catalog.embedding.resilient` | `SUBSTRATE_RAG_V2__EMBED_*` |
+| Ingestion pipeline v2 | `IngestionPipeline` | `catalog.ingest.pipelines` | `catalog.ingest.pipelines` | `SUBSTRATE_RAG_V2__INGEST_*` |
+| Vector retrieval | `VectorIndexRetriever` | `catalog.search.vector` | reuse existing | `SUBSTRATE_RAG_V2__VECTOR_TOP_K` |
+| Lexical retrieval | `BaseRetriever` | `catalog.search.fts_chunk` | reuse existing | `SUBSTRATE_RAG_V2__FTS_TOP_K` |
+| Hybrid fusion v2 | `QueryFusionRetriever` | `catalog.search.hybrid` | `catalog.search.hybrid` | `SUBSTRATE_RAG_V2__FUSION_*` |
+| Query expansion | `QueryTransform` | None | `catalog.search.query_expansion` | `SUBSTRATE_RAG_V2__EXPANSION_*` |
+| RRF postprocessing | `BaseNodePostprocessor` | None | `catalog.search.postprocessors` | `SUBSTRATE_RAG_V2__RRF_*` |
+| Reranking with cache | `LLMRerank` wrapper | `catalog.llm.reranker` | `catalog.llm.reranker` | `SUBSTRATE_RAG_V2__RERANK_*` |
+| LLM caching | Custom adapter | None | `catalog.store.llm_cache` | `SUBSTRATE_RAG_V2__CACHE_*` |
+| Snippet formatting | Pure utility | `catalog.search.models` | `catalog.search.formatting` | `SUBSTRATE_RAG_V2__SNIPPET_*` |
 | MCP tools | `FunctionTool` | None | `catalog.api.mcp` | tool schemas |
 | Evaluation harness | Pytest | existing tests | `tests/rag_v2/` | thresholds |
 
@@ -100,7 +100,7 @@ Add v2 configuration to the existing `Settings` class:
 
 class RAGv2Settings(BaseSettings):
     """RAG v2 configuration."""
-    model_config = SettingsConfigDict(env_prefix="IDX_RAG_V2__")
+    model_config = SettingsConfigDict(env_prefix="SUBSTRATE_RAG_V2__")
 
     # Chunking
     chunk_size: int = 800
@@ -1241,31 +1241,31 @@ EVAL_THRESHOLDS = {
 
 | Config Key | Type | Default | Module |
 |------------|------|---------|--------|
-| `IDX_RAG_V2__CHUNK_SIZE` | int | 800 | `catalog.core.settings` |
-| `IDX_RAG_V2__CHUNK_OVERLAP` | int | 120 | `catalog.core.settings` |
-| `IDX_RAG_V2__CHUNK_FALLBACK_ENABLED` | bool | True | `catalog.core.settings` |
-| `IDX_RAG_V2__CHUNK_CHARS_PER_TOKEN` | int | 4 | `catalog.core.settings` |
-| `IDX_RAG_V2__EMBED_BATCH_SIZE` | int | 32 | `catalog.core.settings` |
-| `IDX_RAG_V2__EMBED_FALLBACK_ENABLED` | bool | True | `catalog.core.settings` |
-| `IDX_RAG_V2__EMBED_PREFIX_QUERY` | str | "task: search result \| query: " | `catalog.core.settings` |
-| `IDX_RAG_V2__EMBED_PREFIX_DOC` | str | "title: {title} \| text: " | `catalog.core.settings` |
-| `IDX_RAG_V2__EXPANSION_ENABLED` | bool | True | `catalog.core.settings` |
-| `IDX_RAG_V2__EXPANSION_MAX_LEX` | int | 3 | `catalog.core.settings` |
-| `IDX_RAG_V2__EXPANSION_MAX_VEC` | int | 3 | `catalog.core.settings` |
-| `IDX_RAG_V2__EXPANSION_INCLUDE_HYDE` | bool | True | `catalog.core.settings` |
-| `IDX_RAG_V2__RRF_K` | int | 60 | `catalog.core.settings` |
-| `IDX_RAG_V2__RRF_ORIGINAL_WEIGHT` | float | 2.0 | `catalog.core.settings` |
-| `IDX_RAG_V2__RRF_EXPANSION_WEIGHT` | float | 1.0 | `catalog.core.settings` |
-| `IDX_RAG_V2__RRF_RANK1_BONUS` | float | 0.05 | `catalog.core.settings` |
-| `IDX_RAG_V2__RRF_RANK23_BONUS` | float | 0.02 | `catalog.core.settings` |
-| `IDX_RAG_V2__RERANK_TOP_N` | int | 10 | `catalog.core.settings` |
-| `IDX_RAG_V2__RERANK_CANDIDATES` | int | 40 | `catalog.core.settings` |
-| `IDX_RAG_V2__RERANK_CACHE_ENABLED` | bool | True | `catalog.core.settings` |
-| `IDX_RAG_V2__CACHE_TTL_HOURS` | int | 168 | `catalog.core.settings` |
-| `IDX_RAG_V2__SNIPPET_MAX_LINES` | int | 10 | `catalog.core.settings` |
-| `IDX_RAG_V2__VECTOR_TOP_K` | int | 20 | `catalog.core.settings` |
-| `IDX_RAG_V2__FTS_TOP_K` | int | 20 | `catalog.core.settings` |
-| `IDX_RAG_V2__FUSION_TOP_K` | int | 30 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__CHUNK_SIZE` | int | 800 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__CHUNK_OVERLAP` | int | 120 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__CHUNK_FALLBACK_ENABLED` | bool | True | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__CHUNK_CHARS_PER_TOKEN` | int | 4 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__EMBED_BATCH_SIZE` | int | 32 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__EMBED_FALLBACK_ENABLED` | bool | True | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__EMBED_PREFIX_QUERY` | str | "task: search result \| query: " | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__EMBED_PREFIX_DOC` | str | "title: {title} \| text: " | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__EXPANSION_ENABLED` | bool | True | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__EXPANSION_MAX_LEX` | int | 3 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__EXPANSION_MAX_VEC` | int | 3 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__EXPANSION_INCLUDE_HYDE` | bool | True | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__RRF_K` | int | 60 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__RRF_ORIGINAL_WEIGHT` | float | 2.0 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__RRF_EXPANSION_WEIGHT` | float | 1.0 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__RRF_RANK1_BONUS` | float | 0.05 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__RRF_RANK23_BONUS` | float | 0.02 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__RERANK_TOP_N` | int | 10 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__RERANK_CANDIDATES` | int | 40 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__RERANK_CACHE_ENABLED` | bool | True | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__CACHE_TTL_HOURS` | int | 168 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__SNIPPET_MAX_LINES` | int | 10 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__VECTOR_TOP_K` | int | 20 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__FTS_TOP_K` | int | 20 | `catalog.core.settings` |
+| `SUBSTRATE_RAG_V2__FUSION_TOP_K` | int | 30 | `catalog.core.settings` |
 
 ---
 

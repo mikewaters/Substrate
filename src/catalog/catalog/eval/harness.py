@@ -187,10 +187,10 @@ def prepare_eval_environment(
     env = os.environ.copy()
     env.update(
         {
-            "IDX_DATABASES_CATALOG_PATH": str(catalog_db_path),
-            "IDX_DATABASES_CONTENT_PATH": str(content_db_path),
-            "IDX_VECTOR_STORE_PATH": str(vector_store_path),
-            "IDX_EMBEDDING_MODEL": embedding_model,
+            "SUBSTRATE_DATABASES__CATALOG_PATH": str(catalog_db_path),
+            "SUBSTRATE_DATABASES__CONTENT_PATH": str(content_db_path),
+            "SUBSTRATE_VECTOR_STORE_PATH": str(vector_store_path),
+            "SUBSTRATE_EMBEDDING_MODEL": embedding_model,
         }
     )
     return env

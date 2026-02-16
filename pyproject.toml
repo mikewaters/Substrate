@@ -22,7 +22,9 @@ dependencies = [
 ]
 
 [project.scripts]
-substrate = "app.cli.main:main"
+substrate = "tool.cli.user:main"
+substrate-admin = "tool.cli.operator:main"
+
 #validate-schema = "ontology.domains:validate"
 #ontology = "ontology.cli.main:main"
 
@@ -38,7 +40,7 @@ agentlayer = { path = "src/agentlayer", editable = true }
 ontology = { path = "src/ontology", editable = true }
 advanced_alchemy = { path = "src/advanced-alchemy", editable = true }
 
-app = { path = "app", editable = true }
+tool = { path = "tool", editable = true }
 
 [build-system]
 requires = ["hatchling"]
@@ -49,7 +51,7 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = [
-"app",
+    "tool",
     "src/ontology",
     "src/agentlayer",
     "src/catalog",
@@ -129,7 +131,7 @@ addopts = [
     #"--ignore=src/index/tests/scenario"
 ]
 testpaths = [
-    "app",
+    "tool",
     #"src/ontology",
     "src/catalog",
     #"tools"  #FIXME

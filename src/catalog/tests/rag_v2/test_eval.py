@@ -176,12 +176,33 @@ class TestLoadGoldenQueries:
             load_golden_queries(str(file_path))
 
     def test_load_non_array_json(self, tmp_path: Path) -> None:
-        """load_golden_queries raises ValueError for non-array JSON."""
+        """load_golden_queries raises ValueError for object without 'queries' array."""
         file_path = tmp_path / "object.json"
         file_path.write_text('{"query": "test"}')
 
-        with pytest.raises(ValueError, match="Expected JSON array"):
+        with pytest.raises(ValueError, match="Expected JSON array or object with 'queries' array"):
             load_golden_queries(str(file_path))
+
+    def test_load_wrapped_queries_dict(self, tmp_path: Path) -> None:
+        """load_golden_queries accepts object with 'queries' key (wrapper format)."""
+        data = {
+            "version": "1.0",
+            "description": "Test fixture",
+            "queries": [
+                {
+                    "query": "wrapped query",
+                    "expected_docs": ["doc.md"],
+                    "difficulty": "easy",
+                    "retriever_types": ["bm25"],
+                },
+            ],
+        }
+        file_path = tmp_path / "wrapped.json"
+        file_path.write_text(json.dumps(data))
+
+        queries = load_golden_queries(str(file_path))
+        assert len(queries) == 1
+        assert queries[0].query == "wrapped query"
 
     def test_load_missing_required_field(self, tmp_path: Path) -> None:
         """load_golden_queries raises KeyError for missing required field."""

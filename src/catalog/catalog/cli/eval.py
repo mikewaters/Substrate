@@ -11,6 +11,7 @@ Example usage:
 """
 
 import json
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -20,6 +21,10 @@ from agentlayer.logging import get_logger
 __all__ = ["eval_app"]
 
 logger = get_logger(__name__)
+
+# Resolve default relative to catalog project root so it works from any cwd (e.g. substrate-admin from tool/cli).
+_CATALOG_ROOT = Path(__file__).resolve().parent.parent.parent
+_DEFAULT_QUERIES_PATH = _CATALOG_ROOT / "tests" / "rag_v2" / "fixtures" / "golden_queries.json"
 
 eval_app = typer.Typer(
     name="eval",
@@ -36,7 +41,7 @@ def golden(
             "-f",
             help="Path to golden queries JSON file.",
         ),
-    ] = "tests/rag/fixtures/golden_queries.json",
+    ] = str(_DEFAULT_QUERIES_PATH),
     output: Annotated[
         str,
         typer.Option(

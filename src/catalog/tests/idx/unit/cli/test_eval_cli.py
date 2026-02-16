@@ -35,6 +35,42 @@ class TestEvalAppStructure:
 class TestGoldenCommand:
     """Tests for golden command."""
 
+    def test_golden_uses_default_queries_path_when_option_omitted(self) -> None:
+        """golden command uses package-relative default path when --queries-file is omitted."""
+        mock_results = {
+            "bm25": {
+                "easy": {
+                    "hit_at_1": 0.8,
+                    "hit_at_3": 0.9,
+                    "hit_at_5": 0.95,
+                    "hit_at_10": 1.0,
+                    "count": 1.0,
+                }
+            }
+        }
+        with patch("catalog.store.database.get_session"):
+            with patch("catalog.store.session_context.use_session"):
+                with patch("catalog.search.service.SearchService"):
+                    with patch(
+                        "catalog.eval.golden.evaluate_golden_queries",
+                        return_value=mock_results,
+                    ):
+                        with patch(
+                            "catalog.eval.golden.load_golden_queries",
+                            return_value=[],
+                        ) as load_mock:
+                            runner = CliRunner()
+                            result = runner.invoke(
+                                eval_app,
+                                ["--output", "json"],
+                            )
+                            assert result.exit_code == 0, result.output
+                            assert "hit_at_1" in result.output
+                            load_mock.assert_called_once()
+                            (call_path,) = load_mock.call_args[0]
+                            assert "rag_v2" in call_path
+                            assert call_path.endswith("golden_queries.json")
+
     def test_golden_file_not_found_exits_with_error(self) -> None:
         """golden command exits with error when file not found."""
         runner = CliRunner()

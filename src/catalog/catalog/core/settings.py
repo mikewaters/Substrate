@@ -428,6 +428,8 @@ class Settings(BaseSettings):
         env_nested_delimiter="__",
         extra="ignore",
         validate_default=True,
+        env_file=(".env", ".env.local"),
+        env_file_encoding="utf-8",
     )
 
     # Multi-database configuration

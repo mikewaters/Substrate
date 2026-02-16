@@ -143,8 +143,8 @@ class EvalResult:
 def load_golden_queries(path: str) -> list[GoldenQuery]:
     """Load golden queries from a JSON file.
 
-    The JSON file should contain an array of objects with the following
-    structure:
+    The JSON file may be either a top-level array of query objects, or an
+    object with a "queries" key containing that array. Each object has:
         {
             "query": "search query text",
             "expected_docs": ["doc1.md", "doc2.md"],
@@ -173,11 +173,20 @@ def load_golden_queries(path: str) -> list[GoldenQuery]:
     with open(file_path) as f:
         data = json.load(f)
 
-    if not isinstance(data, list):
-        raise ValueError(f"Expected JSON array, got {type(data).__name__}")
+    if isinstance(data, dict) and "queries" in data:
+        items = data["queries"]
+    elif isinstance(data, list):
+        items = data
+    else:
+        raise ValueError(
+            f"Expected JSON array or object with 'queries' array, got {type(data).__name__}"
+        )
+
+    if not isinstance(items, list):
+        raise ValueError(f"queries must be an array, got {type(items).__name__}")
 
     queries = []
-    for i, item in enumerate(data):
+    for i, item in enumerate(items):
         if not isinstance(item, dict):
             raise ValueError(f"Item {i} is not an object: {type(item).__name__}")
 

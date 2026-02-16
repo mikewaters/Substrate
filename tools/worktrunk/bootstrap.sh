@@ -34,6 +34,7 @@ uv add agentlayer
 # hack
 uv add agentlayer
 make install
+direnv allow
 
 # --------------------------------------------------
 # 4) Activate environment for current shell

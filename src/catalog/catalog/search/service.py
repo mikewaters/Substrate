@@ -29,6 +29,7 @@ Example usage:
             ))
 """
 
+import asyncio
 from typing import TYPE_CHECKING, Any
 
 from agentlayer.logging import get_logger
@@ -198,7 +199,7 @@ class SearchService:
         if self._settings.expansion_enabled and criteria.mode != "fts":
             try:
                 expander = self._ensure_query_expander()
-                expansion_result = expander.expand(criteria.query)
+                expansion_result = asyncio.run(expander.expand(criteria.query))
                 debug_info["expansion"] = {
                     "lex": expansion_result.lex_expansions,
                     "vec": expansion_result.vec_expansions,

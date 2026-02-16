@@ -193,6 +193,51 @@ class ObsidianMarkdownReader(MarkdownReader):
         with open(file, "r") as f:
             return f.read()
 
+    def _get_effective_title(self, metadata: dict[str, Any]) -> str | None:
+        """Return the effective document title from metadata, or None.
+
+        Priority: frontmatter title, first alias, note_name, file_name stem.
+        """
+        frontmatter = metadata.get(self._frontmatter_metadata_key)
+        if isinstance(frontmatter, dict):
+            raw_title = frontmatter.get("title")
+            if isinstance(raw_title, str) and raw_title.strip():
+                return raw_title.strip()
+            aliases = frontmatter.get("aliases")
+            if isinstance(aliases, list):
+                for alias in aliases:
+                    if isinstance(alias, str) and alias.strip():
+                        return alias.strip()
+        note_name = metadata.get("note_name")
+        if isinstance(note_name, str) and note_name.strip():
+            return note_name.strip()
+        file_name = metadata.get("file_name")
+        if isinstance(file_name, str) and file_name.strip():
+            return Path(file_name).stem.strip() or file_name.strip()
+        return None
+
+    def _strip_duplicate_title(self, content: str, metadata: dict[str, Any]) -> str:
+        """If the first line is a single H1 matching the effective title, remove it.
+
+        Normalizes Heptabase-style (and similar) documents where the title appears
+        in both the filename and the first line of the body.
+        """
+        title = self._get_effective_title(metadata)
+        if not title or not title.strip():
+            return content
+        lines = content.split("\n", 1)
+        if not lines:
+            return content
+        first = lines[0]
+        rest = lines[1] if len(lines) > 1 else ""
+        first_stripped = first.strip()
+        if not first_stripped.startswith("#"):
+            return content
+        heading_text = first_stripped.lstrip("#").strip()
+        if heading_text != title.strip():
+            return content
+        return rest.lstrip("\n") if rest else ""
+
     def _ensure_minimal_content(self, content: str, metadata: dict[str, Any]) -> str:
         """Guarantee non-empty markdown content for parser/chunking stages.
 
@@ -203,30 +248,7 @@ class ObsidianMarkdownReader(MarkdownReader):
         if content.strip():
             return content
 
-        title: str | None = None
-        frontmatter = metadata.get(self._frontmatter_metadata_key)
-        if isinstance(frontmatter, dict):
-            raw_title = frontmatter.get("title")
-            if isinstance(raw_title, str) and raw_title.strip():
-                title = raw_title.strip()
-            if title is None:
-                aliases = frontmatter.get("aliases")
-                if isinstance(aliases, list):
-                    for alias in aliases:
-                        if isinstance(alias, str) and alias.strip():
-                            title = alias.strip()
-                            break
-
-        if title is None:
-            note_name = metadata.get("note_name")
-            if isinstance(note_name, str) and note_name.strip():
-                title = note_name.strip()
-
-        if title is None:
-            file_name = metadata.get("file_name")
-            if isinstance(file_name, str) and file_name.strip():
-                title = Path(file_name).stem.strip() or file_name.strip()
-
+        title = self._get_effective_title(metadata)
         if title is None:
             return content
 
@@ -263,6 +285,7 @@ class ObsidianMarkdownReader(MarkdownReader):
                         content = remainder
                     extracted = True
 
+        content = self._strip_duplicate_title(content, extra_info)
         content = self._ensure_minimal_content(content, extra_info)
 
         # Now do the normal header splitting and document creation

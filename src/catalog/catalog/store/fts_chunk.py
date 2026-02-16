@@ -25,6 +25,7 @@ Example usage:
     manager.upsert(...)
 """
 
+import re
 from dataclasses import dataclass
 
 from agentlayer.logging import get_logger
@@ -42,6 +43,70 @@ __all__ = [
 ]
 
 logger = get_logger(__name__)
+
+# Regex to strip YAML frontmatter (--- ... ---) from the start of text.
+# This prevents headings/titles in frontmatter from dominating BM25 scores.
+_FRONTMATTER_RE = re.compile(r"\A---\s*\n.*?\n---\s*\n?", re.DOTALL)
+
+# Characters that FTS5 interprets as operators when they appear in query tokens.
+# Hyphens are column-filter operators, quotes/parens are grouping, etc.
+_FTS5_SPECIAL_RE = re.compile(r'["\-*^(){}:+]')
+
+
+def _split_frontmatter_title(text: str) -> tuple[str, str]:
+    """Extract title from YAML frontmatter and return (title, body).
+
+    Separates the title field from frontmatter so it can be indexed
+    in a dedicated FTS5 column with lower BM25 weight. This allows
+    body content matches to score higher than title-only matches,
+    reducing heading-dominance bias.
+
+    Args:
+        text: Raw chunk text, possibly starting with YAML frontmatter.
+
+    Returns:
+        Tuple of (title, body). Title is empty string if no frontmatter
+        or no title field is found.
+    """
+    match = _FRONTMATTER_RE.match(text)
+    if not match:
+        return ("", text)
+
+    frontmatter_block = match.group(0)
+    body = text[match.end():]
+
+    # Extract title from frontmatter
+    title_match = re.search(r"^title:\s*(.+)$", frontmatter_block, re.MULTILINE)
+    title = title_match.group(1).strip() if title_match else ""
+
+    return (title, body)
+
+
+def _sanitize_fts5_query(query: str) -> str:
+    """Sanitize a query string for safe use with FTS5 MATCH.
+
+    FTS5 interprets hyphens as column-filter operators (e.g. 'PROJ-1234'
+    becomes 'search column PROJ for 1234'), and other characters like
+    quotes and parentheses as grouping operators. This function wraps
+    any token containing special characters in double quotes so FTS5
+    treats them as literal search terms.
+
+    Args:
+        query: Raw user query string.
+
+    Returns:
+        Sanitized query safe for FTS5 MATCH.
+    """
+    tokens = query.split()
+    sanitized = []
+    for token in tokens:
+        if _FTS5_SPECIAL_RE.search(token):
+            # Escape internal double quotes and wrap in double quotes
+            escaped = token.replace('"', '""')
+            sanitized.append(f'"{escaped}"')
+        else:
+            sanitized.append(token)
+    return " ".join(sanitized)
 
 
 @dataclass
@@ -76,6 +141,7 @@ def create_chunks_fts_table(engine: Engine) -> None:
             sql_text("""
                 CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
                     node_id,
+                    title,
                     text,
                     source_doc_id,
                     tokenize='porter unicode61'
@@ -147,18 +213,28 @@ class FTSChunkManager:
             text: Chunk text content for searching.
             source_doc_id: Composite document key `{dataset_name}:{path}`.
         """
+        # Separate title from body so they can be weighted independently.
+        # FTS5 column weights via bm25() let us score body matches higher
+        # than title matches, reducing heading-dominance bias.
+        title, body = _split_frontmatter_title(text)
+
         # Delete existing entry if any
         self._session.execute(
             sql_text("DELETE FROM chunks_fts WHERE node_id = :node_id"),
             {"node_id": node_id},
         )
-        # Insert new entry
+        # Insert with separate title and body columns
         self._session.execute(
             sql_text("""
-                INSERT INTO chunks_fts(node_id, text, source_doc_id)
-                VALUES (:node_id, :text, :source_doc_id)
+                INSERT INTO chunks_fts(node_id, title, text, source_doc_id)
+                VALUES (:node_id, :title, :text, :source_doc_id)
             """),
-            {"node_id": node_id, "text": text, "source_doc_id": source_doc_id},
+            {
+                "node_id": node_id,
+                "title": title,
+                "text": body,
+                "source_doc_id": source_doc_id,
+            },
         )
         #logger.debug(f"FTS indexed chunk {node_id} from {source_doc_id}")
 
@@ -236,15 +312,23 @@ class FTSChunkManager:
         Returns:
             List of FTSChunkResult objects sorted by relevance (highest score first).
         """
+        safe_query = _sanitize_fts5_query(query)
+
+        # BM25 column weights: (node_id, title, text, source_doc_id)
+        # Weight title at 0.5 and body text at 2.0 so body content matches
+        # score 4x higher than title-only matches. node_id and source_doc_id
+        # get 0 weight since they aren't meaningful search content.
+        bm25_weights = "0.0, 0.5, 2.0, 0.0"
+
         if source_doc_id_prefix is not None:
             # Filter by source_doc_id prefix
             results = self._session.execute(
-                sql_text("""
+                sql_text(f"""
                     SELECT
                         node_id,
                         text,
                         source_doc_id,
-                        bm25(chunks_fts) as rank
+                        bm25(chunks_fts, {bm25_weights}) as rank
                     FROM chunks_fts
                     WHERE chunks_fts MATCH :query
                     AND source_doc_id LIKE :prefix
@@ -252,7 +336,7 @@ class FTSChunkManager:
                     LIMIT :limit
                 """),
                 {
-                    "query": query,
+                    "query": safe_query,
                     "prefix": f"{source_doc_id_prefix}%",
                     "limit": limit,
                 },
@@ -260,18 +344,18 @@ class FTSChunkManager:
         else:
             # Search without filter
             results = self._session.execute(
-                sql_text("""
+                sql_text(f"""
                     SELECT
                         node_id,
                         text,
                         source_doc_id,
-                        bm25(chunks_fts) as rank
+                        bm25(chunks_fts, {bm25_weights}) as rank
                     FROM chunks_fts
                     WHERE chunks_fts MATCH :query
                     ORDER BY rank
                     LIMIT :limit
                 """),
-                {"query": query, "limit": limit},
+                {"query": safe_query, "limit": limit},
             )
 
         rows = list(results)

@@ -7,6 +7,8 @@ node_modules
 .wt.activate
 .wt.agent-env
 .wt.port
+**/.testmondata-*
+
 .ropeproject/
 .ruff_cache/
 

@@ -1,0 +1,13 @@
+# Development environment overrides
+#
+# Loaded via: load_app_config(overrides=["+environment=dev"])
+# Or automatically when CATALOG_ENV=dev
+
+log_level: DEBUG
+
+performance:
+  batch_size: 10
+  concurrency: 2
+
+rag:
+  rerank_cache_enabled: false

@@ -1,0 +1,110 @@
+# catalog application configuration - default settings
+#
+# All values here match the Pydantic defaults in catalog.core.settings.
+# Override specific values in environment-specific configs (dev.yaml, etc.)
+# or via IDX_* environment variables (highest priority).
+#
+# Hydra variable interpolation is supported:
+#   ${oc.env:HOME}       resolves to $HOME
+#   ${log_level}         cross-references within this config
+#
+# Usage:
+#   from catalog.config import load_app_config
+#   settings = load_app_config()                    # loads this file
+#   settings = load_app_config("default", overrides=["+environment=dev"])
+
+# -- Paths ------------------------------------------------------------------
+
+database_path: ${oc.env:HOME}/.idx/catalog.db
+vector_store_path: ${oc.env:HOME}/.idx/vector_store
+cache_path: ${oc.env:HOME}/.idx/cache
+
+# -- Models ------------------------------------------------------------------
+
+embedding_model: BAAI/bge-small-en-v1.5
+transformers_model: cross-encoder/ms-marco-MiniLM-L-6-v2
+
+# -- Logging -----------------------------------------------------------------
+
+log_level: INFO
+
+# -- Multi-database paths ----------------------------------------------------
+
+databases:
+  catalog_path: ${oc.env:HOME}/.idx/catalog.db
+  content_path: ${oc.env:HOME}/.idx/content.db
+
+# -- Embedding ---------------------------------------------------------------
+
+embedding:
+  backend: mlx
+  model_name: mlx-community/all-MiniLM-L6-v2-bf16
+  batch_size: 32
+  embedding_dim: 384
+
+# -- Langfuse observability --------------------------------------------------
+
+langfuse:
+  enabled: false
+  public_key: null
+  secret_key: null
+  host: null
+
+# -- Performance -------------------------------------------------------------
+
+performance:
+  batch_size: 100
+  concurrency: 4
+  embedding_batch_size: 32
+  chunk_max_bytes: 2048
+  chunk_min_bytes: 128
+
+# -- Qdrant ------------------------------------------------------------------
+
+qdrant:
+  collection_name: catalog_vectors
+
+# -- RAG pipeline ------------------------------------------------------------
+
+rag:
+  # Chunking
+  chunk_size: 800
+  chunk_overlap: 120
+  chunk_fallback_enabled: true
+  chunk_chars_per_token: 4
+
+  # Embedding prefixes
+  embed_batch_size: 32
+  embed_fallback_enabled: true
+  embed_prefix_query: "task: search result | query: "
+  embed_prefix_doc: "title: {title} | text: "
+
+  # Query expansion
+  expansion_enabled: true
+  expansion_max_lex: 3
+  expansion_max_vec: 3
+  expansion_include_hyde: true
+
+  # RRF fusion
+  rrf_k: 60
+  rrf_original_weight: 2.0
+  rrf_expansion_weight: 1.0
+  rrf_rank1_bonus: 0.05
+  rrf_rank23_bonus: 0.02
+
+  # Reranking
+  rerank_top_n: 10
+  rerank_candidates: 40
+  rerank_cache_enabled: true
+
+  # Caching
+  cache_ttl_hours: 168
+
+  # Retrieval
+  vector_top_k: 20
+  fts_top_k: 20
+  fusion_top_k: 30
+
+  # Snippets
+  snippet_max_lines: 10
+  snippet_context_lines: 2

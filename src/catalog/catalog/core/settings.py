@@ -1,6 +1,7 @@
 """catalog.core.settings - Library configuration via pydantic-settings.
 
-Supports environment variables first; config-file support is deferred.
+Supports both environment variables and YAML config files (via Hydra).
+Environment variables always take highest priority.
 
 All settings use the SUBSTRATE_ prefix for environment variables.
 
@@ -12,14 +13,26 @@ When SUBSTRATE_ENVIRONMENT is set, a TOML file named after that environment
 (e.g. dev.toml, prod.toml) is read from the catalog.core package. Values in that
 file override Pydantic defaults only; environment variables still take precedence.
 
-Example usage:
+Configuration sources (highest to lowest priority):
+    1. Environment variables (IDX_*)
+    2. YAML config file (when CATALOG_CONFIG_PATH is set)
+    3. Pydantic field defaults
+
+Example usage::
+
     from catalog.core.settings import get_settings
 
     settings = get_settings()
     print(settings.config_root)
     print(settings.databases.catalog_path)
 
+YAML config usage::
+
+    export CATALOG_CONFIG_PATH=/path/to/config.yaml
+    # get_settings() will load YAML then overlay env vars
+
 Environment variables:
+    CATALOG_CONFIG_PATH - Path to YAML config file (optional)
     SUBSTRATE_ENVIRONMENT - Application environment: dev (default), prod, staging, test
     SUBSTRATE_CONFIG_ROOT - Override config root for current environment
     SUBSTRATE_CONFIG_ROOT_DEV, SUBSTRATE_CONFIG_ROOT_PROD, etc. - Per-environment config root
@@ -38,6 +51,7 @@ import logging
 import os
 import tempfile
 import tomllib
+
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -722,15 +736,31 @@ def get_settings() -> Settings:
     """Get the singleton Settings instance.
 
     Returns a cached Settings instance, creating it on first call.
-    The settings are loaded from environment variables.
+
+    When the ``CATALOG_CONFIG_PATH`` environment variable is set, the
+    settings are loaded from the specified YAML file via Hydra (with
+    environment variables overlaid on top). Otherwise, settings are
+    loaded purely from environment variables and Pydantic defaults.
 
     Returns:
         The singleton Settings instance.
 
-    Example:
+    Example::
+
         settings = get_settings()
         print(settings.database_path)
+
+        # Or with YAML config:
+        # export CATALOG_CONFIG_PATH=~/.idx/config.yaml
+        settings = get_settings()
     """
+    config_path = os.environ.get("CATALOG_CONFIG_PATH")
+
+    if config_path:
+        from catalog.config.loader import load_app_config_from_file
+
+        return load_app_config_from_file(Path(config_path))
+
     settings = Settings()
     settings.ensure_directories()
     return settings

@@ -1,0 +1,23 @@
+# Test environment overrides
+#
+# Loaded via: load_app_config(overrides=["+environment=test"])
+# Or automatically when CATALOG_ENV=test
+
+log_level: WARNING
+
+databases:
+  catalog_path: /tmp/idx-test/catalog.db
+  content_path: /tmp/idx-test/content.db
+
+database_path: /tmp/idx-test/catalog.db
+vector_store_path: /tmp/idx-test/vector_store
+cache_path: /tmp/idx-test/cache
+
+performance:
+  batch_size: 5
+  concurrency: 1
+  embedding_batch_size: 8
+
+rag:
+  rerank_cache_enabled: false
+  expansion_enabled: false

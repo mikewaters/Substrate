@@ -1,0 +1,17 @@
+# Production environment overrides
+#
+# Loaded via: load_app_config(overrides=["+environment=prod"])
+# Or automatically when CATALOG_ENV=prod
+
+log_level: WARNING
+
+performance:
+  batch_size: 200
+  concurrency: 8
+  embedding_batch_size: 64
+
+rag:
+  rerank_cache_enabled: true
+  cache_ttl_hours: 336
+  rerank_candidates: 60
+  rerank_top_n: 15

@@ -68,3 +68,23 @@ Feature, implementation, and architecture proposals are located in `docs/feature
 # Project Reference
 
 The Substrate
+
+---
+
+## Cursor Cloud specific instructions
+
+### Services overview
+
+| Service | How to run | Port |
+|---------|-----------|------|
+| Ontology API (FastAPI) | `uv run uvicorn ontologizer.api.app:app --host 0.0.0.0 --port 8000` | 8000 |
+| Ontology Browser (React/Vite) | `cd apps/ontology-browser && pnpm dev --host 0.0.0.0 --port 5173` | 5173 |
+
+### Non-obvious caveats
+
+- **`tools/serve.py` references `ontology.api.app:app` but the correct module path is `ontologizer.api.app:app`.** Use uvicorn directly with the correct path as shown above.
+- **MLX embedding model (`mlx_embeddings`) only works on Apple Silicon (macOS).** On Linux x86_64, catalog tests that invoke the embedding pipeline (e2e tests, integration ingestion/search tests in `src/catalog/tests/idx/`) will fail with `ImportError: libmlx.so`. Exclude them with `--ignore=src/catalog/tests/e2e --ignore=src/catalog/tests/idx/integration --ignore=src/catalog/tests/idx/unit/pipelines` or `-k "not mlx"`.
+- **Sample data seeding:** Run `uv run python -c "import asyncio; from ontologizer.loader.loader import load_yaml_dataset; from ontologizer.relational.database import get_async_session, create_all_tables_async; asyncio.run((lambda: None)() or asyncio.get_event_loop().run_until_complete(create_all_tables_async()) if False else None); exec('async def m():\n await create_all_tables_async()\n async with get_async_session() as s: await load_yaml_dataset(\"src/ontologizer/loader/data\", s)\nasyncio.run(m())')"` or use the loader module directly. The database is SQLite at `.data/ontology.db`.
+- **Frontend build scripts:** `esbuild` and `msw` require post-install scripts. The root `package.json` has `pnpm.onlyBuiltDependencies` configured to allow them. Run `pnpm install` from the workspace root (not from `apps/ontology-browser` alone) to ensure they execute.
+- **Node.js version:** `.nvmrc` specifies Node 24. Use `nvm use 24` (or install via `nvm install 24`) before frontend commands.
+- **Lint/test quick reference:** See `AGENTS_PYTHON.md` for Python commands, `Justfile` for human-facing commands, and `apps/ontology-browser/package.json` scripts for frontend lint/test/build.

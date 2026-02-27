@@ -1,5 +1,7 @@
 # Task Management
 
+**this has been superseded, ignore**
+
 - This project uses `bd` commands instead of markdown TODOs or other methods of task tracking.
 - Only use `bd` when breaking down coding tasks (always use `bd` for coding tasks!), **not** for general reasoning.
 - Always create task descriptions in beads, even if they are short.

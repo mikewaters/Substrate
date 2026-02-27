@@ -91,3 +91,13 @@ apps/ontology-browser/coverage/
 !.beads/issues.jsonl
 !.beads/config.yaml
 !.beads/metadata.json
+.todos/
+
+# Sidecar worktree state files
+.sidecar/
+.sidecar-agent
+.sidecar-task
+.sidecar-pr
+.sidecar-start.sh
+.sidecar-base
+.td-root

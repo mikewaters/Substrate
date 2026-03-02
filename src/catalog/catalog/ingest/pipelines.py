@@ -4,14 +4,14 @@ Handles source acquisition, dataset creation, ontology mapping, and document
 DB persistence. Returns after persistence -- indexing is handled separately
 by DatasetIndexPipeline via the DatasetSync orchestrator.
 
-Change detection is handled by LlamaIndex's docstore, which uses
-SHA256(text + metadata) to detect changes. This catches frontmatter-only
-changes that the old body-only hash missed. The docstore is persisted
-between runs so only new/changed documents are reprocessed.
+Change detection is handled by LlamaIndex's docstore with
+DocstoreStrategy.DUPLICATES_ONLY (no vector store). The docstore uses
+SHA256(text + metadata) to detect changes and is persisted between runs
+so only new/changed documents are reprocessed.
 
-Deletion detection uses DocstoreStrategy.UPSERTS_AND_DELETE: documents
-present in the docstore but not in the current batch are removed from
-the docstore, vector store, and marked inactive in the SQLite DB.
+Deletion: documents not in the current batch are marked inactive in SQLite
+via deactivate_missing(). Vector and FTS cleanup for inactive documents
+is handled by the Index pipeline's reconciliation pass (ADR-0004).
 
 Pipeline flow:
 1. LlamaIndex docstore filters unchanged documents (upstream)
@@ -126,18 +126,12 @@ class DatasetIngestPipeline(BasePipeline):
 
         return transforms
 
-    def build_pipeline(
-        self,
-        vector_manager: VectorStoreManager,
-        incremental: bool = False,
-    ) -> IngestionPipeline:
+    def build_pipeline(self) -> IngestionPipeline:
         """Build the ingestion pipeline.
 
-        Args:
-            vector_manager: Vector store manager (needed for docstore strategy).
-            incremental: If True, use UPSERTS strategy instead of
-                UPSERTS_AND_DELETE to avoid deleting unchanged documents
-                that are absent from the partial batch.
+        Uses docstore with DUPLICATES_ONLY for change detection; no vector
+        store. Deletion of index artifacts for removed documents is handled
+        by DatasetIndexPipeline reconciliation (ADR-0004).
 
         Returns:
             Configured IngestionPipeline ready to run.
@@ -145,31 +139,14 @@ class DatasetIngestPipeline(BasePipeline):
         transformations = self._get_transforms()
 
         # Create pipeline with docstore for change detection and deduplication.
-        # LlamaIndex's docstore uses SHA256(text + metadata) for change detection,
-        # which catches frontmatter-only changes that our old body-only hash missed.
+        # LlamaIndex's docstore uses SHA256(text + metadata) for change detection.
         docstore = SimpleDocumentStore(namespace=self.dataset_name)
-        vector_store = vector_manager.get_vector_store()
-
-        # In incremental mode, use UPSERTS to avoid deleting docstore/vector
-        # entries for documents not in the partial batch.
-        if incremental:
-            strategy = DocstoreStrategy.UPSERTS
-        else:
-            strategy = DocstoreStrategy.UPSERTS_AND_DELETE
-
-        # Guard: UPSERTS_AND_DELETE silently downgrades to DUPLICATES_ONLY
-        # without a vector store, losing upsert and deletion semantics.
-        if vector_store is None and strategy == DocstoreStrategy.UPSERTS_AND_DELETE:
-            raise ValueError(
-                "Vector store is required for DocstoreStrategy.UPSERTS_AND_DELETE. "
-                "Without it, LlamaIndex silently downgrades to DUPLICATES_ONLY."
-            )
 
         pipeline = IngestionPipeline(
             transformations=transformations,
             docstore=docstore,
-            docstore_strategy=strategy,
-            vector_store=vector_store,
+            docstore_strategy=DocstoreStrategy.DUPLICATES_ONLY,
+            vector_store=None,
         )
 
         # Load cached pipeline state if available
@@ -243,9 +220,9 @@ class DatasetIngestPipeline(BasePipeline):
                             "Incremental mode: new dataset, running full ingestion"
                         )
 
-                # Handle forced ingestion
-                vector_manager: VectorStoreManager = VectorStoreManager()
+                # Handle forced ingestion: clear vectors and pipeline cache
                 if self.ingest_config.force:
+                    vector_manager = VectorStoreManager()
                     deleted: int = vector_manager.delete_by_dataset(dataset.name)
                     if deleted > 0:
                         logger.info(
@@ -254,13 +231,10 @@ class DatasetIngestPipeline(BasePipeline):
                         )
                     clear_cache(self._cache_key(dataset.name))
 
-                # Build and run pipeline
-                pipeline: IngestionPipeline = self.build_pipeline(
-                    vector_manager=vector_manager,
-                    incremental=is_incremental,
-                )
+                # Build and run pipeline (no vector store; Index handles vectors)
+                pipeline: IngestionPipeline = self.build_pipeline()
 
-                source_docs: Callable[[], None] = self.source.documents
+                source_docs = self.source.documents
                 logger.info(
                     f"Running {len(source_docs)} documents through pipeline"
                 )
@@ -277,9 +251,8 @@ class DatasetIngestPipeline(BasePipeline):
                         persist_transform = t
 
                 # Deletion sync: mark documents not in the current batch
-                # as inactive in our SQLite DB. LlamaIndex already handled
-                # deletion in the docstore and vector store via
-                # UPSERTS_AND_DELETE; this mirrors that to our DB.
+                # as inactive in SQLite. Index pipeline reconciliation
+                # removes FTS and vector entries for inactive docs (ADR-0004).
                 #
                 # Skip in incremental mode: only a subset of files were
                 # loaded, so missing docs are simply not-yet-modified,

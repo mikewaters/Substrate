@@ -86,17 +86,18 @@ def mock_vector_manager(mock_vector_store, tmp_path):
 def patched_embedding(mock_embed_model, mock_vector_manager):
     """Patch embedding and vector store for tests.
 
-    Patches agentlayer.embedding.get_embed_model and
-    catalog.ingest.pipelines.VectorStoreManager to use mocks,
-    avoiding loading real models.
+    Patches agentlayer.embedding.get_embed_model and VectorStoreManager
+    (in both ingest and index pipelines) to use mocks, avoiding loading
+    real models. Ingest no longer uses the vector store; index pipeline
+    does, so both are patched for sync tests that assert on vector output.
     """
     with patch("agentlayer.embedding.get_embed_model", return_value=mock_embed_model):
-        # Patch where VectorStoreManager is imported and used, not where it's defined
         with patch("catalog.ingest.pipelines.VectorStoreManager", return_value=mock_vector_manager):
-            yield {
-                "embed_model": mock_embed_model,
-                "vector_manager": mock_vector_manager,
-            }
+            with patch("index.pipelines.pipelines.VectorStoreManager", return_value=mock_vector_manager):
+                yield {
+                    "embed_model": mock_embed_model,
+                    "vector_manager": mock_vector_manager,
+                }
 
 
 @pytest.fixture

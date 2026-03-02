@@ -436,7 +436,11 @@ class TestVectorIndexing:
         session_factory,
         sample_vault: Path,
     ) -> None:
-        """Vector indexing always inserts vectors during sync."""
+        """Vector indexing always inserts vectors during sync.
+
+        Vectors are written by the Index pipeline only; ingest no longer
+        uses the vector store (ADR-0004).
+        """
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
@@ -444,12 +448,7 @@ class TestVectorIndexing:
 
         sync_result = DatasetSync().sync(config)
 
-        # Verify vector manager was called
-        mock_manager = patched_embedding["vector_manager"]
-        assert mock_manager.get_vector_store.called
-        assert mock_manager.persist_vector_store.called
-
-        # Index result should track vectors inserted
+        # Index pipeline is responsible for vector insertion
         assert sync_result.index.vectors_inserted > 0
 
 

@@ -15,7 +15,6 @@ from catalog.store.database import Base, create_engine_for_path
 from index.store.fts import FTSManager, create_fts_table
 from index.store.fts_chunk import create_chunks_fts_table
 from catalog.store.repositories import DatasetRepository, DocumentRepository
-from index.store.vector import VectorStoreManager
 from catalog.transform.llama import PersistenceTransform
 from catalog.transform.ontology import OntologyMapper
 
@@ -153,11 +152,7 @@ class TestDatasetIngestPipeline:
         pipeline.dataset_id = 1
         pipeline.dataset_name = "test-docs"
 
-        vector_manager = VectorStoreManager()
-
-        ingestion_pipeline = pipeline.build_pipeline(
-            vector_manager=vector_manager,
-        )
+        ingestion_pipeline = pipeline.build_pipeline()
 
         # Should have OntologyMapper and PersistenceTransform
         has_ontology = any(

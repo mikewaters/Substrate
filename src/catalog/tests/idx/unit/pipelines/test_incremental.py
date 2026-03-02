@@ -1,6 +1,6 @@
 """Tests for incremental ingestion support.
 
-Tests the incremental flag resolution, docstore strategy downgrade,
+Tests the incremental flag resolution, docstore strategy (DUPLICATES_ONLY),
 deletion sync skip, and last_ingested_at stamping.
 """
 
@@ -20,7 +20,6 @@ from catalog.store.database import Base, create_engine_for_path
 from index.store.fts import create_fts_table
 from index.store.fts_chunk import create_chunks_fts_table
 from catalog.store.repositories import DatasetRepository, DocumentRepository
-from index.store.vector import VectorStoreManager
 
 
 class TestIncrementalConfig:
@@ -76,42 +75,32 @@ class TestIncrementalConfig:
 
 
 class TestBuildPipelineDocstoreStrategy:
-    """Tests for docstore strategy selection in build_pipeline."""
+    """Tests for docstore strategy and vector store in build_pipeline."""
 
     @pytest.fixture(autouse=True)
     def use_mock_embedding(self, patched_embedding) -> None:
         """Use mock embedding model for all tests."""
         yield
 
-    @pytest.mark.skip(reason="build_pipeline accesses self.source instead of source_transforms param")
-    def test_full_run_uses_upserts_and_delete(self):
-        """Non-incremental build uses UPSERTS_AND_DELETE strategy."""
-        pipeline = DatasetIngestPipeline()
-        vector_manager = VectorStoreManager()
-
-        ingestion_pipeline = pipeline.build_pipeline(
-            dataset_id=1,
+    def test_build_pipeline_uses_duplicates_only_and_no_vector_store(
+        self, tmp_path: Path
+    ):
+        """build_pipeline uses DUPLICATES_ONLY and no vector store."""
+        docs_dir = tmp_path / "docs"
+        docs_dir.mkdir()
+        (docs_dir / "a.md").write_text("# A")
+        config = SourceDirectoryConfig(
+            source_path=docs_dir,
             dataset_name="test",
-            vector_manager=vector_manager,
-            source_transforms=([], []),
-            incremental=False,
         )
-        assert ingestion_pipeline.docstore_strategy == DocstoreStrategy.UPSERTS_AND_DELETE
+        pipeline = DatasetIngestPipeline(ingest_config=config)
+        pipeline.dataset_id = 1
+        pipeline.dataset_name = "test"
 
-    @pytest.mark.skip(reason="build_pipeline accesses self.source instead of source_transforms param")
-    def test_incremental_uses_upserts(self):
-        """Incremental build uses UPSERTS strategy."""
-        pipeline = DatasetIngestPipeline()
-        vector_manager = VectorStoreManager()
+        ingestion_pipeline = pipeline.build_pipeline()
 
-        ingestion_pipeline = pipeline.build_pipeline(
-            dataset_id=1,
-            dataset_name="test",
-            vector_manager=vector_manager,
-            source_transforms=([], []),
-            incremental=True,
-        )
-        assert ingestion_pipeline.docstore_strategy == DocstoreStrategy.UPSERTS
+        assert ingestion_pipeline.docstore_strategy == DocstoreStrategy.DUPLICATES_ONLY
+        assert ingestion_pipeline.vector_store is None
 
 
 class TestIncrementalIngestion:

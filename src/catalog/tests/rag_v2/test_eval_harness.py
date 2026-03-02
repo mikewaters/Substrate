@@ -18,7 +18,7 @@ agentlayer_module.logging = logging_module
 sys.modules.setdefault("agentlayer", agentlayer_module)
 sys.modules.setdefault("agentlayer.logging", logging_module)
 
-from catalog.eval import harness
+from index.eval import harness
 
 
 class _RagV2Settings:

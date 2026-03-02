@@ -1,16 +1,9 @@
 """catalog.core.settings - Library configuration via pydantic-settings.
 
-Supports environment variables first; config-file support is deferred.
+Extends agentlayer.settings.SubstrateSettings with catalog-specific fields
+(embedding, LLM, langfuse, qdrant, vector_db, zvec, rag).
 
 All settings use the SUBSTRATE_ prefix for environment variables.
-
-All config/data paths (databases, vector store, cache, jobs, etc.) derive from
-a single config root. The config root is chosen by environment (SUBSTRATE_ENVIRONMENT)
-unless overridden by SUBSTRATE_CONFIG_ROOT or SUBSTRATE_CONFIG_ROOT_<ENV> (e.g. SUBSTRATE_CONFIG_ROOT_DEV).
-
-When SUBSTRATE_ENVIRONMENT is set, a TOML file named after that environment
-(e.g. dev.toml, prod.toml) is read from the catalog.core package. Values in that
-file override Pydantic defaults only; environment variables still take precedence.
 
 Example usage:
     from catalog.core.settings import get_settings
@@ -23,7 +16,6 @@ Environment variables:
     SUBSTRATE_ENVIRONMENT - Application environment: dev (default), prod, staging, test
     SUBSTRATE_CONFIG_ROOT - Override config root for current environment
     SUBSTRATE_CONFIG_ROOT_DEV, SUBSTRATE_CONFIG_ROOT_PROD, etc. - Per-environment config root
-    SUBSTRATE_DATABASE_PATH - Path to SQLite database (deprecated)
     SUBSTRATE_VECTOR_STORE_PATH - LlamaIndex persist directory (override)
     SUBSTRATE_EMBEDDING_MODEL - Name/path of embedding model
     SUBSTRATE_LLM_MODEL_NAME - Name/path of generative LLM for reranking/expansion
@@ -34,22 +26,31 @@ Environment variables:
 
 from __future__ import annotations
 
-import logging
 import os
-import tempfile
-import tomllib
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import ClassVar, Literal
 
 from pydantic import Field, model_validator
-from pydantic_settings import BaseSettings, InitSettingsSource, SettingsConfigDict
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-logger = logging.getLogger(__name__)
+# Re-export base types from agentlayer so existing imports still work
+from agentlayer.settings import (  # noqa: F401
+    DEFAULT_CONFIG_ROOTS,
+    DatabasesSettings,
+    EmbeddingSettings,
+    Environment,
+    LLMSettings,
+    LogLevel,
+    PerformanceSettings,
+    SubstrateSettings,
+    _resolve_config_root_from_env,
+)
 
 __all__ = [
     "DEFAULT_CONFIG_ROOTS",
     "DatabasesSettings",
+    "EmbeddingSettings",
     "Environment",
     "LLMSettings",
     "QdrantSettings",
@@ -59,63 +60,6 @@ __all__ = [
     "ZvecSettings",
     "get_settings",
 ]
-
-
-LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
-Environment = Literal["dev", "prod", "test"]
-
-# Default config root per environment when SUBSTRATE_CONFIG_ROOT / SUBSTRATE_CONFIG_ROOT_<ENV> are unset.
-# dev: .cache under project root (cwd when Settings are built).
-DEFAULT_CONFIG_ROOTS: dict[Environment, Path] = {
-    "dev": Path(".cache"),
-    "prod": Path("~/.substrate").expanduser(),
-    "test": Path(tempfile.mkdtemp(prefix="substrate-test-")),
-}
-
-
-def _resolve_config_root_from_env() -> Path:
-    """Resolve config root from env only (for use before Settings exists)."""
-    env_raw = os.environ.get("SUBSTRATE_ENVIRONMENT", "dev")
-    environment: Environment = env_raw if env_raw in ("dev", "prod", "test") else "dev"
-    explicit = os.environ.get("SUBSTRATE_CONFIG_ROOT")
-    if explicit:
-        return Path(explicit).expanduser().resolve()
-    per_env = os.environ.get(f"SUBSTRATE_CONFIG_ROOT_{environment.upper()}")
-    if per_env:
-        return Path(per_env).expanduser().resolve()
-    root = DEFAULT_CONFIG_ROOTS[environment]
-    return root.expanduser().resolve() if isinstance(root, Path) and str(root).startswith("~") else root.resolve()
-
-
-_CORE_DIR = Path(__file__).resolve().parent
-
-
-def _load_environment_toml_defaults(settings_cls: type[BaseSettings]) -> dict[str, object]:
-    """Load environment-named TOML from the catalog.core package; return dict of default overrides or empty."""
-    env_raw = os.environ.get("SUBSTRATE_ENVIRONMENT", "dev")
-    environment: Environment = env_raw if env_raw in ("dev", "prod", "test") else "dev"
-    toml_path = _CORE_DIR / f"{environment}.toml"
-    logger.info(
-        "settings environment=%s, core config dir=%s, config file=%s",
-        environment,
-        _CORE_DIR,
-        toml_path,
-    )
-    if not toml_path.is_file():
-        logger.info("settings core config file not found, using pydantic defaults only")
-        return {}
-    with toml_path.open("rb") as f:
-        data = tomllib.load(f)
-    logger.info("settings loaded %d top-level keys from core config file", len(data))
-    return data
-
-
-class _EnvironmentTomlSettingsSource(InitSettingsSource):
-    """Settings source that overrides defaults from catalog.core/{environment}.toml. Env vars take precedence."""
-
-    def __init__(self, settings_cls: type[BaseSettings]) -> None:
-        toml_data = _load_environment_toml_defaults(settings_cls)
-        super().__init__(settings_cls, init_kwargs=toml_data)
 
 
 class LangfuseSettings(BaseSettings):
@@ -145,95 +89,6 @@ class LangfuseSettings(BaseSettings):
     host: str | None = Field(
         default=None,
         description="Langfuse host URL (for self-hosted instances)",
-    )
-
-
-class EmbeddingSettings(BaseSettings):
-    """Embedding configuration for vector generation.
-
-    Controls which embedding backend to use and model configuration.
-    Supports MLX (Apple Silicon) and HuggingFace backends.
-    """
-
-    model_config = SettingsConfigDict(
-        env_prefix="SUBSTRATE_EMBEDDING_",
-        extra="ignore",
-    )
-
-    backend: Literal["mlx", "huggingface"] = Field(
-        default="mlx",
-        description="Embedding backend: 'mlx' for Apple Silicon, 'huggingface' for general",
-    )
-    model_name: str = Field(
-        default="mlx-community/all-MiniLM-L6-v2-bf16",
-        description="Name or path of the embedding model",
-    )
-    batch_size: int = Field(
-        default=32,
-        ge=1,
-        description="Batch size for embedding generation",
-    )
-    embedding_dim: int = Field(
-        default=384,
-        ge=1,
-        description="Embedding vector dimension (384 for MiniLM-L6-v2)",
-    )
-
-
-class LLMSettings(BaseSettings):
-    """LLM configuration for generative tasks (reranking, query expansion).
-
-    Controls the local generative model used by MLXProvider. Must be an
-    autoregressive model supported by mlx-lm (not BERT/cross-encoder).
-    """
-
-    model_config = SettingsConfigDict(
-        env_prefix="SUBSTRATE_LLM_",
-        extra="ignore",
-    )
-
-    backend: Literal["mlx"] = Field(
-        default="mlx",
-        description="LLM backend: 'mlx' for Apple Silicon local inference",
-    )
-    model_name: str = Field(
-        default="mlx-community/Llama-3.2-1B-Instruct-4bit",
-        description="Name or path of the generative LLM (must be autoregressive, not BERT)",
-    )
-
-
-class PerformanceSettings(BaseSettings):
-    """Default performance settings for batch processing and concurrency."""
-
-    model_config = SettingsConfigDict(
-        env_prefix="SUBSTRATE_",
-        extra="ignore",
-    )
-
-    batch_size: int = Field(
-        default=100,
-        ge=1,
-        description="Default batch size for document processing",
-    )
-    concurrency: int = Field(
-        default=4,
-        ge=1,
-        description="Default concurrency level for parallel operations",
-    )
-    embedding_batch_size: int = Field(
-        default=32,
-        ge=1,
-        description="Batch size for embedding generation (deprecated: use embedding.batch_size)",
-    )
-    chunk_max_bytes: int = Field(
-        default=2048,
-        ge=256,
-        description="Maximum bytes per chunk for embedding",
-    )
-    chunk_min_bytes: int = Field(
-        default=128,
-        ge=1,
-        description="Minimum bytes per chunk (fragments smaller than this are merged)",
     )
 
 
@@ -288,28 +143,6 @@ class VectorDBSettings(BaseSettings):
     backend: Literal["qdrant", "zvec"] = Field(
         default="zvec",
         description="Vector backend used by VectorStoreManager",
-    )
-
-
-class DatabasesSettings(BaseSettings):
-    """Multi-database configuration for separate catalog and content storage.
-
-    The catalog database stores metadata, FTS indexes, and resource hierarchy.
-    The content database stores document bodies and large text content.
-    """
-
-    model_config = SettingsConfigDict(
-        env_prefix="SUBSTRATE_DATABASES_",
-        extra="ignore",
-    )
-
-    catalog_path: Path | None = Field(
-        default=None,
-        description="Path to the catalog SQLite database (default: config_root / 'catalog.db')",
-    )
-    content_path: Path | None = Field(
-        default=None,
-        description="Path to the content SQLite database (default: config_root / 'content.db')",
     )
 
 
@@ -517,113 +350,23 @@ class RAGSettings(BaseSettings):
     )
 
 
-class Settings(BaseSettings):
-    """Main configuration settings for the idx library.
+class Settings(SubstrateSettings):
+    """Main configuration settings for the catalog library.
+
+    Extends SubstrateSettings with catalog-specific fields for embedding,
+    LLM, langfuse, qdrant, vector_db, zvec, and rag configuration.
 
     Configuration is loaded from environment variables with the SUBSTRATE_ prefix.
     All config/data paths derive from config_root, which is set by environment
-    (or SUBSTRATE_CONFIG_ROOT / SUBSTRATE_CONFIG_ROOT_<ENV>). Config-file support is deferred.
-
-    Attributes:
-        environment: Application environment (dev, prod, staging, test).
-        config_root: Root directory for config and data (resolved from environment).
-        databases: Multi-database configuration (catalog and content paths).
-        vector_store_path: Path to the LlamaIndex persist directory (rebuildable cache).
-        cache_path: Cache directory. job_config_path: Job configs. env_config_path: Env configs.
-        embedding_model: Name or path of the embedding model (deprecated).
-        log_level: Logging level for the library.
-        embedding: Embedding model configuration (backend, model_name, batch_size).
-        llm: LLM model configuration for generative tasks (reranking, query expansion).
-        langfuse: Langfuse observability settings (placeholder).
-        performance: Default performance settings for batch processing.
+    (or SUBSTRATE_CONFIG_ROOT / SUBSTRATE_CONFIG_ROOT_<ENV>).
     """
 
-    model_config = SettingsConfigDict(
-        env_prefix="SUBSTRATE_",
-        env_nested_delimiter="__",
-        extra="ignore",
-        validate_default=True,
-        env_file=(".env", ".env.local"),
-        env_file_encoding="utf-8",
-    )
+    _toml_dir: ClassVar[Path | None] = Path(__file__).resolve().parent
 
-    @classmethod
-    def settings_customise_sources(
-        cls,
-        settings_cls: type[BaseSettings],
-        init_settings: InitSettingsSource,
-        env_settings: object,
-        dotenv_settings: object,
-        file_secret_settings: object,
-    ) -> tuple[object, ...]:
-        """Env and dotenv before TOML so env vars override environment file defaults."""
-        toml_source = _EnvironmentTomlSettingsSource(settings_cls)
-        return (init_settings, env_settings, dotenv_settings, toml_source, file_secret_settings)
-
-    environment: Environment = Field(
-        default="dev",
-        description="Application environment: dev, prod, staging, or test",
-    )
-    config_root: Path | None = Field(
-        default=None,
-        description="Root directory for all idx config and data; derived from environment if unset (SUBSTRATE_CONFIG_ROOT or SUBSTRATE_CONFIG_ROOT_<ENV>)",
-    )
-
-    # Multi-database configuration
-    databases: DatabasesSettings = Field(
-        default_factory=DatabasesSettings,
-        description="Multi-database paths for catalog and content separation",
-    )
-
-    # # Legacy single database path (deprecated, use databases.catalog_path)
-    # database_path: Path = Field(
-    #     default=Path("~/.idx/catalog.db").expanduser(),
-    #     description="Path to the SQLite database file (deprecated: use databases.catalog_path)",
-    # )
-    vector_store_path: Path | None = Field(
-        default=None,
-        description="Path to LlamaIndex persist directory (default: config_root / 'vector_store')",
-    )
-    cache_path: Path | None = Field(
-        default=None,
-        description="Path to cache directory for temporary files (default: config_root / 'cache')",
-    )
-    job_config_path: Path | None = Field(
-        default=None,
-        description="Path to job configuration files (default: config_root / 'jobs')",
-    )
-    env_config_path: Path | None = Field(
-        default=None,
-        description="Path to environment configuration files (default: config_root / 'environments')",
-    )
-    # # Model configuration
-    # embedding_model: str = Field(
-    #     default="BAAI/bge-small-en-v1.5",
-    #     description="Name or path of the embedding model",
-    # )
-
-    # Logging
-    log_level: LogLevel = Field(
-        default="INFO",
-        description="Logging level for the library",
-    )
-
-    # Nested settings
-    embedding: EmbeddingSettings = Field(
-        default_factory=EmbeddingSettings,
-        description="Embedding model configuration",
-    )
-    llm: LLMSettings = Field(
-        default_factory=LLMSettings,
-        description="LLM model configuration for generative tasks (reranking, query expansion)",
-    )
+    # Nested catalog-specific settings (embedding and llm inherited from SubstrateSettings)
     langfuse: LangfuseSettings = Field(
         default_factory=LangfuseSettings,
         description="Langfuse observability settings (placeholder)",
-    )
-    performance: PerformanceSettings = Field(
-        default_factory=PerformanceSettings,
-        description="Default performance settings",
     )
     qdrant: QdrantSettings = Field(
         default_factory=QdrantSettings,
@@ -642,79 +385,32 @@ class Settings(BaseSettings):
         description="RAG configuration (chunking, expansion, reranking, caching)",
     )
 
+    # # Legacy single database path (deprecated, use databases.catalog_path)
+    # database_path: Path = Field(
+    #     default=Path("~/.idx/catalog.db").expanduser(),
+    #     description="Path to the SQLite database file (deprecated: use databases.catalog_path)",
+    # )
+
+    # # Model configuration
+    # embedding_model: str = Field(
+    #     default="BAAI/bge-small-en-v1.5",
+    #     description="Name or path of the embedding model",
+    # )
+
     @model_validator(mode="after")
     def _resolve_config_root_and_derived_paths(self) -> Settings:
-        """Resolve config_root from environment and fill derived path defaults."""
-        root: Path
-        source: str
-        if self.config_root is not None:
-            root = Path(self.config_root).expanduser().resolve()
-            source = "SUBSTRATE_CONFIG_ROOT"
-        else:
-            per_env = os.environ.get(f"SUBSTRATE_CONFIG_ROOT_{self.environment.upper()}")
-            if per_env:
-                root = Path(per_env).expanduser().resolve()
-                source = f"SUBSTRATE_CONFIG_ROOT_{self.environment.upper()}"
-            else:
-                root = DEFAULT_CONFIG_ROOTS[self.environment].resolve()
-                source = f"default for environment={self.environment!r}"
-        self.config_root = root
-        logger.info(
-            "settings environment=%s, config_root=%s (from %s)",
-            self.environment,
-            root,
-            source,
-        )
+        """Resolve config_root and derived paths, including zvec.index_path."""
+        # Call parent resolver for base paths
+        super()._resolve_config_root_and_derived_paths()
 
-        if self.vector_store_path is None:
-            self.vector_store_path = root / "vector_store"
-        else:
-            self.vector_store_path = Path(self.vector_store_path).expanduser().resolve()
-        if self.cache_path is None:
-            self.cache_path = root / "cache"
-        else:
-            self.cache_path = Path(self.cache_path).expanduser().resolve()
-        if self.job_config_path is None:
-            self.job_config_path = root / "jobs"
-        else:
-            self.job_config_path = Path(self.job_config_path).expanduser().resolve()
-        if self.env_config_path is None:
-            self.env_config_path = root / "environments"
-        else:
-            self.env_config_path = Path(self.env_config_path).expanduser().resolve()
-
-        if self.databases.catalog_path is None:
-            self.databases.catalog_path = root / "catalog.db"
-        else:
-            self.databases.catalog_path = Path(self.databases.catalog_path).expanduser().resolve()
-        if self.databases.content_path is None:
-            self.databases.content_path = root / "content.db"
-        else:
-            self.databases.content_path = Path(self.databases.content_path).expanduser().resolve()
-
+        # Resolve zvec-specific path
+        assert self.config_root is not None
         if self.zvec.index_path is None:
-            self.zvec.index_path = root / "zvec" / "index.json"
+            self.zvec.index_path = self.config_root / "zvec" / "index.json"
         else:
             self.zvec.index_path = Path(self.zvec.index_path).expanduser().resolve()
 
         return self
-
-    def ensure_directories(self) -> None:
-        """Ensure that required directories exist.
-
-        Creates config_root and the parent directories for database paths,
-        vector_store_path, cache_path, and job_config_path if they do not exist.
-        """
-        assert self.config_root is not None
-        assert self.vector_store_path is not None
-        assert self.cache_path is not None
-        assert self.databases.catalog_path is not None
-        assert self.databases.content_path is not None
-        self.config_root.mkdir(parents=True, exist_ok=True)
-        self.databases.catalog_path.parent.mkdir(parents=True, exist_ok=True)
-        self.databases.content_path.parent.mkdir(parents=True, exist_ok=True)
-        self.vector_store_path.mkdir(parents=True, exist_ok=True)
-        self.cache_path.mkdir(parents=True, exist_ok=True)
 
 
 @lru_cache(maxsize=1)
@@ -729,7 +425,7 @@ def get_settings() -> Settings:
 
     Example:
         settings = get_settings()
-        print(settings.database_path)
+        print(settings.databases.catalog_path)
     """
     settings = Settings()
     settings.ensure_directories()

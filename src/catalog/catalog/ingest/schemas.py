@@ -34,8 +34,6 @@ class IngestResult(BaseModel):
         documents_skipped: Number of unchanged documents skipped (filtered by docstore).
         documents_deactivated: Number of documents deactivated (removed from source).
         documents_failed: Number of documents that failed to process.
-        chunks_created: Number of chunks indexed in FTS.
-        vectors_inserted: Number of vectors inserted into vector store.
         started_at: When the ingestion started.
         completed_at: When the ingestion completed.
         errors: List of error messages if any.
@@ -49,8 +47,6 @@ class IngestResult(BaseModel):
     documents_skipped: int = 0
     documents_deactivated: int = 0
     documents_failed: int = 0
-    chunks_created: int = 0
-    vectors_inserted: int = 0
     started_at: datetime
     completed_at: datetime | None = None
     errors: list[str] = Field(default_factory=list)

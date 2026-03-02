@@ -28,7 +28,7 @@ from catalog.store.models import (
     RepositoryLink,
     Resource,
 )
-from catalog.store.session_context import current_session
+from agentlayer.session import current_session
 
 __all__ = [
     "BookmarkRepository",

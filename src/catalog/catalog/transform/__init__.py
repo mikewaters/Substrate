@@ -1,7 +1,7 @@
 """catalog.transform - Custom LlamaIndex TransformComponent classes.
 
-Used by catalog pipelines to gather metadata and transform resource content for
-persistence and indexing.
+Used by catalog pipelines for persistence and ontology mapping.
+Indexing transforms (FTS, chunking, embedding, splitting) have moved to `index.transform`.
 """
 
 from __future__ import annotations
@@ -9,16 +9,8 @@ from __future__ import annotations
 from importlib import import_module
 
 __all__ = [
-    "Chunk",
-    "ChunkerTransform",
-    "EmbeddingIdentityTransform",
-    "EmbeddingPrefixTransform",
-    "FTSIndexerTransform",
-    "LineChunker",
     "MimeDetector",
     "OntologyMapper",
-    "ResilientSplitter",
-    "SizeAwareChunkSplitter",
     "TextNormalizer",
     "TextNormalizerTransform",
     "TextPolicy",
@@ -28,22 +20,14 @@ __all__ = [
 ]
 
 _SYMBOL_TO_MODULE = {
-    "Chunk": "catalog.transform.chunker",
-    "ChunkerTransform": "catalog.transform.chunker",
-    "LineChunker": "catalog.transform.chunker",
-    "EmbeddingIdentityTransform": "catalog.transform.embedding",
-    "EmbeddingPrefixTransform": "catalog.transform.embedding",
-    "FTSIndexerTransform": "catalog.transform.llama",
     "TextNormalizerTransform": "catalog.transform.llama",
-    "MimeDetector": "catalog.transform.normalize",
-    "TextNormalizer": "catalog.transform.normalize",
-    "TextPolicy": "catalog.transform.normalize",
-    "detect_mime": "catalog.transform.normalize",
-    "is_text_file": "catalog.transform.normalize",
-    "is_text_mime": "catalog.transform.normalize",
+    "MimeDetector": "agentlayer.normalize",
+    "TextNormalizer": "agentlayer.normalize",
+    "TextPolicy": "agentlayer.normalize",
+    "detect_mime": "agentlayer.normalize",
+    "is_text_file": "agentlayer.normalize",
+    "is_text_mime": "agentlayer.normalize",
     "OntologyMapper": "catalog.transform.ontology",
-    "ResilientSplitter": "catalog.transform.splitter",
-    "SizeAwareChunkSplitter": "catalog.transform.splitter",
 }
 
 

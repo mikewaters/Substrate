@@ -11,7 +11,7 @@ from typing import Any
 from sqlalchemy.orm import sessionmaker
 
 from catalog.store.database import Base, create_engine_for_path
-from catalog.store.fts import create_fts_table
+from index.store.fts import create_fts_table
 
 
 def before_all(context: Any) -> None:

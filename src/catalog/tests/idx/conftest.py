@@ -86,11 +86,11 @@ def mock_vector_manager(mock_vector_store, tmp_path):
 def patched_embedding(mock_embed_model, mock_vector_manager):
     """Patch embedding and vector store for tests.
 
-    Patches catalog.embedding.get_embed_model and
+    Patches agentlayer.embedding.get_embed_model and
     catalog.ingest.pipelines.VectorStoreManager to use mocks,
     avoiding loading real models.
     """
-    with patch("catalog.embedding.get_embed_model", return_value=mock_embed_model):
+    with patch("agentlayer.embedding.get_embed_model", return_value=mock_embed_model):
         # Patch where VectorStoreManager is imported and used, not where it's defined
         with patch("catalog.ingest.pipelines.VectorStoreManager", return_value=mock_vector_manager):
             yield {
@@ -106,7 +106,7 @@ def in_memory_qdrant_manager(tmp_path):
     Uses a temporary directory that simulates local storage but is
     cleaned up after the test.
     """
-    from catalog.store.vector import VectorStoreManager
+    from index.store.vector import VectorStoreManager
 
     # Use tmp_path to create an isolated Qdrant instance
     vector_dir = tmp_path / "vector_store"

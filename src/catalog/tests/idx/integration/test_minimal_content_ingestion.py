@@ -22,8 +22,9 @@ from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.integrations.heptabase import SourceHeptabaseConfig
 from catalog.integrations.obsidian import SourceObsidianConfig
 from catalog.store.database import Base, create_engine_for_path
-from catalog.store.fts import create_fts_table
-from catalog.store.fts_chunk import create_chunks_fts_table
+from index.store.fts import create_fts_table
+from index.store.fts_chunk import create_chunks_fts_table
+from catalog.sync import DatasetSync
 
 
 def _clear_pipeline_cache(dataset_names: list[str]) -> None:
@@ -80,10 +81,9 @@ def clear_cache() -> None:
 
 
 @pytest.fixture(autouse=True)
-def use_mock_embedding(patched_embedding, mock_embed_model) -> None:
+def use_mock_embedding(patched_embedding) -> None:
     """Use mock embedding/vector fixtures from tests/idx/conftest.py."""
-    with patch("catalog.ingest.pipelines.get_embed_model", return_value=mock_embed_model):
-        yield
+    yield
 
 
 @pytest.fixture
@@ -95,7 +95,8 @@ def patched_get_session(session_factory):
         with create_session(session_factory) as session:
             yield session
 
-    with patch("catalog.ingest.pipelines.get_session", get_test_session):
+    with patch("catalog.ingest.pipelines.get_session", get_test_session), \
+         patch("catalog.sync.get_session", get_test_session):
         yield get_test_session
 
 
@@ -193,17 +194,16 @@ class TestMinimalContentIngestion:
     ) -> None:
         """Frontmatter-only Obsidian note should still produce FTS/vector artifacts."""
         dataset_name = "issue62-obsidian-frontmatter-only"
-        pipeline = DatasetIngestPipeline()
-        result = pipeline.ingest_dataset(
+        sync_result = DatasetSync().sync(
             SourceObsidianConfig(
                 source_path=obsidian_frontmatter_only_vault,
                 dataset_name=dataset_name,
             )
         )
 
-        assert result.documents_created == 1
-        assert result.documents_failed == 0
-        assert result.vectors_inserted >= 1
+        assert sync_result.ingest.documents_created == 1
+        assert sync_result.ingest.documents_failed == 0
+        assert sync_result.index.vectors_inserted >= 1
 
         _assert_document_fts_and_vectors_exist(
             session_factory=session_factory,
@@ -220,17 +220,16 @@ class TestMinimalContentIngestion:
     ) -> None:
         """Heptabase frontmatter + H1-only note should still produce FTS/vector artifacts."""
         dataset_name = "issue62-heptabase-frontmatter-h1-only"
-        pipeline = DatasetIngestPipeline()
-        result = pipeline.ingest_dataset(
+        sync_result = DatasetSync().sync(
             SourceHeptabaseConfig(
                 source_path=heptabase_frontmatter_h1_export,
                 dataset_name=dataset_name,
             )
         )
 
-        assert result.documents_created == 1
-        assert result.documents_failed == 0
-        assert result.vectors_inserted >= 1
+        assert sync_result.ingest.documents_created == 1
+        assert sync_result.ingest.documents_failed == 0
+        assert sync_result.index.vectors_inserted >= 1
 
         _assert_document_fts_and_vectors_exist(
             session_factory=session_factory,

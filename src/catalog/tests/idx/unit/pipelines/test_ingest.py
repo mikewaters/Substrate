@@ -12,11 +12,12 @@ from catalog.core.settings import get_settings
 from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.store.database import Base, create_engine_for_path
-from catalog.store.fts import FTSManager, create_fts_table
-from catalog.store.fts_chunk import create_chunks_fts_table
+from index.store.fts import FTSManager, create_fts_table
+from index.store.fts_chunk import create_chunks_fts_table
 from catalog.store.repositories import DatasetRepository, DocumentRepository
-from catalog.store.vector import VectorStoreManager
-from catalog.transform import EmbeddingPrefixTransform, ResilientSplitter
+from index.store.vector import VectorStoreManager
+from catalog.transform.llama import PersistenceTransform
+from catalog.transform.ontology import OntologyMapper
 
 
 def _clear_pipeline_cache(dataset_names: list[str]) -> None:
@@ -140,39 +141,17 @@ class TestDatasetIngestPipeline:
         docs = doc_repo.list_by_parent(result.dataset_id)
         assert len(docs) == 3
 
-    def test_build_pipeline_uses_resilient_splitter(
+    def test_build_pipeline_has_document_level_transforms(
         self, test_db, sample_directory: Path
     ) -> None:
-        """Pipeline uses ResilientSplitter transform."""
+        """Ingest pipeline contains only document-level transforms."""
         config = SourceDirectoryConfig(
             source_path=sample_directory,
             dataset_name="test-docs",
         )
         pipeline = DatasetIngestPipeline(ingest_config=config)
-
-        # Use real VectorStoreManager but with test path
-        vector_manager = VectorStoreManager()
-
-        ingestion_pipeline = pipeline.build_pipeline(
-            vector_manager=vector_manager,
-        )
-
-        # Check that ResilientSplitter is in transformations
-        splitter_found = any(
-            isinstance(t, ResilientSplitter)
-            for t in ingestion_pipeline.transformations
-        )
-        assert splitter_found, "ResilientSplitter not found in transformations"
-
-    def test_build_pipeline_uses_embedding_prefix(
-        self, test_db, sample_directory: Path
-    ) -> None:
-        """Pipeline uses EmbeddingPrefixTransform."""
-        config = SourceDirectoryConfig(
-            source_path=sample_directory,
-            dataset_name="test-docs",
-        )
-        pipeline = DatasetIngestPipeline(ingest_config=config)
+        pipeline.dataset_id = 1
+        pipeline.dataset_name = "test-docs"
 
         vector_manager = VectorStoreManager()
 
@@ -180,12 +159,17 @@ class TestDatasetIngestPipeline:
             vector_manager=vector_manager,
         )
 
-        # Check that EmbeddingPrefixTransform is in transformations
-        prefix_found = any(
-            isinstance(t, EmbeddingPrefixTransform)
+        # Should have OntologyMapper and PersistenceTransform
+        has_ontology = any(
+            isinstance(t, OntologyMapper)
             for t in ingestion_pipeline.transformations
         )
-        assert prefix_found, "EmbeddingPrefixTransform not found in transformations"
+        has_persistence = any(
+            isinstance(t, PersistenceTransform)
+            for t in ingestion_pipeline.transformations
+        )
+        assert has_ontology, "OntologyMapper not found in transformations"
+        assert has_persistence, "PersistenceTransform not found in transformations"
 
     def test_ingest_dataset_method(
         self, test_db, db_session, sample_directory: Path
@@ -243,7 +227,7 @@ class TestPipelineResilientBehavior:
 
     def test_get_embed_model_uses_resilient_flag(self) -> None:
         """_get_embed_model() passes resilient flag to factory."""
-        with patch("catalog.ingest.pipelines.get_embed_model") as mock_factory:
+        with patch("agentlayer.pipeline.get_embed_model") as mock_factory:
             mock_factory.return_value = MagicMock()
 
             pipeline = DatasetIngestPipeline(resilient_embedding=True)

@@ -231,7 +231,7 @@ class TestDatasetJob:
             "source": {"source_path": str(tmp_path)},
         })
         assert job.embedding is None
-        with patch("catalog.embedding.get_embed_model") as mock_get:
+        with patch("agentlayer.embedding.get_embed_model") as mock_get:
             mock_instance = MagicMock()
             mock_get.return_value = mock_instance
             result = job.create_embed_model()
@@ -244,7 +244,7 @@ class TestDatasetJob:
             "source": {"source_path": str(tmp_path)},
             "embedding": {"backend": "mlx", "model_name": "test-model"},
         })
-        with patch("catalog.embedding.mlx.MLXEmbedding") as MockMLX:
+        with patch("agentlayer.embedding.mlx.MLXEmbedding") as MockMLX:
             mock_instance = MagicMock()
             MockMLX.return_value = mock_instance
             result = job.create_embed_model()

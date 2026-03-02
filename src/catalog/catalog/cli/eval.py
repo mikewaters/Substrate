@@ -65,14 +65,14 @@ def golden(
     Results are grouped by retriever type (bm25, vector, hybrid) and
     difficulty level (easy, medium, hard, fusion).
     """
-    from catalog.eval.golden import (
+    from index.eval.golden import (
         EVAL_THRESHOLDS,
         evaluate_golden_queries,
         load_golden_queries,
     )
-    from catalog.search.service import SearchService
+    from index.search.service import SearchService
     from catalog.store.database import get_session
-    from catalog.store.session_context import use_session
+    from agentlayer.session import use_session
 
     # Load golden queries
     try:

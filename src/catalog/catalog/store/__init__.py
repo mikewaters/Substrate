@@ -2,15 +2,9 @@
 
 SQLAlchemy-based storage with SQLite backend.
 Exposes DatasetService for validated Pydantic model persistence.
-All persistence including FTS and vector index wiring resides here.
+FTS, vector, and cleanup have moved to the `index` package.
 """
 
-from catalog.store.cleanup import (
-                                   IndexCleanup,
-                                   cleanup_fts_for_document,
-                                   cleanup_fts_for_inactive_documents,
-                                   cleanup_stale_documents,
-)
 from catalog.store.database import (
                                    Base,
                                    CatalogBase,
@@ -30,14 +24,7 @@ from catalog.store.dataset import (
                                    normalize_dataset_name,
 )
 from catalog.store.docstore import SQLiteDocumentStore
-from catalog.store.fts import FTSManager, FTSResult, create_fts_table, drop_fts_table
-from catalog.store.fts_chunk import (
-                                   FTSChunkManager,
-                                   FTSChunkResult,
-                                   create_chunks_fts_table,
-                                   drop_chunks_fts_table,
-)
-from catalog.store.llm_cache import LLMCache, LLMCacheEntry
+from agentlayer.llm_cache import LLMCache, LLMCacheEntry
 from catalog.store.models import (
     Bookmark,
     BookmarkLink,
@@ -73,14 +60,17 @@ from catalog.store.schemas import (
                                    DocumentInfo,
                                    DocumentUpdate,
 )
-from catalog.store.session_context import (
+from agentlayer.session import (
                                    SessionNotSetError,
                                    clear_session,
                                    current_session,
+                                   register_session_factory,
                                    session_or_new,
                                    use_session,
 )
-from catalog.store.vector import VectorStoreManager
+
+# Register catalog's get_session as the session factory for agentlayer.session
+register_session_factory(get_session)
 
 __all__ = [
     # Database
@@ -131,27 +121,11 @@ __all__ = [
     "DatasetNotFoundError",
     "DocumentNotFoundError",
     "normalize_dataset_name",
-    # FTS (document-level)
-    "FTSManager",
-    "FTSResult",
-    "create_fts_table",
-    "drop_fts_table",
-    # FTS (chunk-level)
-    "FTSChunkManager",
-    "FTSChunkResult",
-    "create_chunks_fts_table",
-    "drop_chunks_fts_table",
     # LLM Cache
     "LLMCache",
     "LLMCacheEntry",
-    # Cleanup
-    "IndexCleanup",
-    "cleanup_fts_for_document",
-    "cleanup_fts_for_inactive_documents",
-    "cleanup_stale_documents",
     # LlamaIndex integration
     "SQLiteDocumentStore",
-    "VectorStoreManager",
     # Session context
     "SessionNotSetError",
     "clear_session",

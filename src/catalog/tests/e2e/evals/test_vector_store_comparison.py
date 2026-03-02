@@ -11,10 +11,10 @@ from sqlalchemy import text
 
 from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.ingest.pipelines import DatasetIngestPipeline
-from catalog.search.models import SearchCriteria, SearchResults
-from catalog.search.service import SearchService
-from catalog.store.session_context import use_session
-from catalog.store.vector import VectorStoreManager
+from index.search.models import SearchCriteria, SearchResults
+from index.search.service import SearchService
+from agentlayer.session import use_session
+from index.store.vector import VectorStoreManager
 
 from ...backends import configure_backend
 from ..conftest import E2EInfra

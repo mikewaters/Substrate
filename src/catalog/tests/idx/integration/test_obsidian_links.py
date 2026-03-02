@@ -17,11 +17,12 @@ from sqlalchemy.orm import Session, sessionmaker
 from catalog.integrations.obsidian import ObsidianVaultReader
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.dataset import DatasetService
-from catalog.store.fts import create_fts_table
+from index.store.fts import create_fts_table
 from catalog.store.models import DocumentLinkKind
 from catalog.store.repositories import DocumentLinkRepository
-from catalog.store.session_context import use_session
-from catalog.integrations.obsidian import LinkResolutionTransform
+from agentlayer.session import use_session
+from catalog.transform.links import LinkResolutionTransform
+from catalog.integrations.obsidian.links import ObsidianWikilinkResolver
 from catalog.transform.llama import PersistenceTransform
 from catalog.transform.ontology import OntologyMapper
 
@@ -129,7 +130,10 @@ def _run_pipeline(
 
     persist = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
     mapper = OntologyMapper()
-    link_resolve = LinkResolutionTransform(dataset_id=dataset.id)
+    link_resolve = LinkResolutionTransform(
+        dataset_id=dataset.id,
+        resolver=ObsidianWikilinkResolver(),
+    )
 
     pipeline = IngestionPipeline(
         transformations=[mapper, persist, link_resolve],

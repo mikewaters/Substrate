@@ -1,1 +1,1 @@
-"""Unit tests for catalog.embedding module."""
+"""Unit tests for agentlayer.embedding module."""

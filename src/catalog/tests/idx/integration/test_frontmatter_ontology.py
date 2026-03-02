@@ -21,8 +21,8 @@ from catalog.integrations.obsidian import ObsidianVaultReader
 from catalog.integrations.obsidian import VaultSpec
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.dataset import DatasetService
-from catalog.store.fts import create_fts_table
-from catalog.store.session_context import use_session
+from index.store.fts import create_fts_table
+from agentlayer.session import use_session
 from catalog.transform.ontology import OntologyMapper
 from catalog.transform.llama import PersistenceTransform
 

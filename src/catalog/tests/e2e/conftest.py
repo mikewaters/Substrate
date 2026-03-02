@@ -22,7 +22,7 @@ from llama_index.core.embeddings import BaseEmbedding
 
 from catalog.core.settings import get_settings
 from catalog.store.database import get_registry, get_session, get_session_factory
-from catalog.store.vector import VectorStoreManager
+from index.store.vector import VectorStoreManager
 
 from ..backends import SUPPORTED_BACKENDS, configure_backend
 
@@ -129,7 +129,7 @@ def e2e(request, monkeypatch) -> Generator[E2EInfra, None, None]:
 
     embed_model = MockEmbedding(embed_dim=384)
 
-    with patch("catalog.embedding.get_embed_model", return_value=embed_model):
+    with patch("agentlayer.embedding.get_embed_model", return_value=embed_model):
         # Trigger full DB initialization (engine, tables, FTS, content ATTACH)
         get_registry()
 

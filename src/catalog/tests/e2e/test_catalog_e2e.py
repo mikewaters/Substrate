@@ -21,12 +21,12 @@ from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.integrations.obsidian import VaultSpec
 from catalog.integrations.obsidian.source import SourceObsidianConfig
-from catalog.search.fts import FTSSearch
-from catalog.search.models import SearchCriteria
-from catalog.search.service import SearchService
+from index.search.fts import FTSSearch
+from index.search.models import SearchCriteria
+from index.search.service import SearchService
 from catalog.store.database import get_session
 from catalog.store.repositories import DocumentLinkRepository
-from catalog.store.session_context import use_session
+from agentlayer.session import use_session
 
 from .conftest import E2EInfra
 
@@ -157,7 +157,7 @@ class TestHybridSearch:
         vector_backend: str,
     ) -> None:
         """Full flow: ingest -> hybrid search -> LLM rerank (LLM mocked)."""
-        from catalog.llm.reranker import Reranker
+        from agentlayer.llm.reranker import Reranker
 
         # 1. Ingest
         pipeline = DatasetIngestPipeline()
@@ -188,7 +188,7 @@ class TestHybridSearch:
         # Add snippet for reranker if missing
         for res in result_list:
             if not res.snippet:
-                from catalog.search.models import SnippetResult
+                from index.search.models import SnippetResult
                 res.snippet = SnippetResult(text=f"Content from {res.path}", start_line=1, end_line=1, header=f"@@ -1,1 +1,1 @@ {res.path}")
 
         # 3. Rerank with mocked LLM

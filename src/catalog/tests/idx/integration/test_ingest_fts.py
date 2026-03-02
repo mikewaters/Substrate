@@ -18,11 +18,12 @@ from catalog.core.settings import get_settings
 from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.integrations.obsidian import SourceObsidianConfig
-from catalog.search.fts import FTSSearch
-from catalog.search.models import SearchCriteria
+from index.search.fts import FTSSearch
+from index.search.models import SearchCriteria
 from catalog.store.database import Base, create_engine_for_path
-from catalog.store.fts import create_fts_table
-from catalog.store.fts_chunk import create_chunks_fts_table
+from index.store.fts import create_fts_table
+from index.store.fts_chunk import create_chunks_fts_table
+from catalog.sync import DatasetSync
 
 
 def _clear_pipeline_cache(dataset_names: list[str]) -> None:
@@ -91,7 +92,8 @@ def patched_get_session(session_factory):
         with create_session(session_factory) as session:
             yield session
 
-    with patch("catalog.ingest.pipelines.get_session", get_test_session):
+    with patch("catalog.ingest.pipelines.get_session", get_test_session), \
+         patch("catalog.sync.get_session", get_test_session):
         yield get_test_session
 
 
@@ -164,19 +166,17 @@ class TestIngestAndSearch:
         session_factory,
         sample_vault: Path,
     ) -> None:
-        """Ingest directory and verify FTS search works."""
-        # Ingest the directory
-        pipeline = DatasetIngestPipeline()
+        """Ingest + index directory and verify FTS search works."""
         config = SourceDirectoryConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
             patterns=["**/*.md"],
         )
 
-        result = pipeline.ingest_dataset(config)
+        sync_result = DatasetSync().sync(config)
 
-        assert result.documents_created == 4
-        assert result.documents_failed == 0
+        assert sync_result.ingest.documents_created == 4
+        assert sync_result.ingest.documents_failed == 0
 
         # Search for Python content
         with create_session(session_factory) as session:
@@ -197,17 +197,17 @@ class TestIngestAndSearch:
         tmp_path: Path,
     ) -> None:
         """Search results can be filtered by dataset."""
-        pipeline = DatasetIngestPipeline()
+        sync = DatasetSync()
 
-        # Ingest first vault
+        # Ingest + index first vault
         config1 = SourceDirectoryConfig(
             source_path=sample_vault,
             dataset_name="vault1",
             patterns=["**/*.md"],
         )
-        pipeline.ingest_dataset(config1)
+        sync.sync(config1)
 
-        # Create and ingest second vault
+        # Create and ingest + index second vault
         vault2 = tmp_path / "vault2"
         vault2.mkdir()
         (vault2 / ".obsidian").mkdir()
@@ -218,7 +218,7 @@ class TestIngestAndSearch:
             dataset_name="vault2",
             patterns=["**/*.md"],
         )
-        pipeline.ingest_dataset(config2)
+        sync.sync(config2)
 
         # Search all datasets
         with create_session(session_factory) as session:
@@ -336,7 +336,7 @@ class TestSoftDeleteBehavior:
         sample_vault: Path,
     ) -> None:
         """Files removed from disk are cleaned up from database."""
-        from catalog.store.cleanup import cleanup_stale_documents
+        from index.store.cleanup import cleanup_stale_documents
 
         config = SourceDirectoryConfig(
             source_path=sample_vault,
@@ -381,7 +381,7 @@ class TestSoftDeleteBehavior:
         sample_vault: Path,
     ) -> None:
         """Deleted documents don't appear in search results after cleanup."""
-        from catalog.store.cleanup import cleanup_stale_documents
+        from index.store.cleanup import cleanup_stale_documents
 
         config = SourceDirectoryConfig(
             source_path=sample_vault,
@@ -389,10 +389,10 @@ class TestSoftDeleteBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = DatasetIngestPipeline()
+        sync = DatasetSync()
 
-        # Ingest
-        result = pipeline.ingest_dataset(config)
+        # Ingest + index
+        sync_result = sync.sync(config)
 
         # Verify JavaScript file is searchable
         with create_session(session_factory) as session:
@@ -403,12 +403,12 @@ class TestSoftDeleteBehavior:
         # Delete the JavaScript file
         (sample_vault / "note2.md").unlink()
 
-        # Re-ingest and cleanup stale
-        pipeline.ingest_dataset(config)
+        # Re-sync and cleanup stale
+        sync.sync(config)
         with create_session(session_factory) as session:
             cleanup_stale_documents(
                 session,
-                result.dataset_id,
+                sync_result.ingest.dataset_id,
                 source_path=sample_vault,
                 patterns=["**/*.md"],
             )
@@ -427,7 +427,7 @@ class TestSoftDeleteBehavior:
         sample_vault: Path,
     ) -> None:
         """File that reappears after cleanup is re-indexed."""
-        from catalog.store.cleanup import cleanup_stale_documents
+        from index.store.cleanup import cleanup_stale_documents
 
         config = SourceDirectoryConfig(
             source_path=sample_vault,
@@ -435,22 +435,22 @@ class TestSoftDeleteBehavior:
             patterns=["**/*.md"],
         )
 
-        pipeline = DatasetIngestPipeline()
+        sync = DatasetSync()
 
-        # First ingest
-        result = pipeline.ingest_dataset(config)
+        # First sync
+        sync_result = sync.sync(config)
 
         # Save content and delete
         note2_path = sample_vault / "note2.md"
         original_content = note2_path.read_text()
         note2_path.unlink()
 
-        # Ingest and cleanup to delete stale docs
-        pipeline.ingest_dataset(config)
+        # Re-sync and cleanup to delete stale docs
+        sync.sync(config)
         with create_session(session_factory) as session:
             stale_count = cleanup_stale_documents(
                 session,
-                result.dataset_id,
+                sync_result.ingest.dataset_id,
                 source_path=sample_vault,
                 patterns=["**/*.md"],
             )
@@ -463,9 +463,9 @@ class TestSoftDeleteBehavior:
         # In production, this models a fresh pipeline run after cleanup.
         _clear_pipeline_cache(["test-vault"])
 
-        # Ingest again - with cleared cache, the restored file is re-indexed.
-        result3 = pipeline.ingest_dataset(config)
-        assert result3.documents_created >= 1
+        # Sync again - with cleared cache, the restored file is re-indexed.
+        sync_result3 = sync.sync(config)
+        assert sync_result3.ingest.documents_created >= 1
 
         # Verify searchable again
         with create_session(session_factory) as session:

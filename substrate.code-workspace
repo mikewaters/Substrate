@@ -1,0 +1,36 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../.idx"
+		}
+	],
+    "settings": {
+        "github.copilot.enable": {
+            "*": true,
+            "plaintext": false,
+            "markdown": false,
+            "scminput": false,
+            "yaml": true,
+            "python": true
+        },
+        "files.associations": {
+            "*.yaml": "yaml",
+            "*.yml": "yaml",
+            "Justfile": "makefile",
+            "*.md": "markdown"
+        },
+        "git.confirmSync": false,
+        "terminal.integrated.copyOnSelection": true,
+        "yaml.schemas": {
+            "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
+        },
+        "claudeCode.useTerminal": true,
+        "chat.tools.terminal.autoApprove": {
+            "uv": true,
+            "lsof": true
+        }
+    }
+}

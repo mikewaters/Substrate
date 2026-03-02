@@ -1,11 +1,11 @@
-"""catalog.store.fts - FTS5 full-text search support.
+"""index.store.fts - FTS5 full-text search support.
 
 Provides FTS5 virtual table management and search operations for documents.
 The FTS5 table uses porter stemming and unicode61 tokenizer for robust search.
 Supports both explicit session injection and ambient session via contextvars.
 
 Example usage:
-    from catalog.store.fts import FTSManager
+    from index.store.fts import FTSManager
 
     # With ambient session
     with use_session(session):
@@ -24,7 +24,7 @@ from agentlayer.logging import get_logger
 from sqlalchemy import Engine, text
 from sqlalchemy.orm import Session
 
-from catalog.store.session_context import current_session
+from agentlayer.session import current_session
 
 __all__ = [
     "FTSManager",
@@ -146,17 +146,22 @@ class FTSManager:
         )
         #logger.debug(f"FTS indexed document {doc_id}: {path}")
 
-    def delete(self, doc_id: int) -> None:
+    def delete(self, doc_id: int) -> int:
         """Delete a document from the FTS index.
 
         Args:
             doc_id: Document ID (rowid) to delete.
+
+        Returns:
+            Number of rows deleted (0 or 1).
         """
-        self._session.execute(
+        result = self._session.execute(
             text("DELETE FROM documents_fts WHERE rowid = :rowid"),
             {"rowid": doc_id},
         )
+        n = result.rowcount if result.rowcount is not None else 0
         logger.debug(f"FTS deleted document {doc_id}")
+        return n
 
     def delete_many(self, doc_ids: list[int]) -> int:
         """Delete multiple documents from the FTS index.

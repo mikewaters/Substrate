@@ -1,10 +1,10 @@
-"""catalog.store.vector - Vector store management using Qdrant.
+"""index.store.vector - Vector store management using Qdrant.
 
 Provides vector storage and retrieval capabilities using Qdrant in local
 persistent mode via LlamaIndex's QdrantVectorStore integration.
 
 Example usage:
-    from catalog.store.vector import VectorStoreManager
+    from index.store.vector import VectorStoreManager
 
     manager = VectorStoreManager()
     index = manager.load_or_create()
@@ -26,7 +26,7 @@ from llama_index.core.vector_stores import SimpleVectorStore
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 
 from catalog.core.settings import get_settings
-from catalog.embedding.identity import (
+from agentlayer.embedding.identity import (
     EMBEDDING_BACKEND_METADATA_KEY,
     EMBEDDING_MODEL_METADATA_KEY,
     EMBEDDING_PROFILE_METADATA_KEY,
@@ -331,8 +331,8 @@ class _PayloadEmbeddingIdentityStrategy:
         manager: "VectorStoreManager",
         embed_model: "BaseEmbedding",
     ) -> list["TransformComponent"]:
-        from catalog.embedding import resolve_embedding_identity
-        from catalog.transform.embedding import EmbeddingIdentityTransform
+        from agentlayer.embedding import resolve_embedding_identity
+        from index.transform.embedding import EmbeddingIdentityTransform
 
         identity = resolve_embedding_identity(
             embed_model,
@@ -416,7 +416,7 @@ def _build_embed_model(
     during a single run (e.g. comparing fts/vector/hybrid modes). Loading the
     embedding model each time dominates latency, so this cache keeps one model
     instance per unique backend/model/batch configuration in the current
-    process. Delegates to ``catalog.embedding.build_embed_model`` so backend
+    process. Delegates to ``agentlayer.embedding.build_embed_model`` so backend
     dispatch and constructor logic live in one place.
 
     Args:
@@ -427,7 +427,7 @@ def _build_embed_model(
     Returns:
         Configured embedding model.
     """
-    from catalog.embedding import build_embed_model
+    from agentlayer.embedding import build_embed_model
 
     return build_embed_model(backend=backend, model_name=model_name, batch_size=batch_size)
 
@@ -975,6 +975,26 @@ class VectorStoreManager:
         logger.debug(f"Deleting nodes for ref_doc_id: {ref_doc_id}")
         self._index.delete_ref_doc(ref_doc_id)
         logger.info(f"Deleted nodes for ref_doc_id: {ref_doc_id}")
+
+    def delete_source_doc(self, source_doc_id: str) -> int | None:
+        """Delete all vectors associated with a source document.
+
+        Uses the same per-document key as chunk indexing (source_doc_id).
+        Call this to remove all chunks/nodes derived from one catalog document.
+
+        Args:
+            source_doc_id: Composite key {dataset_name}:{path}.
+
+        Returns:
+            Number of vectors deleted if the backend reports it cheaply,
+            otherwise None. Best-effort success unless the backend raises.
+        """
+        if self._index is None:
+            raise RuntimeError(
+                "No index loaded. Call load_or_create() first."
+            )
+        self._index.delete_ref_doc(source_doc_id)
+        return None
 
     def delete_by_dataset(self, dataset_name: str) -> int:
         """Delete all vectors associated with a dataset.

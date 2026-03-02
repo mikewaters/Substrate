@@ -1,7 +1,8 @@
 """catalog.ingest.pipelines - Dataset ingestion pipeline.
 
-Resilient chunking and embedding prefixes, designed to match TypeScript
-QMD system behavior for retrieval parity.
+Handles source acquisition, dataset creation, ontology mapping, and document
+DB persistence. Returns after persistence -- indexing is handled separately
+by DatasetIndexPipeline via the DatasetSync orchestrator.
 
 Change detection is handled by LlamaIndex's docstore, which uses
 SHA256(text + metadata) to detect changes. This catches frontmatter-only
@@ -14,33 +15,24 @@ the docstore, vector store, and marked inactive in the SQLite DB.
 
 Pipeline flow:
 1. LlamaIndex docstore filters unchanged documents (upstream)
-2. Source-specific pre-persist transforms
-3. PersistenceTransform (upsert to documents table + documents_fts)
+2. OntologyMapper
+3. PersistenceTransform (upsert to documents table, DB-only)
 4. Source-specific post-persist transforms
-5. ResilientSplitter (token-based with char fallback)
-6. ChunkPersistenceTransform (persist chunks to FTS)
-7. EmbeddingPrefixTransform (add Nomic-style prefixes)
-8. embed_model (generate embeddings)
-9. Post-pipeline deletion sync (deactivate removed docs in SQLite)
+5. Post-pipeline deletion sync (deactivate removed docs in SQLite)
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from functools import cached_property
-from llama_index.core.ingestion.pipeline import IngestionPipeline
-from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
+from typing import Optional, Sequence
 
 from agentlayer.logging import get_logger
-from catalog.ingest.tracing import SnapshotTransform
 from llama_index.core.ingestion import DocstoreStrategy, IngestionPipeline
 from llama_index.core.storage.docstore import SimpleDocumentStore
 from llama_index.core.schema import BaseNode, TransformComponent
 
-from pydantic import BaseModel, Field
-
-from catalog.core.settings import get_settings
-from catalog.embedding import get_embed_model
+from agentlayer.pipeline import BasePipeline
 from catalog.ingest.cache import (
     clear_cache,
     load_pipeline,
@@ -48,20 +40,15 @@ from catalog.ingest.cache import (
 )
 from catalog.ingest.schemas import IngestResult
 from catalog.ingest.sources import BaseSource, create_source, DatasetSourceConfig
+from catalog.ingest.tracing import TracingDocstore
 from catalog.store.database import get_session
 from catalog.store.dataset import DatasetService
-from catalog.store.fts import FTSManager
 from catalog.store.repositories import DatasetRepository, DocumentRepository
-from catalog.store.session_context import use_session
-from catalog.store.vector import VectorStoreManager
-from catalog.transform.embedding import EmbeddingPrefixTransform
+from agentlayer.session import use_session
+from index.store.vector import VectorStoreManager
+from catalog.transform.links import LinkResolutionTransform
 from catalog.transform.ontology import OntologyMapper
-from catalog.transform.llama import ChunkPersistenceTransform, PersistenceTransform
-from catalog.transform.splitter import ResilientSplitter
-from catalog.ingest.tracing import TracingDocstore
-
-if TYPE_CHECKING:
-    from llama_index.core.embeddings import BaseEmbedding
+from catalog.transform.llama import PersistenceTransform
 
 __all__ = [
     "DatasetIngestPipeline",
@@ -70,13 +57,8 @@ __all__ = [
 logger = get_logger(__name__)
 
 
-class DatasetIngestPipeline(BaseModel):
-    """Dataset ingestion with resilient chunking and embedding prefixes.
-
-    This pipeline provides feature parity with the TypeScript QMD system:
-    - Resilient token-based chunking with char fallback
-    - Nomic-style embedding prefixes for improved retrieval
-    - Configurable via RAGSettings
+class DatasetIngestPipeline(BasePipeline):
+    """Dataset ingestion: source acquisition, ontology mapping, DB persistence.
 
     Entry points:
         - ingest_dataset(config) - Takes config as argument
@@ -84,8 +66,6 @@ class DatasetIngestPipeline(BaseModel):
 
     Attributes:
         ingest_config: Configuration for ingestion. Required for ingest().
-        embed_model: Embedding model for generating vectors.
-        resilient_embedding: Whether to use fallback on embedding errors.
 
     The goals of an IngestionPipeline are:
     1. Populate the Index to facilitate search;
@@ -100,55 +80,33 @@ class DatasetIngestPipeline(BaseModel):
     """
 
     ingest_config: Optional[DatasetSourceConfig] = None
-    embed_model: Optional[Any] = None  # BaseEmbedding, but Any for Pydantic compat
-    resilient_embedding: bool = Field(default=True)
-    num_workers: int = Field(
-        default=1,
-        description="Reserved; ingestion runs with 1 worker because persistence writes to SQLite.",
-    )
 
-    dataset_id: Optional[int] = None
-    dataset_name: Optional[str] = None
-
-    model_config = {"arbitrary_types_allowed": True}
+    @cached_property
+    def _settings(self):
+        """Get RAG settings from catalog configuration."""
+        from catalog.core.settings import get_settings
+        return get_settings().rag
 
     @cached_property
     def source(self) -> BaseSource:
         """Create the source from self.ingest_config."""
         return create_source(self.ingest_config)
 
-    @cached_property
-    def _settings(self):
-        """Get RAG settings."""
-        return get_settings().rag
+    def _get_transforms(self) -> list[TransformComponent]:
+        """Get document-level transforms for the dataset.
 
-    def _cache_key(self, dataset_name: str) -> str:
-        """Generate a cache key for a dataset."""
-        return f"{dataset_name}"
-
-    def _get_embed_model(self) -> "BaseEmbedding":
-        """Get embedding model, using resilient wrapper if enabled."""
-        if self.embed_model is not None:
-            return self.embed_model
-        return get_embed_model(resilient=self.resilient_embedding)
-
-    def _get_transforms(
-        self,
-        vector_manager: VectorStoreManager,
-    ) -> list[TransformComponent]:
-        """Get source-specific transforms for the dataset.
-
-        Args:
-            vector_manager: Vector manager providing backend-aware ingest transforms.
+        Returns only document-level transforms: ontology mapping, DB
+        persistence, and source-specific post-persist hooks.  Chunking,
+        embedding, and FTS are handled by DatasetIndexPipeline.
         """
         #
-        # Stage 1: Dataset- and Document-level transformations, including persistence
+        # Document-level transformations, including persistence
         # Varies-by:
         # - data source-specific Ontology mapping
         #
         #from catalog.ingest.tracing import DebugPipeline, TracingDocstore, SnapshotTransform
         # Document-level transformation, followed by document persistence and cross-dataset normalization
-        document_transforms = [
+        transforms = [
             OntologyMapper(
                 ontology_spec_cls=getattr(self.source, "ontology_spec", None),
             ),
@@ -156,52 +114,17 @@ class DatasetIngestPipeline(BaseModel):
                 dataset_id=self.dataset_id,
                 dataset_name=self.dataset_name,
             )
-            ] + self.source.transforms(dataset_id=self.dataset_id)
+        ] + self.source.transforms(dataset_id=self.dataset_id)
 
-        #
-        # Stage 2: Chunking of Documents into Nodes which may be unique ontologically,
-        # followed by the FTS chunk persistence
-        # Varies-by:
-        # - (TODO) document-specific chunking requirements, which may be based on the source, source class, source superclass, or the file type.
-        #
+        # Link resolution runs last -- needs doc_id from persistence
+        resolver = self.source.link_resolver
+        if resolver is not None:
+            transforms.append(LinkResolutionTransform(
+                dataset_id=self.dataset_id,
+                resolver=resolver,
+            ))
 
-        # Chunk persistence for FTS
-        chunk_persist = ChunkPersistenceTransform(
-            dataset_name=self.dataset_name,
-        )
-
-        # (TODO) This is not implemented (see Issue # xxx). Once complete, the chunk_persistence should move here.
-        # Next, based on the source type, we define the chunking requirements.
-        # This may contain a router, and it may be defined by the source itself,
-        # the source class, source superclass, or the filetypes.
-        chunker_transforms = []
-
-        #
-        # Stage 3: Text splitting and embedding
-        # Varies-by:
-        # - (TODO)splitting may vary by the type of information present in a node/chunk
-        # - (TODO) embedding model may vary by the data source configuration, or by the source type itself
-        #
-        embed_model = self._get_embed_model()
-        identity_transforms = vector_manager.build_ingest_transforms(embed_model)
-
-        split_and_embed_transforms = [
-            ResilientSplitter(
-                chunk_size_tokens=self._settings.chunk_size,
-                chunk_overlap_tokens=self._settings.chunk_overlap,
-                chars_per_token=self._settings.chunk_chars_per_token,
-                fallback_enabled=self._settings.chunk_fallback_enabled,
-            ),
-            chunk_persist,
-            EmbeddingPrefixTransform(
-                prefix_template=self._settings.embed_prefix_doc,
-            ),
-            *identity_transforms,
-            embed_model,
-        ]
-
-        # Build transformation chain
-        return document_transforms + chunker_transforms + split_and_embed_transforms
+        return transforms
 
     def build_pipeline(
         self,
@@ -211,7 +134,7 @@ class DatasetIngestPipeline(BaseModel):
         """Build the ingestion pipeline.
 
         Args:
-            vector_manager: Vector store manager for embeddings.
+            vector_manager: Vector store manager (needed for docstore strategy).
             incremental: If True, use UPSERTS strategy instead of
                 UPSERTS_AND_DELETE to avoid deleting unchanged documents
                 that are absent from the partial batch.
@@ -219,7 +142,7 @@ class DatasetIngestPipeline(BaseModel):
         Returns:
             Configured IngestionPipeline ready to run.
         """
-        transformations = self._get_transforms(vector_manager=vector_manager)
+        transformations = self._get_transforms()
 
         # Create pipeline with docstore for change detection and deduplication.
         # LlamaIndex's docstore uses SHA256(text + metadata) for change detection,
@@ -265,8 +188,8 @@ class DatasetIngestPipeline(BaseModel):
     def ingest(self) -> IngestResult:
         """Ingest documents using the pipeline.
 
-        Uses resilient chunking and embedding prefixes for improved
-        retrieval quality matching the TypeScript QMD system.
+        Persists documents to the database. Returns after persistence --
+        indexing is handled separately by the caller (DatasetSync).
 
         Returns:
             IngestResult with statistics about the operation.
@@ -349,12 +272,9 @@ class DatasetIngestPipeline(BaseModel):
 
                 # Collect statistics from transforms
                 persist_transform = None
-                chunk_persist_transform = None
                 for t in pipeline.transformations:
                     if isinstance(t, PersistenceTransform):
                         persist_transform = t
-                    elif isinstance(t, ChunkPersistenceTransform):
-                        chunk_persist_transform = t
 
                 # Deletion sync: mark documents not in the current batch
                 # as inactive in our SQLite DB. LlamaIndex already handled
@@ -375,20 +295,6 @@ class DatasetIngestPipeline(BaseModel):
                         dataset.id, batch_paths
                     )
                     if deactivated > 0:
-                        # Clean up FTS entries for deactivated documents
-                        fts = FTSManager()
-                        active_paths = doc_repo.list_paths_by_parent(
-                            dataset.id, active_only=True
-                        )
-                        all_paths = doc_repo.list_paths_by_parent(
-                            dataset.id, active_only=False
-                        )
-                        removed_paths = all_paths - active_paths - batch_paths
-                        for rpath in removed_paths:
-                            removed_doc = doc_repo.get_by_path(dataset.id, rpath)
-                            if removed_doc:
-                                fts.delete(removed_doc.id)
-
                         logger.info(
                             f"Deletion sync: deactivated {deactivated} documents "
                             f"not in current batch"
@@ -407,13 +313,9 @@ class DatasetIngestPipeline(BaseModel):
                     result.documents_failed = persist_transform.stats.failed
                     result.errors = list(persist_transform.stats.errors)
 
-                if chunk_persist_transform:
-                    result.chunks_created = chunk_persist_transform.stats.created
-
                 result.documents_read = len(source_docs)
                 result.dataset_id = dataset.id
                 result.dataset_name = dataset.name
-                result.vectors_inserted = len(nodes) if nodes else 0
                 result.documents_deactivated = deactivated
 
                 # Derive skipped count: docs in batch that weren't
@@ -425,8 +327,7 @@ class DatasetIngestPipeline(BaseModel):
                 )
                 result.documents_skipped = len(source_docs) - total_processed
 
-                # Persist state
-                vector_manager.persist_vector_store()
+                # Persist pipeline cache state
                 persist_pipeline(dataset.name, pipeline)
 
                 result.completed_at = datetime.now(tz=timezone.utc)
@@ -437,9 +338,7 @@ class DatasetIngestPipeline(BaseModel):
                     f"updated={result.documents_updated}, "
                     f"skipped={result.documents_skipped}, "
                     f"deactivated={result.documents_deactivated}, "
-                    f"failed={result.documents_failed}, "
-                    f"chunks={result.chunks_created}, "
-                    f"vectors={result.vectors_inserted}"
+                    f"failed={result.documents_failed}"
                 )
 
                 return result

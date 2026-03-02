@@ -1,33 +1,59 @@
-"""catalog.store.cleanup - Cleanup hooks for derived indexes.
+"""index.store.cleanup - Cleanup hooks for derived indexes.
 
 Provides cleanup functionality for FTS and vector indexes when
 documents are soft-deleted or removed.
 
 Example usage:
-    from catalog.store.cleanup import IndexCleanup
+    from index.store.cleanup import IndexCleanup
 
     cleanup = IndexCleanup(session)
-    cleanup.remove_fts_for_inactive(parent_id)
+    cleanup.reconcile_inactive_documents(parent_id, dataset_name, vector_manager)
 """
 
+from __future__ import annotations
+
+from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from agentlayer.logging import get_logger
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from catalog.ingest.directory import DirectorySource
-from catalog.store.fts import FTSManager
+from index.store.fts import FTSManager
+from index.store.fts_chunk import FTSChunkManager
 from catalog.store.repositories import DocumentRepository
+
+if TYPE_CHECKING:
+    from index.store.vector import VectorStoreManager
 
 __all__ = [
     "IndexCleanup",
+    "ReconciliationStats",
     "cleanup_fts_for_document",
     "cleanup_fts_for_inactive_documents",
     "cleanup_stale_documents",
 ]
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class ReconciliationStats:
+    """Aggregate counts from reconciling inactive documents.
+
+    Attributes:
+        documents_reconciled: Number of inactive documents processed.
+        document_fts_deleted: Document-level FTS rows removed.
+        chunk_fts_deleted: Chunk-level FTS rows removed.
+        vector_docs_deleted: Number of source documents removed from vector store.
+    """
+
+    documents_reconciled: int
+    document_fts_deleted: int
+    chunk_fts_deleted: int
+    vector_docs_deleted: int
 
 
 class IndexCleanup:
@@ -45,6 +71,76 @@ class IndexCleanup:
         """
         self._session = session
         self._fts = FTSManager(session)
+        self._fts_chunk = FTSChunkManager(session)
+
+    def reconcile_inactive_documents(
+        self,
+        parent_id: int,
+        dataset_name: str,
+        vector_manager: VectorStoreManager | None = None,
+    ) -> ReconciliationStats:
+        """Remove all index artifacts for inactive documents in the dataset.
+
+        Queries documents where active=0 for the given parent_id, then for each
+        removes document FTS, chunk FTS, and (if vector_manager provided) vector
+        entries. Uses source_doc_id = f"{dataset_name}:{path}" as the canonical
+        per-document key. Safe to run repeatedly; idempotent once artifacts are gone.
+
+        Args:
+            parent_id: Dataset (parent) ID to reconcile.
+            dataset_name: Dataset name for building source_doc_id.
+            vector_manager: Optional; when provided, deletes vectors per source_doc_id.
+
+        Returns:
+            ReconciliationStats with aggregate counts.
+        """
+        result = self._session.execute(
+            text("""
+                SELECT id, path
+                FROM documents
+                WHERE parent_id = :parent_id AND active = 0
+            """),
+            {"parent_id": parent_id},
+        )
+        rows = list(result)
+        doc_fts_deleted = 0
+        chunk_fts_deleted = 0
+        vector_docs_deleted = 0
+
+        for (doc_id, path) in rows:
+            source_doc_id = f"{dataset_name}:{path}"
+            try:
+                doc_fts_deleted += self._fts.delete(doc_id)
+            except Exception as e:
+                logger.warning(f"Failed to delete document FTS for doc_id={doc_id}: {e}")
+            try:
+                chunk_fts_deleted += self._fts_chunk.delete_by_source_doc_id(source_doc_id)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to delete chunk FTS for source_doc_id={source_doc_id!r}: {e}"
+                )
+            if vector_manager is not None:
+                try:
+                    vector_manager.delete_source_doc(source_doc_id)
+                    vector_docs_deleted += 1
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to delete vectors for source_doc_id={source_doc_id!r}: {e}"
+                    )
+
+        stats = ReconciliationStats(
+            documents_reconciled=len(rows),
+            document_fts_deleted=doc_fts_deleted,
+            chunk_fts_deleted=chunk_fts_deleted,
+            vector_docs_deleted=vector_docs_deleted,
+        )
+        if rows:
+            logger.info(
+                f"Reconciled {stats.documents_reconciled} inactive documents: "
+                f"doc_fts={stats.document_fts_deleted} "
+                f"chunk_fts={stats.chunk_fts_deleted} vectors={stats.vector_docs_deleted}"
+            )
+        return stats
 
     def cleanup_fts_for_document(self, doc_id: int) -> None:
         """Remove FTS entry for a single document.

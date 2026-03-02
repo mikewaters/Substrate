@@ -26,7 +26,6 @@ __all__ = [
     "ComponentStatus",
     "check_health",
     "check_database",
-    "check_vector_store",
     "check_stale_documents",
 ]
 
@@ -93,98 +92,6 @@ def check_database() -> ComponentStatus:
         )
 
 
-def check_vector_store() -> ComponentStatus:
-    """Check vector store path accessibility.
-
-    Verifies that the vector store directory exists or can be created.
-
-    Returns:
-        ComponentStatus indicating vector store health.
-    """
-    try:
-        settings = get_settings()
-        path = settings.vector_store_path
-
-        if path.exists():
-            if path.is_dir():
-                return ComponentStatus(
-                    name="vector_store",
-                    healthy=True,
-                    message="Vector store directory exists",
-                    details={"path": str(path), "exists": True},
-                )
-            else:
-                return ComponentStatus(
-                    name="vector_store",
-                    healthy=False,
-                    message=f"Vector store path exists but is not a directory: {path}",
-                )
-        else:
-            # Try to create the directory
-            try:
-                path.mkdir(parents=True, exist_ok=True)
-                return ComponentStatus(
-                    name="vector_store",
-                    healthy=True,
-                    message="Vector store directory created",
-                    details={"path": str(path), "exists": False, "created": True},
-                )
-            except OSError as e:
-                return ComponentStatus(
-                    name="vector_store",
-                    healthy=False,
-                    message=f"Cannot create vector store directory: {e}",
-                )
-    except Exception as e:
-        logger.error(f"Vector store health check failed: {e}")
-        return ComponentStatus(
-            name="vector_store",
-            healthy=False,
-            message=f"Vector store check failed: {e}",
-        )
-
-
-def check_fts_table() -> ComponentStatus:
-    """Check FTS5 table existence.
-
-    Verifies that the FTS5 virtual table exists in the database.
-
-    Returns:
-        ComponentStatus indicating FTS table health.
-    """
-    try:
-        from sqlalchemy import text
-
-        from catalog.store.database import get_engine
-
-        engine = get_engine()
-        with engine.connect() as conn:
-            result = conn.execute(
-                text("SELECT name FROM sqlite_master WHERE type='table' AND name='documents_fts'")
-            )
-            table_name = result.scalar()
-
-        if table_name:
-            return ComponentStatus(
-                name="fts_table",
-                healthy=True,
-                message="FTS5 table exists",
-            )
-        else:
-            return ComponentStatus(
-                name="fts_table",
-                healthy=False,
-                message="FTS5 table does not exist - run create_fts_table()",
-            )
-    except Exception as e:
-        logger.error(f"FTS table health check failed: {e}")
-        return ComponentStatus(
-            name="fts_table",
-            healthy=False,
-            message=f"FTS table check failed: {e}",
-        )
-
-
 def check_settings() -> ComponentStatus:
     """Check settings configuration.
 
@@ -218,17 +125,14 @@ def check_settings() -> ComponentStatus:
 def check_health(
     *,
     check_db: bool = True,
-    check_vector: bool = True,
-    check_fts: bool = True,
 ) -> HealthStatus:
     """Perform comprehensive health check.
 
     Checks all configured components and returns overall health status.
+    Vector store and FTS checks are in index.status.
 
     Args:
         check_db: Include database check.
-        check_vector: Include vector store check.
-        check_fts: Include FTS table check.
 
     Returns:
         HealthStatus with component statuses and issues.
@@ -246,12 +150,6 @@ def check_health(
 
     if check_db:
         status.add_component(check_database())
-
-    if check_vector:
-        status.add_component(check_vector_store())
-
-    if check_fts:
-        status.add_component(check_fts_table())
 
     if status.is_healthy:
         logger.debug("Health check passed")

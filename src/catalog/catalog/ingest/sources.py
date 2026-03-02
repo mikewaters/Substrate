@@ -26,6 +26,16 @@ __all__ = [
 class BaseSource:
     """Base class for document sources."""
 
+    @property
+    def link_resolver(self):
+        """Return a LinkResolver for inter-document link resolution, or None.
+
+        Integrations override this to provide a source-specific resolver
+        (e.g. ObsidianWikilinkResolver). The ingest pipeline uses this
+        to add a LinkResolutionTransform as the final post-persist step.
+        """
+        return None
+
     def documents(self):
         pass
 

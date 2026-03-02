@@ -11,8 +11,8 @@ from pydantic import model_validator
 
 from catalog.ingest.sources import BaseSource, DatasetSourceConfig
 from catalog.ontology import OntologyMappingSpec
+from catalog.integrations.obsidian.links import ObsidianWikilinkResolver
 from catalog.integrations.obsidian.reader import ObsidianVaultReader, logger, ObsidianMarkdownNormalize
-from catalog.integrations.obsidian.transforms import LinkResolutionTransform
 
 
 class ObsidianVaultSource(BaseSource):
@@ -57,27 +57,25 @@ class ObsidianVaultSource(BaseSource):
 
         logger.debug(f"Initialized ObsidianVaultSource for vault: {self.path}")
 
-    def transforms(self, dataset_id: int) -> list[type]:
-        """Get the list of transforms to apply for this source.
+    @property
+    def link_resolver(self) -> ObsidianWikilinkResolver:
+        """Provide Obsidian wikilink resolution strategy."""
+        return ObsidianWikilinkResolver()
 
-        Returns:
-            Tuple of List of TransformComponent subclasses.
-            [0] is pre-persist, [1] is post-persist
+    def transforms(self, dataset_id: int) -> list[type]:
+        """Get the list of post-persist transforms for this source.
+
+        Link resolution is handled by the ingest pipeline via link_resolver.
         """
         parser = MarkdownNodeParser(
             include_metadata=True,
             include_prev_next_rel=True,
             header_path_separator=" / ",
         )
-        transforms = [
-                LinkResolutionTransform(dataset_id=dataset_id),
-                ObsidianMarkdownNormalize(),
-                parser,
-
-            ]
-
-
-        return transforms
+        return [
+            ObsidianMarkdownNormalize(),
+            parser,
+        ]
 
     @cached_property
     def documents(self) -> list[Document]:

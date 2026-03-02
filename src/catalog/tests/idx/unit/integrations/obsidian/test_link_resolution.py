@@ -1,4 +1,4 @@
-"""Tests for LinkResolutionTransform (catalog.integrations.obsidian.transforms)."""
+"""Tests for LinkResolutionTransform with ObsidianWikilinkResolver."""
 
 from pathlib import Path
 
@@ -8,11 +8,12 @@ from sqlalchemy.orm import sessionmaker
 
 from catalog.store.database import Base, create_engine_for_path
 from catalog.store.dataset import DatasetService
-from catalog.store.fts import create_fts_table
+from index.store.fts import create_fts_table
 from catalog.store.models import Dataset, Document, DocumentLink, DocumentLinkKind
 from catalog.store.repositories import DocumentLinkRepository, DocumentRepository
-from catalog.store.session_context import use_session
-from catalog.integrations.obsidian import LinkResolutionTransform
+from agentlayer.session import use_session
+from catalog.transform.links import LinkResolutionTransform
+from catalog.integrations.obsidian.links import ObsidianWikilinkResolver
 from catalog.transform.llama import PersistenceTransform
 
 
@@ -71,7 +72,7 @@ class TestLinkResolution:
         nodes = _persist_nodes(db_session, dataset_id, nodes)
 
         with use_session(db_session):
-            transform = LinkResolutionTransform(dataset_id=dataset_id)
+            transform = LinkResolutionTransform(dataset_id=dataset_id, resolver=ObsidianWikilinkResolver())
             transform(nodes)
             db_session.commit()
 
@@ -92,7 +93,7 @@ class TestLinkResolution:
         nodes = _persist_nodes(db_session, dataset_id, nodes)
 
         with use_session(db_session):
-            transform = LinkResolutionTransform(dataset_id=dataset_id)
+            transform = LinkResolutionTransform(dataset_id=dataset_id, resolver=ObsidianWikilinkResolver())
             transform(nodes)
             db_session.commit()
 
@@ -107,7 +108,7 @@ class TestLinkResolution:
         nodes = _persist_nodes(db_session, dataset_id, nodes)
 
         with use_session(db_session):
-            transform = LinkResolutionTransform(dataset_id=dataset_id)
+            transform = LinkResolutionTransform(dataset_id=dataset_id, resolver=ObsidianWikilinkResolver())
             transform(nodes)
             db_session.commit()
 
@@ -129,12 +130,12 @@ class TestLinkResolution:
 
         with use_session(db_session):
             # First run
-            transform1 = LinkResolutionTransform(dataset_id=dataset_id)
+            transform1 = LinkResolutionTransform(dataset_id=dataset_id, resolver=ObsidianWikilinkResolver())
             transform1(nodes)
             db_session.flush()
 
             # Second run
-            transform2 = LinkResolutionTransform(dataset_id=dataset_id)
+            transform2 = LinkResolutionTransform(dataset_id=dataset_id, resolver=ObsidianWikilinkResolver())
             transform2(nodes)
             db_session.flush()
 
@@ -152,7 +153,7 @@ class TestLinkResolution:
         nodes = _persist_nodes(db_session, dataset_id, nodes)
 
         with use_session(db_session):
-            transform = LinkResolutionTransform(dataset_id=dataset_id)
+            transform = LinkResolutionTransform(dataset_id=dataset_id, resolver=ObsidianWikilinkResolver())
             transform(nodes)
             db_session.commit()
 
@@ -168,7 +169,7 @@ class TestLinkResolution:
         nodes = _persist_nodes(db_session, dataset_id, nodes)
 
         with use_session(db_session):
-            transform = LinkResolutionTransform(dataset_id=dataset_id)
+            transform = LinkResolutionTransform(dataset_id=dataset_id, resolver=ObsidianWikilinkResolver())
             transform(nodes)
             assert transform.stats.resolved == 1
 
@@ -186,7 +187,7 @@ class TestLinkResolution:
         nodes = _persist_nodes(db_session, dataset_id, nodes)
 
         with use_session(db_session):
-            transform = LinkResolutionTransform(dataset_id=dataset_id)
+            transform = LinkResolutionTransform(dataset_id=dataset_id, resolver=ObsidianWikilinkResolver())
             result = transform(nodes)
             db_session.commit()
 
@@ -202,7 +203,7 @@ class TestLinkResolution:
         nodes = _persist_nodes(db_session, dataset_id, nodes)
 
         with use_session(db_session):
-            transform = LinkResolutionTransform(dataset_id=dataset_id)
+            transform = LinkResolutionTransform(dataset_id=dataset_id, resolver=ObsidianWikilinkResolver())
             transform(nodes)
             db_session.commit()
 
@@ -225,7 +226,7 @@ class TestLinkResolution:
         nodes = _persist_nodes(db_session, dataset_id, nodes)
 
         with use_session(db_session):
-            transform = LinkResolutionTransform(dataset_id=dataset_id)
+            transform = LinkResolutionTransform(dataset_id=dataset_id, resolver=ObsidianWikilinkResolver())
             transform(nodes)
             db_session.commit()
 

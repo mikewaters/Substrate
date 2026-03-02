@@ -17,7 +17,7 @@ class TestObservabilitySmoke:
 
     def test_observability_module_imports(self) -> None:
         """Observability module imports without error."""
-        from catalog.core.observability import (
+        from agentlayer.observability import (
             configure_observability,
             get_callback_manager,
             is_langfuse_available,
@@ -36,7 +36,7 @@ class TestObservabilitySmoke:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Observability is safe when disabled (default state)."""
-        from catalog.core.observability import (
+        from agentlayer.observability import (
             configure_observability,
             get_callback_manager,
             reset_observability,
@@ -63,7 +63,7 @@ class TestObservabilitySmoke:
 
     def test_langfuse_availability_check(self) -> None:
         """is_langfuse_available returns boolean without crashing."""
-        from catalog.core.observability import is_langfuse_available
+        from agentlayer.observability import is_langfuse_available
 
         result = is_langfuse_available()
         assert isinstance(result, bool)
@@ -123,7 +123,7 @@ class TestStatusSmoke:
     def test_full_health_check_with_real_db(self, tmp_path: Path) -> None:
         """Full health check runs with a real temporary database."""
         from catalog.core.status import check_health
-        from catalog.store.fts import create_fts_table
+        from index.store.fts import create_fts_table
 
         # Create a real test database
         db_path = tmp_path / "test.db"
@@ -168,8 +168,8 @@ class TestEndToEndStatusIntegration:
         from catalog.core.status import check_health
         from catalog.ingest.pipelines import DatasetIngestPipeline
         from catalog.ingest.directory import SourceDirectoryConfig
-        from catalog.store.fts import create_fts_table
-        from catalog.store.fts_chunk import create_chunks_fts_table
+        from index.store.fts import create_fts_table
+        from index.store.fts_chunk import create_chunks_fts_table
 
         # Create test documents
         docs_dir = tmp_path / "docs"

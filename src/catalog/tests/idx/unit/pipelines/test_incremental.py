@@ -17,10 +17,10 @@ from catalog.ingest.job import SourceConfig
 from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.store.database import Base, create_engine_for_path
-from catalog.store.fts import create_fts_table
-from catalog.store.fts_chunk import create_chunks_fts_table
+from index.store.fts import create_fts_table
+from index.store.fts_chunk import create_chunks_fts_table
 from catalog.store.repositories import DatasetRepository, DocumentRepository
-from catalog.store.vector import VectorStoreManager
+from index.store.vector import VectorStoreManager
 
 
 class TestIncrementalConfig:

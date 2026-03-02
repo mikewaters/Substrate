@@ -91,10 +91,10 @@ def methods(
     - Hybrid (RRF)
     - Hybrid + rerank
     """
-    from catalog.search.models import SearchCriteria
-    from catalog.search.service import SearchService
+    from index.search.models import SearchCriteria
+    from index.search.service import SearchService
     from catalog.store.database import get_session
-    from catalog.store.session_context import use_session
+    from agentlayer.session import use_session
 
     if output not in {"json", "table"}:
         typer.echo(f"Error: Invalid output format: {output}", err=True)

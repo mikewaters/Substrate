@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from catalog.ingest.directory import SourceDirectoryConfig
 from catalog.ingest.pipelines import DatasetIngestPipeline
-from catalog.search.fts import FTSSearch
-from catalog.search.models import SearchCriteria
+from index.search.fts import FTSSearch
+from index.search.models import SearchCriteria
 
 
 @contextmanager

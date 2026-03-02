@@ -13,11 +13,8 @@ from catalog.integrations.obsidian.reader import (
     extract_wikilinks,
     parse_frontmatter,
 )
+from catalog.integrations.obsidian.links import ObsidianWikilinkResolver
 from catalog.integrations.obsidian.source import ObsidianVaultSource, SourceObsidianConfig
-from catalog.integrations.obsidian.transforms import (
-    LinkResolutionStats,
-    LinkResolutionTransform,
-)
 from catalog.integrations.obsidian.ontology import VaultSpec
 
 from catalog.ingest.sources import (
@@ -76,11 +73,10 @@ def _(config: SourceObsidianConfig):
 
 __all__ = [
     "SourceObsidianConfig",
-    "LinkResolutionStats",
-    "LinkResolutionTransform",
     "ObsidianMarkdownReader",
     "ObsidianVaultReader",
     "ObsidianVaultSource",
+    "ObsidianWikilinkResolver",
     "VaultSpec",
     "extract_tasks",
     "extract_wikilinks",

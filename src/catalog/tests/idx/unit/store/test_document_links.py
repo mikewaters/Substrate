@@ -14,7 +14,7 @@ from catalog.store.models import (
     DocumentLinkKind,
 )
 from catalog.store.repositories import DocumentLinkRepository
-from catalog.store.session_context import use_session
+from agentlayer.session import use_session
 
 
 @pytest.fixture

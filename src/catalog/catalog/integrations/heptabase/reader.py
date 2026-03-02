@@ -16,15 +16,13 @@ from agentlayer.logging import get_logger
 from llama_index.core import Document
 from llama_index.core.node_parser import MarkdownNodeParser
 
-from catalog.integrations.heptabase.links import extract_heptabase_links
+from catalog.integrations.heptabase.links import extract_heptabase_links, HeptabaseLinkResolver
 from catalog.integrations.obsidian.reader import (
     ObsidianMarkdownNormalize,
     ObsidianVaultReader,
 )
-from catalog.integrations.obsidian.transforms import LinkResolutionTransform
 from catalog.ingest.sources import BaseSource
 from catalog.ontology import OntologyMappingSpec
-from catalog.store.models import DocumentLinkKind
 
 __all__ = [
     "HeptabaseVaultReader",
@@ -102,27 +100,25 @@ class HeptabaseVaultSource(BaseSource):
 
         logger.debug(f"Initialized HeptabaseVaultSource for path: {self.path}")
 
-    def transforms(self, dataset_id: int) -> list[type]:
-        """Get the list of transforms to apply for this source.
+    @property
+    def link_resolver(self) -> HeptabaseLinkResolver:
+        """Provide Heptabase markdown link resolution strategy."""
+        return HeptabaseLinkResolver()
 
-        Returns:
-            Tuple of (pre-persist transforms, post-persist transforms).
+    def transforms(self, dataset_id: int) -> list[type]:
+        """Get the list of post-persist transforms for this source.
+
+        Link resolution is handled by the ingest pipeline via link_resolver.
         """
         parser = MarkdownNodeParser(
             include_metadata=True,
             include_prev_next_rel=True,
             header_path_separator=" / ",
         )
-        transforms = [
-                LinkResolutionTransform(
-                    dataset_id=dataset_id,
-                    link_kind=DocumentLinkKind.MARKDOWN_LINK,
-                ),
-                ObsidianMarkdownNormalize(),
-                parser,
-            ]
-
-        return transforms
+        return [
+            ObsidianMarkdownNormalize(),
+            parser,
+        ]
 
     @cached_property
     def documents(self) -> list[Document]:

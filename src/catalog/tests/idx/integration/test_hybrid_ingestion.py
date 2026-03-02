@@ -20,8 +20,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from catalog.ingest.pipelines import DatasetIngestPipeline
 from catalog.integrations.obsidian import SourceObsidianConfig
 from catalog.store.database import Base, create_engine_for_path
-from catalog.store.fts import create_fts_table
-from catalog.store.fts_chunk import create_chunks_fts_table
+from index.store.fts import create_fts_table
+from index.store.fts_chunk import create_chunks_fts_table
+from catalog.sync import DatasetSync
 
 
 @pytest.fixture
@@ -63,7 +64,8 @@ def patched_get_session(session_factory):
         with create_session(session_factory) as session:
             yield session
 
-    with patch("catalog.ingest.pipelines.get_session", get_test_session):
+    with patch("catalog.ingest.pipelines.get_session", get_test_session), \
+         patch("catalog.sync.get_session", get_test_session):
         yield get_test_session
 
 
@@ -134,10 +136,10 @@ class TestIdempotentIngestion:
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        sync = DatasetSync()
 
-        # First ingest
-        result1 = pipeline.ingest_dataset(config)
+        # First sync
+        sync.sync(config)
 
         # Get node IDs from chunks_fts
         with create_session(session_factory) as session:
@@ -146,13 +148,13 @@ class TestIdempotentIngestion:
             )
             first_node_ids = {row.node_id: row.source_doc_id for row in result}
 
-        # Force re-ingest
+        # Force re-sync
         config_force = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
             force=True,
         )
-        result2 = pipeline.ingest_dataset(config_force)
+        sync.sync(config_force)
 
         # Get node IDs again
         with create_session(session_factory) as session:
@@ -179,8 +181,7 @@ class TestIdempotentIngestion:
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
-        pipeline.ingest_dataset(config)
+        DatasetSync().sync(config)
 
         # Check node ID format
         with create_session(session_factory) as session:
@@ -210,8 +211,7 @@ class TestNoDuplicates:
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
-        pipeline.ingest_dataset(config)
+        DatasetSync().sync(config)
 
         # Check for duplicates
         with create_session(session_factory) as session:
@@ -240,18 +240,18 @@ class TestNoDuplicates:
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        sync = DatasetSync()
 
-        # Ingest multiple times
-        pipeline.ingest_dataset(config)
+        # Sync multiple times
+        sync.sync(config)
 
-        # Force re-ingest
+        # Force re-sync
         config_force = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
             force=True,
         )
-        pipeline.ingest_dataset(config_force)
+        sync.sync(config_force)
 
         # Check for duplicates
         with create_session(session_factory) as session:
@@ -280,23 +280,23 @@ class TestNoDuplicates:
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
-        pipeline.ingest_dataset(config)
+        sync = DatasetSync()
+        sync.sync(config)
 
         # Get initial chunk count
         with create_session(session_factory) as session:
             result = session.execute(sql_text("SELECT COUNT(*) FROM chunks_fts"))
             initial_count = result.scalar()
 
-        # Force re-ingest
+        # Force re-sync
         config_force = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
             force=True,
         )
-        pipeline.ingest_dataset(config_force)
+        sync.sync(config_force)
 
-        # Get count after re-ingest
+        # Get count after re-sync
         with create_session(session_factory) as session:
             result = session.execute(sql_text("SELECT COUNT(*) FROM chunks_fts"))
             final_count = result.scalar()
@@ -316,15 +316,15 @@ class TestDeletePropagation:
         sample_vault: Path,
     ) -> None:
         """Deleted files are removed from FTS index after cleanup."""
-        from catalog.store.cleanup import cleanup_stale_documents
+        from index.store.cleanup import cleanup_stale_documents
 
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
-        result = pipeline.ingest_dataset(config)
+        sync = DatasetSync()
+        sync_result = sync.sync(config)
 
         # Verify note2.md chunks exist in FTS
         with create_session(session_factory) as session:
@@ -341,14 +341,14 @@ class TestDeletePropagation:
         # Delete note2.md from filesystem
         (sample_vault / "note2.md").unlink()
 
-        # Re-ingest
-        pipeline.ingest_dataset(config)
+        # Re-sync
+        sync.sync(config)
 
         # Run cleanup for stale documents
         with create_session(session_factory) as session:
             stale_count = cleanup_stale_documents(
                 session,
-                result.dataset_id,
+                sync_result.ingest.dataset_id,
                 source_path=sample_vault,
                 patterns=["**/*.md"],
             )
@@ -378,15 +378,15 @@ class TestDeletePropagation:
         sample_vault: Path,
     ) -> None:
         """Document-level FTS entries are removed when document deleted."""
-        from catalog.store.cleanup import cleanup_stale_documents
+        from index.store.cleanup import cleanup_stale_documents
 
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
-        result = pipeline.ingest_dataset(config)
+        sync = DatasetSync()
+        sync_result = sync.sync(config)
 
         # Verify document FTS entry exists
         with create_session(session_factory) as session:
@@ -403,12 +403,12 @@ class TestDeletePropagation:
         # Delete note2.md (contains "JavaScript")
         (sample_vault / "note2.md").unlink()
 
-        # Re-ingest and cleanup
-        pipeline.ingest_dataset(config)
+        # Re-sync and cleanup
+        sync.sync(config)
         with create_session(session_factory) as session:
             cleanup_stale_documents(
                 session,
-                result.dataset_id,
+                sync_result.ingest.dataset_id,
                 source_path=sample_vault,
                 patterns=["**/*.md"],
             )
@@ -436,22 +436,21 @@ class TestVectorIndexing:
         session_factory,
         sample_vault: Path,
     ) -> None:
-        """Vector indexing always inserts vectors during ingestion."""
+        """Vector indexing always inserts vectors during sync."""
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
-        result = pipeline.ingest_dataset(config)
+        sync_result = DatasetSync().sync(config)
 
         # Verify vector manager was called
         mock_manager = patched_embedding["vector_manager"]
         assert mock_manager.get_vector_store.called
         assert mock_manager.persist_vector_store.called
 
-        # Result should track vectors inserted
-        assert result.vectors_inserted > 0
+        # Index result should track vectors inserted
+        assert sync_result.index.vectors_inserted > 0
 
 
 class TestSourceDocIdFormat:
@@ -470,8 +469,7 @@ class TestSourceDocIdFormat:
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
-        pipeline.ingest_dataset(config)
+        DatasetSync().sync(config)
 
         # Check source_doc_id format
         with create_session(session_factory) as session:
@@ -501,8 +499,7 @@ class TestSourceDocIdFormat:
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
-        pipeline.ingest_dataset(config)
+        DatasetSync().sync(config)
 
         # Get all source_doc_ids
         with create_session(session_factory) as session:
@@ -533,13 +530,12 @@ class TestChunkMetadata:
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
-        pipeline.ingest_dataset(config)
+        DatasetSync().sync(config)
 
-        # Check that all chunks have text
+        # Check that all chunks have body_text content
         with create_session(session_factory) as session:
             result = session.execute(
-                sql_text("SELECT text FROM chunks_fts WHERE text = '' OR text IS NULL")
+                sql_text("SELECT body_text FROM chunks_fts WHERE body_text = '' OR body_text IS NULL")
             )
             empty_chunks = list(result)
 
@@ -558,11 +554,10 @@ class TestChunkMetadata:
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
-        result = pipeline.ingest_dataset(config)
+        sync_result = DatasetSync().sync(config)
 
         # Get documents
-        doc_count = result.documents_created + result.documents_updated
+        doc_count = sync_result.ingest.documents_created + sync_result.ingest.documents_updated
 
         # Get unique documents with chunks
         with create_session(session_factory) as session:
@@ -575,27 +570,26 @@ class TestChunkMetadata:
             f"Expected {doc_count} documents with chunks, got {docs_with_chunks}"
 
 
-class TestIngestionStats:
-    """Tests for ingestion statistics accuracy."""
+class TestSyncStats:
+    """Tests for sync statistics accuracy."""
 
-    def test_ingest_result_tracks_chunks(
+    def test_index_result_tracks_chunks(
         self,
         patched_get_session,
         patched_embedding,
         session_factory,
         sample_vault: Path,
     ) -> None:
-        """IngestResult correctly tracks chunks_created."""
+        """IndexResult correctly tracks chunks_created."""
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
-        result = pipeline.ingest_dataset(config)
+        sync_result = DatasetSync().sync(config)
 
         # Verify chunks_created is populated
-        assert result.chunks_created > 0
+        assert sync_result.index.chunks_created > 0
 
         # Verify it matches actual chunk count
         with create_session(session_factory) as session:
@@ -604,8 +598,8 @@ class TestIngestionStats:
             )
             actual_count = chunk_result.scalar()
 
-        assert result.chunks_created == actual_count, \
-            f"chunks_created ({result.chunks_created}) should match actual ({actual_count})"
+        assert sync_result.index.chunks_created == actual_count, \
+            f"chunks_created ({sync_result.index.chunks_created}) should match actual ({actual_count})"
 
     def test_reingest_updates_stats_correctly(
         self,
@@ -614,26 +608,26 @@ class TestIngestionStats:
         session_factory,
         sample_vault: Path,
     ) -> None:
-        """Re-ingestion with force=True updates stats correctly."""
+        """Re-sync with force=True updates stats correctly."""
         config = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
         )
 
-        pipeline = DatasetIngestPipeline()
+        sync = DatasetSync()
 
-        # First ingest
-        result1 = pipeline.ingest_dataset(config)
-        initial_chunks = result1.chunks_created
+        # First sync
+        result1 = sync.sync(config)
+        initial_chunks = result1.index.chunks_created
 
-        # Force re-ingest
+        # Force re-sync
         config_force = SourceObsidianConfig(
             source_path=sample_vault,
             dataset_name="test-vault",
             force=True,
         )
-        result2 = pipeline.ingest_dataset(config_force)
+        result2 = sync.sync(config_force)
 
         # Chunk count should be consistent (no duplicates)
-        assert result2.chunks_created == initial_chunks, \
-            f"Force re-ingest should produce same chunk count: {result2.chunks_created} vs {initial_chunks}"
+        assert result2.index.chunks_created == initial_chunks, \
+            f"Force re-sync should produce same chunk count: {result2.index.chunks_created} vs {initial_chunks}"

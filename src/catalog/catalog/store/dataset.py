@@ -10,7 +10,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 
 from agentlayer.logging import get_logger
-from catalog.ingest.schemas import BaseModel
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from catalog.store.database import get_session

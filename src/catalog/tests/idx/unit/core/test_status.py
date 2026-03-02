@@ -9,9 +9,11 @@ from catalog.core.status import (
     ComponentStatus,
     HealthStatus,
     check_database,
-    check_fts_table,
     check_health,
     check_settings,
+)
+from index.status import (
+    check_fts_table,
     check_vector_store,
 )
 
@@ -150,14 +152,14 @@ class TestCheckDatabase:
 
 
 class TestCheckVectorStore:
-    """Tests for check_vector_store function."""
+    """Tests for index.status.check_vector_store function."""
 
     def test_vector_store_exists(self, tmp_path: Path) -> None:
         """Vector store check succeeds when directory exists."""
         vector_path = tmp_path / "vectors"
         vector_path.mkdir()
 
-        with patch("catalog.core.status.get_settings") as mock_settings:
+        with patch("index.status.get_settings") as mock_settings:
             mock_settings.return_value = MagicMock(vector_store_path=vector_path)
             result = check_vector_store()
 
@@ -168,7 +170,7 @@ class TestCheckVectorStore:
         """Vector store check succeeds when directory can be created."""
         vector_path = tmp_path / "new_vectors"
 
-        with patch("catalog.core.status.get_settings") as mock_settings:
+        with patch("index.status.get_settings") as mock_settings:
             mock_settings.return_value = MagicMock(vector_store_path=vector_path)
             result = check_vector_store()
 
@@ -181,7 +183,7 @@ class TestCheckVectorStore:
         file_path = tmp_path / "not_a_dir"
         file_path.touch()
 
-        with patch("catalog.core.status.get_settings") as mock_settings:
+        with patch("index.status.get_settings") as mock_settings:
             mock_settings.return_value = MagicMock(vector_store_path=file_path)
             result = check_vector_store()
 
@@ -190,7 +192,7 @@ class TestCheckVectorStore:
 
 
 class TestCheckFtsTable:
-    """Tests for check_fts_table function."""
+    """Tests for index.status.check_fts_table function."""
 
     def test_fts_table_exists(self, tmp_path: Path) -> None:
         """FTS check succeeds when table exists."""
@@ -234,8 +236,6 @@ class TestCheckHealth:
         from sqlalchemy import create_engine, text
 
         db_path = tmp_path / "test.db"
-        vector_path = tmp_path / "vectors"
-        vector_path.mkdir()
 
         engine = create_engine(f"sqlite:///{db_path}")
         with engine.connect() as conn:
@@ -251,14 +251,14 @@ class TestCheckHealth:
             mock_get_engine.return_value = engine
             mock_settings.return_value = MagicMock(
                 database_path=db_path,
-                vector_store_path=vector_path,
+                vector_store_path=tmp_path / "vectors",
                 log_level="INFO",
                 embedding_model="default",
             )
             result = check_health()
 
         assert result.is_healthy is True
-        assert len(result.components) == 4  # settings, db, vector, fts
+        assert len(result.components) == 2  # settings, db
         assert result.issues == []
 
     def test_selective_checks(self, tmp_path: Path) -> None:
@@ -270,16 +270,13 @@ class TestCheckHealth:
                 log_level="INFO",
                 embedding_model="default",
             )
-            result = check_health(check_db=False, check_vector=False, check_fts=False)
+            result = check_health(check_db=False)
 
         assert result.is_healthy is True
         assert len(result.components) == 1  # Only settings
 
     def test_partial_failure(self, tmp_path: Path) -> None:
         """Health check reports partial failures."""
-        vector_path = tmp_path / "vectors"
-        vector_path.mkdir()
-
         with (
             patch("catalog.store.database.get_engine") as mock_get_engine,
             patch("catalog.core.status.get_settings") as mock_settings,
@@ -287,11 +284,11 @@ class TestCheckHealth:
             mock_get_engine.side_effect = Exception("DB error")
             mock_settings.return_value = MagicMock(
                 database_path=tmp_path / "test.db",
-                vector_store_path=vector_path,
+                vector_store_path=tmp_path / "vectors",
                 log_level="INFO",
                 embedding_model="default",
             )
-            result = check_health(check_fts=False)
+            result = check_health()
 
         assert result.is_healthy is False
         assert len(result.issues) == 1

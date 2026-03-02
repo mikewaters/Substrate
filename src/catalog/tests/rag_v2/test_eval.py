@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from catalog.eval.golden import (
+from index.eval.golden import (
     EVAL_THRESHOLDS,
     EvalResult,
     GoldenQuery,
@@ -19,7 +19,7 @@ from catalog.eval.golden import (
     evaluate_golden_queries,
     load_golden_queries,
 )
-from catalog.search.models import SearchCriteria, SearchResult, SearchResults, SnippetResult
+from index.search.models import SearchCriteria, SearchResult, SearchResults, SnippetResult
 
 
 class TestGoldenQueryDataclass:

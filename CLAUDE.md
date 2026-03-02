@@ -9,6 +9,10 @@ You **do not care** about legacy behavior, migrations, or backwards compatibilit
 
 You do NOT create stubs, TODOs, or FIXMEs. You do the work NOW.
 
+## Workspace & Venv
+
+This is a **uv workspace**. Always use the **root workspace venv** -- never create or use sub-package venvs (e.g. `src/catalog/.venv`). The root `pyproject.toml` defines `[tool.uv.sources]` with editable path deps for all local packages. Run all commands (`uv run pytest`, `uv run python`, etc.) from the **project root**.
+
 ## Critical Operating Principles
 
 - **Use subagents whenever possible**

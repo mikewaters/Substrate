@@ -18,16 +18,15 @@ Example usage:
 from collections.abc import Generator
 from contextlib import contextmanager
 from functools import lru_cache
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-from sqlalchemy import Engine, create_engine, event
+from sqlalchemy import Engine, event
 from sqlalchemy.orm import Session, sessionmaker
+
+from agentlayer.database import create_engine_for_path  # noqa: F401
 
 from catalog.store.models.catalog import CatalogBase
 from catalog.store.models.content import ContentBase
-from catalog.store.fts import create_fts_table
-from catalog.store.fts_chunk import create_chunks_fts_table
 
 if TYPE_CHECKING:
     from catalog.core.settings import Settings
@@ -49,52 +48,6 @@ __all__ = [
 
 
 DatabaseName = Literal["catalog", "content"]
-
-
-def _set_sqlite_pragmas(dbapi_connection: Any, connection_record: Any) -> None:
-    """Set SQLite pragmas for optimal performance and data integrity.
-
-    Enables:
-    - WAL mode for better concurrent access
-    - Foreign key enforcement
-    - Synchronous mode for durability
-    """
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL")
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.execute("PRAGMA synchronous=NORMAL")
-    cursor.close()
-
-
-def create_engine_for_path(database_path: Path, *, echo: bool = False) -> Engine:
-    """Create a SQLAlchemy engine for the given database path.
-
-    Creates the parent directory if it doesn't exist.
-    Does NOT create tables - use DatabaseRegistry for full initialization.
-
-    Args:
-        database_path: Path to the SQLite database file.
-        echo: If True, log all SQL statements (default: False).
-
-    Returns:
-        A configured SQLAlchemy Engine instance.
-    """
-    # Ensure parent directory exists
-    database_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Create engine with SQLite-specific settings.
-    # timeout: seconds to wait for lock; avoids immediate "database is locked"
-    # when a single writer is busy (e.g. another process or tool).
-    engine = create_engine(
-        f"sqlite:///{database_path}",
-        echo=echo,
-        pool_pre_ping=True,
-        connect_args={"timeout": 30},
-    )
-    # Register pragma listener BEFORE using the engine
-    event.listen(engine, "connect", _set_sqlite_pragmas)
-
-    return engine
 
 
 class DatabaseRegistry:
@@ -133,7 +86,17 @@ class DatabaseRegistry:
         CatalogBase.metadata.create_all(self._engines["catalog"])
         ContentBase.metadata.create_all(self._engines["content"])
 
+        # 2b. Create LLM cache tables (separate DeclarativeBase in agentlayer)
+        from agentlayer.llm_cache import LLMCacheBase
+
+        LLMCacheBase.metadata.create_all(self._engines["catalog"])
+
         # 3. Create FTS virtual tables (not managed by SQLAlchemy metadata)
+        # Deferred import to avoid circular dependency:
+        # database -> index.store -> index.store.cleanup -> catalog.ingest -> catalog.store.database
+        from index.store.fts import create_fts_table
+        from index.store.fts_chunk import create_chunks_fts_table
+
         create_fts_table(self._engines["catalog"])
         create_chunks_fts_table(self._engines["catalog"])
 

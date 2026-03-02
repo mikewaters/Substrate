@@ -116,7 +116,7 @@ class ObsidianMarkdownNormalize(TransformComponent):
             cleaned = _normalize_callouts(cleaned)
             cleaned = _collapse_blank_lines(cleaned)
 
-            node.text = cleaned
+            node.set_content(cleaned)
         return nodes
 
 # Compile once at module scope

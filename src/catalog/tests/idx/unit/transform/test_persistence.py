@@ -11,11 +11,11 @@ from llama_index.core.schema import Document as LlamaDocument
 from sqlalchemy.orm import sessionmaker
 
 from catalog.store.database import Base, create_engine_for_path
-from catalog.store.fts import create_fts_table
-from catalog.store.fts_chunk import create_chunks_fts_table
+from index.store.fts import create_fts_table
+from index.store.fts_chunk import create_chunks_fts_table
 from catalog.store.models import Dataset
 from catalog.store.repositories import DocumentRepository
-from catalog.store.session_context import use_session
+from agentlayer.session import use_session
 from catalog.transform.llama import PersistenceTransform, _compute_content_hash
 
 
@@ -166,6 +166,21 @@ class TestPersistenceTransform:
             hash2 = doc2.content_hash
 
         assert hash1 != hash2, "Metadata change must produce different content_hash"
+
+
+    def test_no_fts_calls(self, db_session, dataset):
+        """PersistenceTransform does not call FTSManager (FTS moved to index pipeline).
+
+        FTSManager is no longer importable from catalog.transform.llama,
+        so this test just verifies PersistenceTransform runs without
+        touching any FTS code (structurally guaranteed by the split).
+        """
+        transform = PersistenceTransform(dataset_id=dataset.id, dataset_name=dataset.name)
+        docs = _make_docs({"a.md": "AAA", "b.md": "BBB"})
+
+        with use_session(db_session):
+            result = transform(docs)
+            assert len(result) == 2
 
 
 class TestContentHash:
